@@ -1,6 +1,6 @@
 <template>
-  <SimpleCanvas @mouse-clicked="canvasClick" style="width: 100%; height: 95vh;">
-    <CanvasItem
+  <ProvidedCanvas style="width: 100%; height: 95vh;">
+    <ChartBox
         v-for="(obj, index) of chartValues"
         :key=index
         :x1="(index / chartValues.length) * 100"
@@ -9,22 +9,22 @@
         :y2="100 - obj.val"
         :color="obj.color"
         :value="obj.val"
-    ></CanvasItem>
-  </SimpleCanvas>
+    ></ChartBox>
+  </ProvidedCanvas>
 </template>
 
 <script setup>
 import {onMounted, ref} from 'vue'
-import SimpleCanvas from './components/SimpleCanvas.vue';
-import CanvasItem from './components/CanvasItemBase.vue';
+import ProvidedCanvas from './components/ProvidedCanvas.vue';
+import ChartBox from './components/ChartBox.vue';
 
 const chartValues = ref([
-  { val: 24, color: 'red' },
-  { val: 32, color: '#0f0' },
-  { val: 66, color: 'rebeccapurple' },
-  { val: 1, color: 'green' },
-  { val: 28, color: 'blue' },
-  { val: 60, color: 'rgba(150, 100, 0, 0.2)' },
+  {val: 24, color: 'red'},
+  {val: 32, color: '#0f0'},
+  {val: 66, color: 'rebeccapurple'},
+  {val: 1, color: 'green'},
+  {val: 28, color: 'blue'},
+  {val: 60, color: 'rgba(150, 100, 0, 0.2)'},
 ]);
 
 let dir = 1;
@@ -32,13 +32,13 @@ let selectedVal = randomChart();
 
 function randomize() {
   if (Math.random() > 0.995) dir *= -1; // select increase/decrease direction
-  if (Math.random() > 0.99) selectedVal = randomChart(); // new bar
+  if (Math.random() > 0.99) randomChart(); // new bar
 
   chartValues.value[selectedVal].val = newSlightlyChangedValue();
 }
 
 function randomChart() {
-  return Math.floor(Math.random() * chartValues.value.length);
+  return selectedVal = Math.floor(Math.random() * chartValues.value.length);
 }
 
 function newSlightlyChangedValue() {
@@ -46,26 +46,12 @@ function newSlightlyChangedValue() {
   return Math.min(
       Math.max(
           chartValues.value[selectedVal].val + dir * 0.5,
-          10),
+          0),
       100
   )
 }
 
 onMounted(() => setInterval(randomize, 16));
-
-function canvasClick() {
-  chartValues.value[randomChart()].color = getRandomColor();
-}
-
-var getRandomColor = () => {
-  var letters = '0123456789ABCDEF';
-  var color = '#';
-  for (var i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
-  }
-  return color;
-}
-
 </script>
 
 <style>
