@@ -1,45 +1,59 @@
 <template>
   <h3 style="font-size: 40px; font-weight: bold; font-style: italic;">MineSweeper!</h3>
   <div class="mine-controls">
-    <label>columns</label>
-    <input type="number" class="mine-controls-input" v-model="tableCols" />
-    <label>rows</label>
-    <input type="number" class="mine-controls-input" v-model="tableRows" />
-    <label>mines</label>
-    <input type="number" class="mine-controls-input" v-model="tableMines" />
-    <button @click="resetGame">RESET GAME</button>
+    <label for="colsAmount">columns:</label>
+    <input id="colsAmount" type="number" class="mine-controls-input" v-model="tableCols" />
+    <label for="rowsAmount">rows:</label>
+    <input id="rowsAmount" type="number" class="mine-controls-input" v-model="tableRows" />
+    <label for="minesAmount">mines:</label>
+    <input id="minesAmount" type="number" class="mine-controls-input" v-model="tableMines" />
   </div>
-  <table class="mine-table">
-    <tr v-for="(row, rowIndex) in tableRows" :key="'row' + row">
-      <td class="cell-empty"
-          v-for="(col, colIndex) in tableCols" :key="'col' + col">
-        {{ getValue(rowIndex, colIndex ) }}
-      </td>
+  <div class="mine-controls">
+    <button class="mine-controls-button"  @click="resetGame">RESET FIELD</button>
+    <button class="mine-controls-button"  @click="resetValues">RESET VALUES</button>
+  </div>
+  <table class="mine-table" v-if="isValidField">
+    <tr v-for="row in tableRows" :key="'row' + row">
+      <MineSweeperCell
+          v-for="col in tableCols" :key="'col' + col"
+          :col="col - 1"
+          :row="row - 1"
+          :value="mineField[row - 1][col - 1]" />
     </tr>
   </table>
+  <div v-if="!isValidField">
+    <p style="color: red;">Game settings are not valid.</p>
+    <p>At least two rows, two columns and one mine are required.</p>
+    <p>Furthermore, amount of mines cannot surpass amount of cells.</p>
+  </div>
 </template>
 
 <script setup>
 import {ref, watchEffect} from "vue";
-
-/*
-<td class="{{ getValue(rowIndex, colIndex) < 0 ? 'cell-mine' : getValue(rowIndex, colIndex) > 0 ? 'cell-value' : 'cell-empty' }}"
- */
+import MineSweeperCell from "@/components/MineSweeperCell.vue";
 
 const tableRows = ref(10);
 const tableCols = ref(10);
 const tableMines = ref(5);
 
+function resetValues() {
+  tableRows.value = 10;
+  tableCols.value = 10;
+  tableMines.value = 5;
+}
+
 const mineField = ref([[]]); // rows array x column values
+const isValidField = ref(true);
+const isGameLost = ref(false);
 
 function randomNumber(min, max) {
-  return Math.floor(Math.random() * ((max - min) + 1)) + min;
+  return Math.floor(Math.random() * (max - min)) + min;
 }
 
 function randomCell() {
   return {
-    col: randomNumber(0, tableCols.value - 1),
-    row: randomNumber(0, tableRows.value - 1),
+    col: randomNumber(0, tableCols.value),
+    row: randomNumber(0, tableRows.value),
   }
 }
 
@@ -82,6 +96,7 @@ function resetGame() {
       if (!currValue || currValue > -1) setValue(col, row, calculateMinesAround(col, row));
     }
   }
+  isGameLost.value = false;
 }
 
 function calculateMinesAround(targetCol, targetRow) {
@@ -105,7 +120,10 @@ resetGame();
 watchEffect(() => {
   if (tableRows.value >= 2 && tableCols.value >= 2
       && tableMines.value >= 1 && tableMines.value <= tableRows.value * tableCols.value) {
+    isValidField.value = true;
     resetGame();
+  } else {
+    isValidField.value = false;
   }
 })
 
@@ -122,21 +140,11 @@ body {
 }
 .mine-controls {
 }
+.mine-controls-button,
+.mine-controls-input {
+  margin: 5px 10px;
+}
 .mine-controls-input {
   width: 40px;
-  margin: 10px 20px;
-}
-.cell-empty,
-.cell-value,
-.cell-mine {
-  padding: 5px;
-  border: 1px solid black;
-  width: 15px;
-}
-.cell-value {
-  background-color: #52da76;
-}
-.cell-mine {
-  background-color: lightcoral;
 }
 </style>
