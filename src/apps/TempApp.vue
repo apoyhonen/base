@@ -1,10 +1,11 @@
 <template>
-  <App />
+
 </template>
 
 <script setup>
-import App from "@/apps/CanvasCharts.vue";
+
 </script>
 
 <style>
+
 </style>

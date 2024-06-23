@@ -18,8 +18,8 @@
 </template>
 
 <script>
-import ProvidedCanvas from './components/ProvidedCanvas.vue';
-import ChartBox from './components/ChartBox.vue';
+import ProvidedCanvas from '../components/ProvidedCanvas.vue';
+import ChartBox from '../components/ChartBox.vue';
 
 export default {
   name: 'app',
