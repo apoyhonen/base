@@ -11,7 +11,7 @@
   </div>
   <table class="mine-table">
     <tr v-for="(row, rowIndex) in tableRows" :key="'row' + row">
-      <td class="cell-value"
+      <td class="cell-empty"
           v-for="(col, colIndex) in tableCols" :key="'col' + col">
         {{ getValue(rowIndex, colIndex ) }}
       </td>
@@ -20,12 +20,10 @@
 </template>
 
 <script setup>
-import {ref} from "vue";
+import {ref, watchEffect} from "vue";
 
 /*
-
 <td class="{{ getValue(rowIndex, colIndex) < 0 ? 'cell-mine' : getValue(rowIndex, colIndex) > 0 ? 'cell-value' : 'cell-empty' }}"
-
  */
 
 const tableRows = ref(10);
@@ -34,16 +32,34 @@ const tableMines = ref(5);
 
 const mineField = ref([[]]); // rows array x column values
 
+function randomNumber(min, max) {
+  return Math.floor(Math.random() * ((max - min) + 1)) + min;
+}
+
+function randomCell() {
+  return {
+    col: randomNumber(0, tableCols.value - 1),
+    row: randomNumber(0, tableRows.value - 1),
+  }
+}
+
+function getValue(col, row) {
+  return mineField.value[row][col];
+}
+
+function setValue(col, row, value) {
+  mineField.value[row][col] = value;
+}
+
 function initRowArrays() {
   for (let row = 0; row < 500; row++) {
     mineField.value[row] = [];
   }
 }
-initRowArrays(); // init
 
 function resetTable() {
-  for (let row = 0; row < tableRows.value; row++) {
-    for (let col = 0; col < tableCols.value; col++) {
+  for (let row = 0; row < tableRows.value + 2; row++) {
+    for (let col = 0; col < tableCols.value + 2; col++) {
       setValue(col, row, 0);
     }
   }
@@ -54,50 +70,44 @@ function resetGame() {
   let mines = 0;
   while (mines < tableMines.value) {
     const cell = randomCell();
-    const value = getValue(cell.x, cell.y);
-    if (value > -1) {
-      setValue(cell.x, cell.y, -1);
+    const value = getValue(cell.col, cell.row);
+    if (!value || value > -1) {
+      setValue(cell.col, cell.row, -1);
       mines++;
     }
   }
-  for (let y = 0; y < tableRows.value; y++) {
-    for (let x = 0; x < tableCols.value; x++) {
-      if (getValue(x, y) > -1) setValue(x, y, calculateMinesAround(x, y));
+  for (let row = 0; row < tableRows.value; row++) {
+    for (let col = 0; col < tableCols.value; col++) {
+      const currValue = getValue(col, row);
+      if (!currValue || currValue > -1) setValue(col, row, calculateMinesAround(col, row));
     }
   }
 }
-resetGame(); // init
 
-function randomCell() {
-  return {
-    x: randomNumber(1, tableCols.value) - 1,
-    y: randomNumber(1, tableRows.value) - 1,
-  }
-}
-
-function getValue(x, y) {
-  return mineField.value[y][x];
-}
-
-function setValue(x, y, value) {
-  mineField.value[y][x] = value;
-}
-
-function calculateMinesAround(x, y) {
+function calculateMinesAround(targetCol, targetRow) {
   let value = 0;
   // search +-1 row and +-1 column for mines
-  for (let row = Math.max(0, y - 1); row <= Math.min(tableRows.value, y + 1); row++) {
-    for (let col = Math.max(0, x - 1); col <= Math.min(tableCols.value, x + 1); col++) {
-      if (row === y && col === x) continue; // don't test cell itself
-      if (getValue(col, row) < 0) value++;
+  for (let row = Math.max(0, targetRow - 1); row <= Math.min(tableRows.value, targetRow + 1); row++) {
+    for (let col = Math.max(0, targetCol - 1); col <= Math.min(tableCols.value, targetCol + 1); col++) {
+      if (row === targetRow && col === targetCol) continue; // don't test cell itself
+      const currValue = getValue(col, row);
+      if (currValue && currValue < 0) value++;
     }
   }
   return value;
 }
 
-function randomNumber(min, max) {
-  return Math.floor(Math.random() * (max + 1) + min);
-}
+// INIT
+
+initRowArrays();
+resetGame();
+
+watchEffect(() => {
+  if (tableRows.value >= 2 && tableCols.value >= 2
+      && tableMines.value >= 1 && tableMines.value <= tableRows.value * tableCols.value) {
+    resetGame();
+  }
+})
 
 </script>
 
