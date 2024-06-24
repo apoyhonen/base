@@ -10,15 +10,16 @@
   </div>
   <div class="mine-controls">
     <button class="mine-controls-button"  @click="resetGame">RESET FIELD</button>
-    <button class="mine-controls-button"  @click="resetValues">RESET VALUES</button>
+    <button class="mine-controls-button"  @click="resetValuesAndGame">RESET VALUES</button>
   </div>
-  <table class="mine-table" v-if="isValidField">
+  <table class="mine-table" v-if="isValidField" @contextmenu.prevent>
     <tr v-for="row in tableRows" :key="'row' + row">
       <MineSweeperCell
           v-for="col in tableCols" :key="'col' + col"
           :col="col - 1"
           :row="row - 1"
-          :value="mineField[row - 1][col - 1]" />
+          :value="mineField[row - 1][col - 1]"
+          :reset-counter="resetCounter" />
     </tr>
   </table>
   <div v-if="!isValidField">
@@ -29,22 +30,23 @@
 </template>
 
 <script setup>
-import {ref, watchEffect} from "vue";
+import { ref } from "vue";
 import MineSweeperCell from "@/components/MineSweeperCell.vue";
 
 const tableRows = ref(10);
 const tableCols = ref(10);
 const tableMines = ref(5);
+const resetCounter = ref(0);
 
-function resetValues() {
+function resetValuesAndGame() {
   tableRows.value = 10;
   tableCols.value = 10;
   tableMines.value = 5;
+  resetGame();
 }
 
 const mineField = ref([[]]); // rows array x column values
 const isValidField = ref(true);
-const isGameLost = ref(false);
 
 function randomNumber(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
@@ -72,6 +74,7 @@ function initRowArrays() {
 }
 
 function resetTable() {
+  resetCounter.value++; // resets cell states
   for (let row = 0; row < tableRows.value + 2; row++) {
     for (let col = 0; col < tableCols.value + 2; col++) {
       setValue(col, row, 0);
@@ -80,52 +83,42 @@ function resetTable() {
 }
 
 function resetGame() {
-  resetTable();
-  let mines = 0;
-  while (mines < tableMines.value) {
-    const cell = randomCell();
-    const value = getValue(cell.col, cell.row);
-    if (!value || value > -1) {
-      setValue(cell.col, cell.row, -1);
-      mines++;
+  if (tableRows.value >= 2 && tableCols.value >= 2
+      && tableMines.value >= 1 && tableMines.value <= tableRows.value * tableCols.value) {
+    isValidField.value = true;
+
+    // actual reset
+    resetTable();
+    let mines = 0;
+    while (mines < tableMines.value) {
+      const cell = randomCell();
+      const value = getValue(cell.col, cell.row);
+      if (!value || value !== -1) {
+        setValue(cell.col, cell.row, -1);
+        addOneToValuesAround(cell.col, cell.row);
+        mines++;
+      }
     }
+  } else {
+    isValidField.value = false;
   }
-  for (let row = 0; row < tableRows.value; row++) {
-    for (let col = 0; col < tableCols.value; col++) {
-      const currValue = getValue(col, row);
-      if (!currValue || currValue > -1) setValue(col, row, calculateMinesAround(col, row));
-    }
-  }
-  isGameLost.value = false;
 }
 
-function calculateMinesAround(targetCol, targetRow) {
-  let value = 0;
-  // search +-1 row and +-1 column for mines
+function addOneToValuesAround(targetCol, targetRow) {
+  // search +-1 row and +-1 column for adding 1 to value
   for (let row = Math.max(0, targetRow - 1); row <= Math.min(tableRows.value, targetRow + 1); row++) {
     for (let col = Math.max(0, targetCol - 1); col <= Math.min(tableCols.value, targetCol + 1); col++) {
-      if (row === targetRow && col === targetCol) continue; // don't test cell itself
+      if (row === targetRow && col === targetCol) continue; // don't mind target cell
       const currValue = getValue(col, row);
-      if (currValue && currValue < 0) value++;
+      if (!currValue || currValue > -1) setValue(col, row, currValue + 1); // add 1 value to non-mines
     }
   }
-  return value;
 }
 
 // INIT
 
 initRowArrays();
-resetGame();
-
-watchEffect(() => {
-  if (tableRows.value >= 2 && tableCols.value >= 2
-      && tableMines.value >= 1 && tableMines.value <= tableRows.value * tableCols.value) {
-    isValidField.value = true;
-    resetGame();
-  } else {
-    isValidField.value = false;
-  }
-})
+resetValuesAndGame();
 
 </script>
 
