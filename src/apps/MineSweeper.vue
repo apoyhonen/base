@@ -12,7 +12,10 @@
     <button class="mine-controls-button"  @click="resetGame">RESET FIELD</button>
     <button class="mine-controls-button"  @click="resetValuesAndGame">RESET VALUES</button>
   </div>
-  <table class="mine-table" v-if="isValidField" @contextmenu.prevent>
+
+  <table class="mine-table"
+         v-if="isValidField"
+         @contextmenu.prevent>
     <tr v-for="row in tableRows" :key="'row' + row">
       <MineSweeperCell
           v-for="col in tableCols" :key="'row' + row + 'col' + col"
@@ -21,13 +24,20 @@
           :value="mineField[row - 1][col - 1]"
           :reset-counter="resetCounter"
           :shown-empty-cell-array="shownEmptyCells"
-          @empty-click="emptyClicked"/>
+          :is-game-over="isGameOver"
+          @empty-click="emptyClicked"
+          @boom="isGameOver = true" />
     </tr>
   </table>
+
   <div v-if="!isValidField">
     <p style="color: red;">Game settings are not valid.</p>
     <p>At least two rows, two columns and one mine are required.</p>
     <p>Furthermore, amount of mines cannot surpass amount of cells.</p>
+  </div>
+
+  <div v-if="isGameOver">
+    <p style="color: red; font-weight: bold;">BOOM! Game Over :(</p>
   </div>
 </template>
 
@@ -39,7 +49,7 @@ const tableRows = ref(10);
 const tableCols = ref(10);
 const tableMines = ref(5);
 const resetCounter = ref(0);
-const shownEmptyCells = ref([])
+const shownEmptyCells = ref([]);
 
 function resetValuesAndGame() {
   tableRows.value = 10;
@@ -50,6 +60,7 @@ function resetValuesAndGame() {
 
 const mineField = ref([[]]); // rows array x column values
 const isValidField = ref(true);
+const isGameOver = ref(false);
 
 function randomNumber(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
@@ -89,6 +100,7 @@ function resetTable() {
 }
 
 function resetGame() {
+  isGameOver.value = false;
   if (tableRows.value >= 2 && tableCols.value >= 2
       && tableMines.value >= 1 && tableMines.value <= tableRows.value * tableCols.value) {
     isValidField.value = true;
@@ -126,7 +138,7 @@ function addOneToValuesAround(targetCol, targetRow) {
 function emptyClicked(clickCol, clickRow) {
   const cellsToOpen = [ { col: clickCol, row: clickRow } ];
 
-  // find all connected empty cells
+  // open all connected empty cells
   let exhausted = false;
   while (!exhausted) {
     let foundNew = false;

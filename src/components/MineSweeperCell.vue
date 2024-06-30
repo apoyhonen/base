@@ -14,6 +14,7 @@ const props = defineProps({
   value: Number,
   resetCounter: Number,
   shownEmptyCellArray: Array,
+  isGameOver: Boolean,
 })
 
 const cellValue = computed(() => props.value);
@@ -27,6 +28,7 @@ function getCellStyle(value) {
 const emit = defineEmits([ 'boom', 'emptyClick' ]);
 const open = ref(false);
 function openClick() {
+  if (props.isGameOver) return;
   open.value = true;
   const value = cellValue.value;
   if (value) {
@@ -58,7 +60,6 @@ watch(shownCells, () => {
     })
   }
 }, { deep: true })
-
 
 </script>
 
