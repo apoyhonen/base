@@ -124,28 +124,29 @@ function addOneToValuesAround(targetCol, targetRow) {
 // EVENTS FROM CELLS
 
 function emptyClicked(clickCol, clickRow) {
-  const emptyCellsToOpen = [ { col: clickCol, row: clickRow } ];
+  const cellsToOpen = [ { col: clickCol, row: clickRow } ];
 
+  // find all connected empty cells
   let exhausted = false;
   while (!exhausted) {
     let foundNew = false;
-    emptyCellsToOpen.forEach(cell => {
+    cellsToOpen.forEach(cell => {
       const targetCol = cell.col;
       const targetRow = cell.row;
 
       for (let row = Math.max(0, targetRow - 1); row <= Math.min(tableRows.value - 1, targetRow + 1); row++) {
-        if (emptyCellsToOpen.filter(cell => cell.row === row && cell.col === targetCol).length > 0) continue;
+        if (cellsToOpen.filter(cell => cell.row === row && cell.col === targetCol).length > 0) continue;
         if (isCellEmpty(targetCol, row)) {
           foundNew = true;
-          emptyCellsToOpen.push({ col: targetCol, row: row });
+          cellsToOpen.push({ col: targetCol, row: row });
         }
       }
 
       for (let col = Math.max(0, targetCol - 1); col <= Math.min(tableCols.value - 1, targetCol + 1); col++) {
-        if (emptyCellsToOpen.filter(cell => cell.row === targetRow && cell.col === col).length > 0) continue;
+        if (cellsToOpen.filter(cell => cell.row === targetRow && cell.col === col).length > 0) continue;
         if (isCellEmpty(col, targetRow)) {
           foundNew = true;
-          emptyCellsToOpen.push({ col: col, row: targetRow });
+          cellsToOpen.push({ col: col, row: targetRow });
         }
       }
     })
@@ -153,7 +154,20 @@ function emptyClicked(clickCol, clickRow) {
     if (!foundNew) exhausted = true;
   }
 
-  emptyCellsToOpen.forEach((cell) => shownEmptyCells.value.push(cell));
+  // open all adjacent-to-empty cells as well
+  cellsToOpen.forEach(cell => {
+    const targetCol = cell.col;
+    const targetRow = cell.row;
+
+    for (let row = Math.max(0, targetRow - 1); row <= Math.min(tableRows.value - 1, targetRow + 1); row++) {
+      for (let col = Math.max(0, targetCol - 1); col <= Math.min(tableCols.value - 1, targetCol + 1); col++) {
+        if (cellsToOpen.filter(cell => cell.row === row && cell.col === col).length > 0) continue;
+        cellsToOpen.push({ col: col, row: row });
+      }
+    }
+  })
+
+  cellsToOpen.forEach((cell) => shownEmptyCells.value.push(cell));
 }
 
 function isCellEmpty(col, row) {

@@ -48,10 +48,10 @@ watch(resetTrigger, () => {
   flagged.value = false;
 });
 
-const shownEmptyCells = ref(props.shownEmptyCellArray);
-watch(shownEmptyCells, () => {
-  if (open.value === false && cellValue.value === 0) { // if this is hidden and empty
-    shownEmptyCells.value.forEach(cell => {
+const shownCells = ref(props.shownEmptyCellArray);
+watch(shownCells, () => {
+  if (open.value === false) { // if this is hidden
+    shownCells.value.forEach(cell => {
       if (cell.col === props.col &&  cell.row === props.row) {
         open.value = true; // open if this should be shown
       }
