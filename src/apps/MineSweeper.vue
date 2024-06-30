@@ -47,7 +47,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import MineSweeperCell from "@/components/MineSweeperCell.vue";
 
 const tableRows = ref(10);
@@ -61,8 +61,19 @@ function resetValuesAndGame() {
   tableRows.value = 10;
   tableCols.value = 10;
   tableMines.value = 5;
-  resetGame();
 }
+
+watch(tableRows, () => {
+  resetGame();
+});
+
+watch(tableCols, () => {
+  resetGame();
+});
+
+watch(tableMines, () => {
+  resetGame();
+});
 
 const mineField = ref([[]]); // rows array x column values
 const isValidField = ref(true);
