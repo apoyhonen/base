@@ -6,13 +6,14 @@
 </template>
 
 <script setup>
-import { computed, defineProps, ref, watch } from "vue";
+import { computed, defineProps, ref, watch, defineEmits } from "vue";
 
 const props = defineProps({
   col: Number,
   row: Number,
   value: Number,
   resetCounter: Number,
+  shownEmptyCellArray: Array,
 })
 
 const cellValue = computed(() => props.value);
@@ -23,9 +24,16 @@ function getCellStyle(value) {
       : 'cell-empty';
 }
 
+const emit = defineEmits([ 'boom', 'emptyClick' ]);
 const open = ref(false);
 function openClick() {
   open.value = true;
+  const value = cellValue.value;
+  if (value) {
+    if (value === -1) emit('boom');
+  } else {
+    emit('emptyClick', props.col, props.row);
+  }
 }
 
 const flagged = ref(false);
@@ -39,6 +47,18 @@ watch(resetTrigger, () => {
   open.value = false;
   flagged.value = false;
 });
+
+const shownEmptyCells = ref(props.shownEmptyCellArray);
+watch(shownEmptyCells, () => {
+  if (open.value === false && cellValue.value === 0) { // if this is hidden and empty
+    shownEmptyCells.value.forEach(cell => {
+      if (cell.col === props.col &&  cell.row === props.row) {
+        open.value = true; // open if this should be shown
+      }
+    })
+  }
+}, { deep: true })
+
 
 </script>
 

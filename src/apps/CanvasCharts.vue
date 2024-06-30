@@ -15,8 +15,8 @@
 
 <script setup>
 import {onMounted, ref} from 'vue'
-import SimpleCanvas from './components/SimpleCanvas.vue';
-import CanvasItem from './components/CanvasItemBase.vue';
+import SimpleCanvas from '../components/SimpleCanvas.vue';
+import CanvasItem from '../components/CanvasItemBase.vue';
 
 const chartValues = ref([
   { val: 24, color: 'red' },

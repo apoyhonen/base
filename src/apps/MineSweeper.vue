@@ -15,11 +15,13 @@
   <table class="mine-table" v-if="isValidField" @contextmenu.prevent>
     <tr v-for="row in tableRows" :key="'row' + row">
       <MineSweeperCell
-          v-for="col in tableCols" :key="'col' + col"
+          v-for="col in tableCols" :key="'row' + row + 'col' + col"
           :col="col - 1"
           :row="row - 1"
           :value="mineField[row - 1][col - 1]"
-          :reset-counter="resetCounter" />
+          :reset-counter="resetCounter"
+          :shown-empty-cell-array="shownEmptyCells"
+          @empty-click="emptyClicked"/>
     </tr>
   </table>
   <div v-if="!isValidField">
@@ -37,6 +39,7 @@ const tableRows = ref(10);
 const tableCols = ref(10);
 const tableMines = ref(5);
 const resetCounter = ref(0);
+const shownEmptyCells = ref([])
 
 function resetValuesAndGame() {
   tableRows.value = 10;
@@ -80,6 +83,9 @@ function resetTable() {
       setValue(col, row, 0);
     }
   }
+  while (shownEmptyCells.value.length > 0) {
+    shownEmptyCells.value.pop();
+  }
 }
 
 function resetGame() {
@@ -106,13 +112,52 @@ function resetGame() {
 
 function addOneToValuesAround(targetCol, targetRow) {
   // search +-1 row and +-1 column for adding 1 to value
-  for (let row = Math.max(0, targetRow - 1); row <= Math.min(tableRows.value, targetRow + 1); row++) {
-    for (let col = Math.max(0, targetCol - 1); col <= Math.min(tableCols.value, targetCol + 1); col++) {
+  for (let row = Math.max(0, targetRow - 1); row <= Math.min(tableRows.value - 1, targetRow + 1); row++) {
+    for (let col = Math.max(0, targetCol - 1); col <= Math.min(tableCols.value - 1, targetCol + 1); col++) {
       if (row === targetRow && col === targetCol) continue; // don't mind target cell
       const currValue = getValue(col, row);
       if (!currValue || currValue > -1) setValue(col, row, currValue + 1); // add 1 value to non-mines
     }
   }
+}
+
+// EVENTS FROM CELLS
+
+function emptyClicked(clickCol, clickRow) {
+  const emptyCellsToOpen = [ { col: clickCol, row: clickRow } ];
+
+  let exhausted = false;
+  while (!exhausted) {
+    let foundNew = false;
+    emptyCellsToOpen.forEach(cell => {
+      const targetCol = cell.col;
+      const targetRow = cell.row;
+
+      for (let row = Math.max(0, targetRow - 1); row <= Math.min(tableRows.value - 1, targetRow + 1); row++) {
+        if (emptyCellsToOpen.filter(cell => cell.row === row && cell.col === targetCol).length > 0) continue;
+        if (isCellEmpty(targetCol, row)) {
+          foundNew = true;
+          emptyCellsToOpen.push({ col: targetCol, row: row });
+        }
+      }
+
+      for (let col = Math.max(0, targetCol - 1); col <= Math.min(tableCols.value - 1, targetCol + 1); col++) {
+        if (emptyCellsToOpen.filter(cell => cell.row === targetRow && cell.col === col).length > 0) continue;
+        if (isCellEmpty(col, targetRow)) {
+          foundNew = true;
+          emptyCellsToOpen.push({ col: col, row: targetRow });
+        }
+      }
+    })
+
+    if (!foundNew) exhausted = true;
+  }
+
+  emptyCellsToOpen.forEach((cell) => shownEmptyCells.value.push(cell));
+}
+
+function isCellEmpty(col, row) {
+  return getValue(col, row) === 0;
 }
 
 // INIT
