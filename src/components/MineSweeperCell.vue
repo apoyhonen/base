@@ -14,7 +14,7 @@ const props = defineProps({
   value: Number,
   resetCounter: Number,
   shownEmptyCellArray: Array,
-  isGameOver: Boolean,
+  preventClicks: Boolean,
 })
 
 const cellValue = computed(() => props.value);
@@ -25,10 +25,10 @@ function getCellStyle(value) {
       : 'cell-empty';
 }
 
-const emit = defineEmits([ 'boom', 'emptyClick' ]);
+const emit = defineEmits([ 'boom', 'emptyClick', 'flagged' ]);
 const open = ref(false);
 function openClick() {
-  if (props.isGameOver) return;
+  if (props.preventClicks) return;
   open.value = true;
   const value = cellValue.value;
   if (value) {
@@ -40,7 +40,9 @@ function openClick() {
 
 const flagged = ref(false);
 function rightClick() {
+  if (props.preventClicks) return;
   flagged.value = !flagged.value;
+  emit('flagged', props.col, props.row, flagged.value);
 }
 const hiddenCellStyle = computed(() => flagged.value ? 'cell-flagged' : 'cell-hidden');
 

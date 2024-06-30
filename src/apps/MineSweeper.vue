@@ -24,9 +24,10 @@
           :value="mineField[row - 1][col - 1]"
           :reset-counter="resetCounter"
           :shown-empty-cell-array="shownEmptyCells"
-          :is-game-over="isGameOver"
+          :prevent-clicks="isGameOver || isWin"
           @empty-click="emptyClicked"
-          @boom="isGameOver = true" />
+          @boom="isGameOver = true"
+          @flagged="flag" />
     </tr>
   </table>
 
@@ -39,6 +40,10 @@
   <div v-if="isGameOver">
     <p style="color: red; font-weight: bold;">BOOM! Game Over :(</p>
   </div>
+
+  <div v-if="isWin">
+    <p style="color: green; font-weight: bold;">You found all the mines! ^^</p>
+  </div>
 </template>
 
 <script setup>
@@ -50,6 +55,7 @@ const tableCols = ref(10);
 const tableMines = ref(5);
 const resetCounter = ref(0);
 const shownEmptyCells = ref([]);
+const flaggedCells = ref([]);
 
 function resetValuesAndGame() {
   tableRows.value = 10;
@@ -61,6 +67,7 @@ function resetValuesAndGame() {
 const mineField = ref([[]]); // rows array x column values
 const isValidField = ref(true);
 const isGameOver = ref(false);
+const isWin = ref(false);
 
 function randomNumber(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
@@ -94,13 +101,19 @@ function resetTable() {
       setValue(col, row, 0);
     }
   }
+
+  // empty temp cell arrays
   while (shownEmptyCells.value.length > 0) {
     shownEmptyCells.value.pop();
+  }
+  while (flaggedCells.value.length > 0) {
+    flaggedCells.value.pop();
   }
 }
 
 function resetGame() {
   isGameOver.value = false;
+  isWin.value = false;
   if (tableRows.value >= 2 && tableCols.value >= 2
       && tableMines.value >= 1 && tableMines.value <= tableRows.value * tableCols.value) {
     isValidField.value = true;
@@ -174,7 +187,7 @@ function emptyClicked(clickCol, clickRow) {
     for (let row = Math.max(0, targetRow - 1); row <= Math.min(tableRows.value - 1, targetRow + 1); row++) {
       for (let col = Math.max(0, targetCol - 1); col <= Math.min(tableCols.value - 1, targetCol + 1); col++) {
         if (cellsToOpen.filter(cell => cell.row === row && cell.col === col).length > 0) continue;
-        cellsToOpen.push({ col: col, row: row });
+        if (getValue(col, row) > 0) cellsToOpen.push({ col: col, row: row }); // only open adjacent non-empty cells
       }
     }
   })
@@ -184,6 +197,20 @@ function emptyClicked(clickCol, clickRow) {
 
 function isCellEmpty(col, row) {
   return getValue(col, row) === 0;
+}
+
+function flag(col, row, flagged) {
+  if (flagged) {
+    flaggedCells.value.push({ col: col, row: row });
+  } else {
+    const index = flaggedCells.value.findIndex(cell => cell.col === col && cell.row === row);
+    if (index > -1) flaggedCells.value.splice(index, 1);
+  }
+
+  // win game if (only) all mines flagged
+  const asManyFlagsAsMines = flaggedCells.value.length === tableMines.value;
+  const noFalseFlags = flaggedCells.value.filter(cell => getValue(cell.col, cell.row) !== -1).length === 0
+  isWin.value = asManyFlagsAsMines && noFalseFlags;
 }
 
 // INIT
