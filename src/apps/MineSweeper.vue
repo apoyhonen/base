@@ -1,5 +1,7 @@
 <template>
-  <h3 style="font-size: 40px; font-weight: bold; font-style: italic;">MineSweeper!</h3>
+
+  <h3 style="font-size: 40px; font-weight: bold; font-style: italic;">&#129529; MineSweeper! &#129529;</h3>
+
   <div class="mine-controls">
     <label for="colsAmount">columns:</label>
     <input id="colsAmount" type="number" class="mine-controls-input" v-model="tableCols" />
@@ -7,10 +9,13 @@
     <input id="rowsAmount" type="number" class="mine-controls-input" v-model="tableRows" />
     <label for="minesAmount">mines:</label>
     <input id="minesAmount" type="number" class="mine-controls-input" v-model="tableMines" />
+    <button class="mine-controls-button"  @click="resetValuesAndGame">
+      RESET VALUES
+    </button>
   </div>
-  <div class="mine-controls">
-    <button class="mine-controls-button"  @click="resetGame">RESET FIELD</button>
-    <button class="mine-controls-button"  @click="resetValuesAndGame">RESET VALUES</button>
+
+  <div :class="'mine-controls-button-reset ' + buttonStyle" @click="resetGame">
+    <span class="tooltip">Reset game</span>
   </div>
 
   <table class="mine-table"
@@ -42,12 +47,12 @@
   </div>
 
   <div v-if="isWin">
-    <p style="color: green; font-weight: bold;">You found all the mines! ^^</p>
+    <p style="color: green; font-weight: bold;">You found all the mines! WIN! ^^</p>
   </div>
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import MineSweeperCell from "@/components/MineSweeperCell.vue";
 
 const tableRows = ref(10);
@@ -157,6 +162,12 @@ function addOneToValuesAround(targetCol, targetRow) {
   }
 }
 
+const buttonStyle = computed(() => getButtonStyle(isGameOver.value, isWin.value))
+function getButtonStyle(gameOver, win) {
+  return gameOver ? "button-lose"
+      : win ? "button-win" : "button-reset";
+}
+
 // EVENTS FROM CELLS
 
 function emptyClicked(clickCol, clickRow) {
@@ -237,16 +248,53 @@ body {
   text-align: center;
   margin-top: 20px;
 }
-.mine-table {
-  margin: 10px auto;
-}
+
 .mine-controls {
+  margin: 10px auto;
 }
 .mine-controls-button,
 .mine-controls-input {
-  margin: 5px 10px;
+  margin: 1px 10px;
 }
 .mine-controls-input {
   width: 40px;
 }
+
+.mine-controls-button-reset {
+  background-size: contain;
+  width: 39px;
+  height: 39px;
+  margin: 0 auto;
+}
+.button-reset {
+  background-image: url("../assets/minesweeper/face_unpressed.svg");
+}
+.button-lose {
+  background-image: url("../assets/minesweeper/face_lose.svg");
+}
+.button-win {
+  background-image: url("../assets/minesweeper/face_win.svg");
+}
+.tooltip {
+  visibility: hidden;
+  width: 120px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+
+  position: absolute;
+  transform: translate(30px, 5px);
+  z-index: 1;
+}
+.mine-controls-button-reset:hover .tooltip {
+  visibility: visible;
+}
+
+.mine-table {
+  margin: 10px auto;
+  border: 3px solid grey;
+}
+
 </style>
