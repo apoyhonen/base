@@ -1,4 +1,6 @@
-# base
+# base -project
+
+Learning web development and creating small apps/games; often with Vue.
 
 ## Project setup
 ```
