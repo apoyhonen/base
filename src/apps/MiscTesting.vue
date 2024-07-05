@@ -1,5 +1,5 @@
 <template>
-  <img alt="Vue logo" src="../assets/logo.png">
+  <img alt="Vue logo" src="../assets/vue_logo.png">
   <h3>Testing... click on the squares!</h3>
   <br>
   <MiscTesting :class="'misc'"/>
