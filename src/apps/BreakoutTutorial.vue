@@ -11,6 +11,7 @@
     <p>x: {{ Math.floor(x) }}, y: {{ Math.floor(y) }}</p>
     <p>ball speed: {{ speed / 10 }}</p>
     <br>
+    <p>lives: {{ lives }}</p>
     <p>score: {{ score }}</p>
     <p>bricks remaining: {{ brickRowCount * brickColumnCount }}</p>
     <br>
@@ -27,6 +28,7 @@ import { onMounted, ref } from "vue";
 
 const frameCount = ref(1);
 const score = ref(0);
+const lives = ref(3);
 const isRunning = ref(true);
 let animationInterval = null;
 
@@ -65,7 +67,7 @@ function draw() {
   drawBall();
   drawPaddle();
   drawBricks();
-  drawScore();
+  drawScoreAndLives();
 }
 
 function clear() {
@@ -78,8 +80,14 @@ function stopReload() {
 }
 
 function gameOver() {
-  alert("GAME OVER!");
-  stopReload();
+  if (lives.value >= 1) {
+    lives.value--;
+    alert("You lost a life, keep trying!");
+    resetBall();
+  } else {
+    alert("GAME OVER!");
+    stopReload();
+  }
 }
 
 function win() {
@@ -87,10 +95,14 @@ function win() {
   stopReload();
 }
 
-function drawScore() {
-  ctx.font = "16px Arial bold";
+function drawScoreAndLives() {
+  ctx.font = "16px Arial";
+
   ctx.fillStyle = scoreColor;
-  ctx.fillText('Score: ' + score.value, 8, 20);
+  ctx.fillText('Score: ' + score.value, 20, 30);
+
+  ctx.fillStyle = scoreColor;
+  ctx.fillText('Lives: ' + lives.value, canvas.width - 75, 30);
 }
 
 // BALL
@@ -98,8 +110,23 @@ function drawScore() {
 const ballRadius = 12;
 const paddleGrace = 10;
 const speed = ref(30);
-let dx = speed.value / 10;
+let dx = getRandomResetX();
 let dy = -speed.value / 10;
+
+function resetBall() {
+  speed.value = 30;
+  dx = getRandomResetX();
+  dy = -speed.value / 10;
+
+  x = canvas.width / 2;
+  y = canvas.height - 100;
+  paddleX = (canvas.width - paddleWidth) / 2;
+}
+
+function getRandomResetX() {
+  const random = Math.random() - 0.5;
+  return speed.value / 10 * (random < 0 ? -1 : 1);
+}
 
 function checkBounceAndLimits() {
   if (x + dx - ballRadius < 0 || x + dx + ballRadius > canvas.width) dx = -dx;
@@ -193,7 +220,7 @@ const brickColumnCount = 6;
 const brickWidth = 100;
 const brickHeight = 20;
 const brickPadding = 30;
-const brickOffsetTop = 30;
+const brickOffsetTop = 50;
 const brickOffsetLeft = 30;
 
 const bricks = [];
