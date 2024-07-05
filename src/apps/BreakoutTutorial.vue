@@ -9,7 +9,7 @@
     <p>frame: {{ frameCount }}</p>
     <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
     <p>x: {{ Math.floor(x) }}, y: {{ Math.floor(y) }}</p>
-    <p>ball speed: {{ speed / 10 }}</p>
+    <p>ball speed: {{ speed / 100 }}</p>
     <br>
     <p>lives: {{ lives }}</p>
     <p>score: {{ score }}</p>
@@ -30,7 +30,7 @@ const frameCount = ref(1);
 const score = ref(0);
 const lives = ref(3);
 const isRunning = ref(true);
-let animationInterval = null;
+//let animationInterval = null;
 
 const ballColor = 'white';
 const paddleColor = 'grey';
@@ -50,7 +50,8 @@ onMounted(() => {
   y = canvas.height - 100;
   paddleX = (canvas.width - paddleWidth) / 2;
 
-  animationInterval = setInterval(draw, 10)
+  draw();
+  //animationInterval = setInterval(draw, 10)
 });
 
 function draw() {
@@ -68,6 +69,8 @@ function draw() {
   drawPaddle();
   drawBricks();
   drawScoreAndLives();
+
+  requestAnimationFrame(draw); // redraw as soon as animation frame is available
 }
 
 function clear() {
@@ -76,7 +79,7 @@ function clear() {
 
 function stopReload() {
   document.location.reload(); // refresh page
-  clearInterval(animationInterval); // stop animation
+  //clearInterval(animationInterval); // stop animation
 }
 
 function gameOver() {
@@ -109,14 +112,14 @@ function drawScoreAndLives() {
 
 const ballRadius = 12;
 const paddleGrace = 10;
-const speed = ref(30);
+const speed = ref(150);
 let dx = getRandomResetX();
-let dy = -speed.value / 10;
+let dy = -speed.value / 100;
 
 function resetBall() {
-  speed.value = 30;
+  speed.value = 150;
   dx = getRandomResetX();
-  dy = -speed.value / 10;
+  dy = -speed.value / 100;
 
   x = canvas.width / 2;
   y = canvas.height - 100;
@@ -125,7 +128,7 @@ function resetBall() {
 
 function getRandomResetX() {
   const random = Math.random() - 0.5;
-  return speed.value / 10 * (random < 0 ? -1 : 1);
+  return speed.value / 100 * (random < 0 ? -1 : 1);
 }
 
 function checkBounceAndLimits() {
@@ -145,7 +148,7 @@ function checkBounceAndLimits() {
 }
 
 function increaseBallSpeed() {
-  speed.value += 2;
+  speed.value += 5;
 
   if (dx < 0) dx -= 0.2;
   else dx += 0.2;
