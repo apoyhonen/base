@@ -4,11 +4,12 @@
     <title>Gamedev Canvas Workshop</title>
   </head>
   <body>
-  <canvas id="myCanvas" width="800" height="500"></canvas>
+  <canvas id="myCanvas" width="820" height="500"></canvas>
   <div>
     <p>frame: {{ count }}</p>
     <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
-    <p>x: {{ x }}, y: {{ y }}</p>
+    <p>x: {{ Math.floor(x) }}, y: {{ Math.floor(y) }}</p>
+    <p>ball speed: {{ speed / 10 }}</p>
     <br>
     Animation <button @click="isRunning = !isRunning">START / STOP</button>
   </div>
@@ -18,6 +19,8 @@
 <script setup>
 
 import { onMounted, ref } from "vue";
+
+// GAME
 
 const count = ref(1);
 const isRunning = ref(true);
@@ -39,29 +42,39 @@ onMounted(() => {
   animationInterval = setInterval(draw, 10)
 });
 
-const ballRadius = 12;
-let dx = 3;
-let dy = -3;
-
 function draw() {
   if (!isRunning.value) return;
   count.value++;
 
   clear();
   checkBounceAndLimits();
-
-  drawBall();
-  drawPaddle();
+  brickCollisionDetection();
 
   x += dx;
   y += dy;
+
+  drawBall();
+  drawPaddle();
+  drawBricks();
 }
 
 function clear() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
+function gameOver() {
+  alert("GAME OVER!");
+  document.location.reload(); // refresh page
+  clearInterval(animationInterval); // stop animation
+}
+
+// BALL
+
+const ballRadius = 12;
 const paddleGrace = 10;
+const speed = ref(30);
+let dx = speed.value / 10;
+let dy = -speed.value / 10;
 
 function checkBounceAndLimits() {
   if (x + dx - ballRadius < 0 || x + dx + ballRadius > canvas.width) dx = -dx;
@@ -79,13 +92,9 @@ function checkBounceAndLimits() {
   }
 }
 
-function gameOver() {
-  alert("GAME OVER!");
-  document.location.reload(); // refresh page
-  clearInterval(animationInterval); // stop animation
-}
-
 function increaseBallSpeed() {
+  speed.value += 2;
+
   if (dx < 0) dx -= 0.2;
   else dx += 0.2;
 
@@ -100,6 +109,8 @@ const drawBall = () => {
   ctx.fill();
   ctx.closePath();
 }
+
+// PADDLE
 
 function drawPaddle() {
   if (rightPressed) {
@@ -139,6 +150,71 @@ function keyUpHandler(e) {
     rightPressed = false;
   } else if (e.key === "Left" || e.key === "ArrowLeft" || e.key === "a") {
     leftPressed = false;
+  }
+}
+
+// BRICKS
+
+const brickRowCount = 4;
+const brickColumnCount = 6;
+const brickWidth = 100;
+const brickHeight = 20;
+const brickPadding = 30;
+const brickOffsetTop = 30;
+const brickOffsetLeft = 30;
+
+const bricks = [];
+for (let c = 0; c < brickColumnCount; c++) {
+  bricks[c] = [];
+  for (let r = 0; r < brickRowCount; r++) {
+    bricks[c][r] = { x: 0, y: 0, status: 1 };
+  }
+}
+
+function drawBricks() {
+  for (let c = 0; c < brickColumnCount; c++) {
+    for (let r = 0; r < brickRowCount; r++) {
+      if (bricks[c][r].status === 1) {
+        const brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+        const brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+
+        bricks[c][r].x = brickX;
+        bricks[c][r].y = brickY;
+
+        ctx.beginPath();
+        ctx.rect(brickX, brickY, brickWidth, brickHeight);
+        ctx.fillStyle = "#0095DD";
+        ctx.fill();
+        ctx.closePath();
+      }
+    }
+  }
+}
+
+function brickCollisionDetection() {
+  for (let c = 0; c < brickColumnCount; c++) {
+    for (let r = 0; r < brickRowCount; r++) {
+      const b = bricks[c][r];
+
+      let changed = false;
+      if (b.status === 1) {
+        // hitting sides of the brick
+        if (x > b.x - ballRadius && x < b.x + brickWidth + ballRadius
+            && y > b.y && y < b.y + brickHeight) {
+          dx = -dx;
+          changed = true;
+        }
+
+        // hitting under/upper sides of the brick
+        if (x > b.x && x < b.x + brickWidth
+            && y > b.y - ballRadius && y < b.y + brickHeight + ballRadius) {
+          dy = -dy;
+          changed = true;
+        }
+
+        if (changed) b.status = 0;
+      }
+    }
   }
 }
 
