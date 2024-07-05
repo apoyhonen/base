@@ -6,10 +6,13 @@
   <body>
   <canvas id="myCanvas" width="820" height="500"></canvas>
   <div>
-    <p>frame: {{ count }}</p>
+    <p>frame: {{ frameCount }}</p>
     <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
     <p>x: {{ Math.floor(x) }}, y: {{ Math.floor(y) }}</p>
     <p>ball speed: {{ speed / 10 }}</p>
+    <br>
+    <p>score: {{ score }}</p>
+    <p>bricks remaining: {{ brickRowCount * brickColumnCount }}</p>
     <br>
     Animation <button @click="isRunning = !isRunning">START / STOP</button>
   </div>
@@ -22,9 +25,15 @@ import { onMounted, ref } from "vue";
 
 // GAME
 
-const count = ref(1);
+const frameCount = ref(1);
+const score = ref(0);
 const isRunning = ref(true);
 let animationInterval = null;
+
+const ballColor = 'white';
+const paddleColor = 'grey';
+const brickColors = [ 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'turquoise'];
+const scoreColor = 'white';
 
 let canvas = null;
 let ctx = null;
@@ -44,7 +53,7 @@ onMounted(() => {
 
 function draw() {
   if (!isRunning.value) return;
-  count.value++;
+  frameCount.value++;
 
   clear();
   checkBounceAndLimits();
@@ -56,16 +65,32 @@ function draw() {
   drawBall();
   drawPaddle();
   drawBricks();
+  drawScore();
 }
 
 function clear() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function gameOver() {
-  alert("GAME OVER!");
+function stopReload() {
   document.location.reload(); // refresh page
   clearInterval(animationInterval); // stop animation
+}
+
+function gameOver() {
+  alert("GAME OVER!");
+  stopReload();
+}
+
+function win() {
+  alert("YOU WIN, CONGRATULATIONS!");
+  stopReload();
+}
+
+function drawScore() {
+  ctx.font = "16px Arial bold";
+  ctx.fillStyle = scoreColor;
+  ctx.fillText('Score: ' + score.value, 8, 20);
 }
 
 // BALL
@@ -105,7 +130,7 @@ function increaseBallSpeed() {
 const drawBall = () => {
   ctx.beginPath();
   ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
-  ctx.fillStyle = "#0095DD";
+  ctx.fillStyle = ballColor;
   ctx.fill();
   ctx.closePath();
 }
@@ -121,7 +146,7 @@ function drawPaddle() {
 
   ctx.beginPath();
   ctx.rect(paddleX, canvas.height - paddleHeight - 20, paddleWidth, paddleHeight);
-  ctx.fillStyle = "#0095DD";
+  ctx.fillStyle = paddleColor;
   ctx.fill();
   ctx.closePath();
 }
@@ -183,13 +208,15 @@ function drawBricks() {
 
         ctx.beginPath();
         ctx.rect(brickX, brickY, brickWidth, brickHeight);
-        ctx.fillStyle = "#0095DD";
+        ctx.fillStyle = brickColors[c];
         ctx.fill();
         ctx.closePath();
       }
     }
   }
 }
+
+const brickGrace = ballRadius / 2;
 
 function brickCollisionDetection() {
   for (let c = 0; c < brickColumnCount; c++) {
@@ -199,7 +226,7 @@ function brickCollisionDetection() {
       let changed = false;
       if (b.status === 1) {
         // hitting sides of the brick
-        if (x > b.x - ballRadius && x < b.x + brickWidth + ballRadius
+        if (x > b.x - brickGrace && x < b.x + brickWidth + brickGrace
             && y > b.y && y < b.y + brickHeight) {
           dx = -dx;
           changed = true;
@@ -207,12 +234,19 @@ function brickCollisionDetection() {
 
         // hitting under/upper sides of the brick
         if (x > b.x && x < b.x + brickWidth
-            && y > b.y - ballRadius && y < b.y + brickHeight + ballRadius) {
+            && y > b.y - brickGrace && y < b.y + brickHeight + brickGrace) {
           dy = -dy;
           changed = true;
         }
 
-        if (changed) b.status = 0;
+        if (changed) {
+          b.status = 0;
+          score.value++;
+
+          if (score.value === brickRowCount * brickColumnCount) {
+            win(); // all bricks have been destroyed
+          }
+        }
       }
     }
   }
@@ -230,7 +264,7 @@ div {
   margin: 10px;
 }
 canvas {
-  background: #eee;
+  background: black;
   display: block;
   margin: 0 auto;
   border: 1px solid black;
