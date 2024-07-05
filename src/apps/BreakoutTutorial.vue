@@ -21,6 +21,7 @@ import { onMounted, ref } from "vue";
 
 const count = ref(1);
 const isRunning = ref(true);
+let animationInterval = null;
 
 let canvas = null;
 let ctx = null;
@@ -35,19 +36,19 @@ onMounted(() => {
   y = canvas.height - 100;
   paddleX = (canvas.width - paddleWidth) / 2;
 
-  setInterval(draw, 10)
+  animationInterval = setInterval(draw, 10)
 });
 
-const ballRadius = 10;
-let dx = 2;
-let dy = -2;
+const ballRadius = 12;
+let dx = 3;
+let dy = -3;
 
 function draw() {
   if (!isRunning.value) return;
   count.value++;
 
   clear();
-  checkBounce();
+  checkBounceAndLimits();
 
   drawBall();
   drawPaddle();
@@ -60,14 +61,36 @@ function clear() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function checkBounce() {
+const paddleGrace = 10;
+
+function checkBounceAndLimits() {
   if (x + dx - ballRadius < 0 || x + dx + ballRadius > canvas.width) dx = -dx;
-  if (y + dy - ballRadius < 0 || y + dy + ballRadius > canvas.height) dy = -dy;
+  if (y + dy - ballRadius < 0) dy = -dy;
+
+  if (y + dy + ballRadius > canvas.height) gameOver();
 
   const bottomX = x + dx + ballRadius;
-  if (bottomX <= paddleX + paddleWidth && bottomX >= paddleX) {
-    if (y + dy + ballRadius >= canvas.height - 20 - paddleHeightHalf) dy = -dy;
+  // if hitting paddle & heading down
+  if (bottomX <= paddleX + paddleWidth + paddleGrace && bottomX >= paddleX - paddleGrace
+      && y + dy + ballRadius >= canvas.height - 20 - paddleHeightHalf
+      && dy > 0) {
+    increaseBallSpeed();
+    dy = -dy;
   }
+}
+
+function gameOver() {
+  alert("GAME OVER!");
+  document.location.reload(); // refresh page
+  clearInterval(animationInterval); // stop animation
+}
+
+function increaseBallSpeed() {
+  if (dx < 0) dx -= 0.2;
+  else dx += 0.2;
+
+  if (dy < 0) dy -= 0.2;
+  else dy += 0.2;
 }
 
 const drawBall = () => {
@@ -94,7 +117,7 @@ function drawPaddle() {
 
 const paddleHeight = 10;
 const paddleHeightHalf = paddleHeight / 2;
-const paddleWidth = 75;
+const paddleWidth = 120;
 let paddleX = 0;
 
 let rightPressed = false;
