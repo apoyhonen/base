@@ -242,7 +242,7 @@ resetValuesAndGame();
 
 </script>
 
-<style>
+<style scoped>
 body {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   text-align: center;
