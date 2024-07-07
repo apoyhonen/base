@@ -1,10 +1,11 @@
 <template>
   <h3>Pong</h3>
-  <canvas id="myCanvas" width="820" height="500" @click="canvasClicked"></canvas>
+  <canvas id="myCanvas" width="1200" height="800" @click="canvasClicked"></canvas>
   <div>
     <br>
     <b>Game</b><br>
     <p>{{ leftScore }} : {{ rightScore }}</p>
+    <p>speed: {{ speedPercent }} %</p>
     <button @click="resetClicked">RESET</button>
     <br><br>
     <b>Animation</b><br>
@@ -39,6 +40,7 @@ onMounted(() => {
   ballY = canvas.height - 100;
   leftPaddleY = canvas.height - paddleHeight / 2;
   rightPaddleY = canvas.height - paddleHeight / 2;
+  rightPaddleX = canvas.width - 40;
 
   draw(); // init
 });
@@ -88,15 +90,15 @@ function drawScores() {
   c.font = "42px Arial";
   c.fillStyle = scoreColor;
 
-  c.fillText('' + leftScore.value, 40, 50);
+  c.fillText('' + leftScore.value, 60, 50);
   c.fillText(':', canvas.width / 2 - 5, 45);
-  c.fillText('' + rightScore.value, canvas.width - 45, 50);
+  c.fillText('' + rightScore.value, canvas.width - 100, 50);
 }
 
 // BALL
 
 const ballRadius = 12;
-//const paddleGrace = 10;
+const paddleGrace = 10;
 const speedPercent = ref(100);
 const speed = computed(() => 1.5 / 100 * speedPercent.value);
 let isBallMoving = false;
@@ -130,19 +132,22 @@ function randomDirectionSpeed() {
 }
 
 function checkBounceAndLimits() {
-  if (ballX + ballDeltaX - ballRadius < 0 || ballX + ballDeltaX + ballRadius > canvas.width) ballDeltaX = -ballDeltaX;
-  if (ballY + ballDeltaY - ballRadius < 0 || ballY + ballDeltaY + ballRadius > canvas.height) ballDeltaY = -ballDeltaY;
-/*
-  const bottomX = ballX + ballDeltaX + ballRadius;
-  // if hitting paddle & heading down
-  if (bottomX <= paddleX + paddleWidth + paddleGrace && bottomX >= paddleX - paddleGrace
-      && ballY + ballDeltaY + ballRadius >= canvas.height - 20 - paddleHeightHalf
-      && ballDeltaY > 0) {
+  const futureBallX = ballX + ballDeltaX;
+  const futureBallY = ballY + ballDeltaY
+  if (futureBallX - ballRadius < 0 || futureBallX + ballRadius > canvas.width) ballDeltaX = -ballDeltaX;
+  if (futureBallY - ballRadius < 0 || futureBallY + ballRadius > canvas.height) ballDeltaY = -ballDeltaY;
+
+  // hitting either paddle
+  const hittingLeftPaddle = futureBallY <= leftPaddleY + paddleHeight + paddleGrace && futureBallY >= leftPaddleY - paddleGrace
+      && futureBallX - ballRadius <= leftPaddleX + paddleWidth && ballDeltaX < 0;
+  const hittingRightPaddle = futureBallY <= rightPaddleY + paddleHeight + paddleGrace && futureBallY >= rightPaddleY - paddleGrace
+      && futureBallX + ballRadius >= rightPaddleX && ballDeltaX > 0;
+  if (hittingLeftPaddle || hittingRightPaddle) {
     increaseBallSpeed();
-    ballDeltaY = -ballDeltaY;
-  }*/
+    ballDeltaX = -ballDeltaX;
+  }
 }
-/*
+
 function increaseBallSpeed() {
   speedPercent.value += 5;
 
@@ -151,12 +156,14 @@ function increaseBallSpeed() {
 
   if (ballDeltaY < 0) ballDeltaY -= 0.2;
   else ballDeltaY += 0.2;
-}*/
+}
 
 // PADDLE
 
 const paddleHeight = 80;
 const paddleWidth = 10;
+const leftPaddleX = 40 - paddleWidth;
+let rightPaddleX = 0;
 let leftPaddleY = 0;
 let rightPaddleY = 0;
 
@@ -179,8 +186,8 @@ function drawPaddles() {
   }
 
   c.fillStyle = paddleColor;
-  c.fillRect(30 - paddleWidth, leftPaddleY, paddleWidth, paddleHeight); // left paddle
-  c.fillRect(canvas.width - 30, rightPaddleY, paddleWidth, paddleHeight); // right paddle
+  c.fillRect(leftPaddleX, leftPaddleY, paddleWidth, paddleHeight); // left paddle
+  c.fillRect(rightPaddleX, rightPaddleY, paddleWidth, paddleHeight); // right paddle
 }
 
 function resetPaddles() {
@@ -236,6 +243,7 @@ function mouseMoveHandler(e) {
   const relativeY = e.clientY - canvas.offsetTop;
   if (relativeY > 0 && relativeY < canvas.height) {
     leftPaddleY = relativeY - paddleHeight / 2;
+    rightPaddleY = relativeY - paddleHeight / 2;
   }
 }
 
