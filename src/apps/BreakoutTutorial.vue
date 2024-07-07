@@ -4,25 +4,27 @@
     <title>Gamedev Canvas Workshop</title>
   </head>
   <body>
-  <canvas id="myCanvas" width="820" height="500"></canvas>
+  <canvas id="myCanvas" width="820" height="500" @click="canvasClicked"></canvas>
   <div>
+    <br>
+    <b>Game</b><br>
+    <p>lives: {{ lives }}</p>
+    <p>score: {{ score }} / {{ brickRowCount * brickColumnCount }}</p>
+    <p>speed: {{ speedPercent }} %</p>
+    <button @click="resetClicked">RESET</button>
+    <br><br>
+    <b>Animation</b><br>
     <p>frame: {{ frameCount }}</p>
     <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
-    <p>x: {{ Math.floor(x) }}, y: {{ Math.floor(y) }}</p>
-    <p>ball speed: {{ speed / 100 }}</p>
-    <br>
-    <p>lives: {{ lives }}</p>
-    <p>score: {{ score }}</p>
-    <p>bricks remaining: {{ brickRowCount * brickColumnCount }}</p>
-    <br>
-    Animation <button @click="isRunning = !isRunning">START / STOP</button>
+    <p>BALL - x: {{ Math.floor(x) }}, y: {{ Math.floor(y) }}</p>
+    <button @click="isRunning = !isRunning">START / STOP</button>
   </div>
   </body>
 </template>
 
 <script setup>
 
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 
 // GAME
 
@@ -46,6 +48,8 @@ onMounted(() => {
   canvas = document.getElementById("myCanvas");
   ctx = canvas.getContext("2d");
 
+  canvas.p
+
   x = canvas.width / 2;
   y = canvas.height - 100;
   paddleX = (canvas.width - paddleWidth) / 2;
@@ -54,23 +58,28 @@ onMounted(() => {
   //animationInterval = setInterval(draw, 10)
 });
 
+watch(isRunning, () => {
+  if (isRunning.value) draw();
+})
+
 function draw() {
-  if (!isRunning.value) return;
   frameCount.value++;
 
   clear();
   checkBounceAndLimits();
   brickCollisionDetection();
 
-  x += dx;
-  y += dy;
+  if (isBallMoving) {
+    x += dx;
+    y += dy;
+  }
 
   drawBall();
   drawPaddle();
   drawBricks();
   drawScoreAndLives();
 
-  requestAnimationFrame(draw); // redraw as soon as animation frame is available
+  if (isRunning.value) requestAnimationFrame(draw); // redraw as soon as animation frame is available
 }
 
 function clear() {
@@ -78,12 +87,13 @@ function clear() {
 }
 
 function stopReload() {
-  document.location.reload(); // refresh page
+  resetClicked();
+  //document.location.reload(); // refresh page
   //clearInterval(animationInterval); // stop animation
 }
 
 function gameOver() {
-  if (lives.value >= 1) {
+  if (lives.value > 0) {
     lives.value--;
     alert("You lost a life, keep trying!");
     resetBall();
@@ -96,6 +106,18 @@ function gameOver() {
 function win() {
   alert("YOU WIN, CONGRATULATIONS!");
   stopReload();
+}
+
+function resetClicked() {
+  resetBricks();
+  resetValues();
+  resetBall();
+  isRunning.value = true;
+}
+
+function resetValues() {
+  lives.value = 3;
+  score.value = 0;
 }
 
 function drawScoreAndLives() {
@@ -112,23 +134,36 @@ function drawScoreAndLives() {
 
 const ballRadius = 12;
 const paddleGrace = 10;
-const speed = ref(150);
+const speedPercent = ref(100);
+const speed = computed(() => 1.5 / 100 * speedPercent.value);
+let isBallMoving = false;
 let dx = getRandomResetX();
-let dy = -speed.value / 100;
+let dy = -speed.value;
+
+function canvasClicked() {
+  if (isRunning.value) {
+    isBallMoving = !isBallMoving;
+  } else {
+    isRunning.value = true;
+    isBallMoving = true;
+  }
+}
 
 function resetBall() {
-  speed.value = 150;
+  speedPercent.value = 100;
   dx = getRandomResetX();
-  dy = -speed.value / 100;
+  dy = -speed.value;
 
   x = canvas.width / 2;
   y = canvas.height - 100;
   paddleX = (canvas.width - paddleWidth) / 2;
+
+  isBallMoving = false;
 }
 
 function getRandomResetX() {
   const random = Math.random() - 0.5;
-  return speed.value / 100 * (random < 0 ? -1 : 1);
+  return speed.value * (random < 0 ? -1 : 1);
 }
 
 function checkBounceAndLimits() {
@@ -148,7 +183,7 @@ function checkBounceAndLimits() {
 }
 
 function increaseBallSpeed() {
-  speed.value += 5;
+  speedPercent.value += 5;
 
   if (dx < 0) dx -= 0.2;
   else dx += 0.2;
@@ -198,6 +233,10 @@ function keyDownHandler(e) {
     rightPressed = true;
   } else if (e.key === "Left" || e.key === "ArrowLeft" || e.key === "a") {
     leftPressed = true;
+  } else if (e.key === 'p' && canvas.parentElement) {
+    isRunning.value = !isRunning.value;
+  } else if (e.key === 'r' && canvas.parentElement) {
+    resetClicked();
   }
 }
 
@@ -227,10 +266,14 @@ const brickOffsetTop = 50;
 const brickOffsetLeft = 30;
 
 const bricks = [];
-for (let c = 0; c < brickColumnCount; c++) {
-  bricks[c] = [];
-  for (let r = 0; r < brickRowCount; r++) {
-    bricks[c][r] = { x: 0, y: 0, status: 1 };
+resetBricks();
+
+function resetBricks() {
+  for (let c = 0; c < brickColumnCount; c++) {
+    bricks[c] = [];
+    for (let r = 0; r < brickRowCount; r++) {
+      bricks[c][r] = { x: 0, y: 0, status: 1 };
+    }
   }
 }
 
@@ -306,6 +349,5 @@ canvas {
   display: block;
   margin: 0 auto;
   border: 1px solid black;
-  cursor: none;
 }
 </style>
