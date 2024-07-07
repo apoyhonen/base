@@ -1,6 +1,6 @@
 <template>
 
-  <h3 style="font-size: 40px; font-weight: bold; font-style: italic;">&#129529; MineSweeper! &#129529;</h3>
+  <h3 id="mineSweeperHeader" style="font-size: 40px; font-weight: bold; font-style: italic;">&#129529; MineSweeper! &#129529;</h3>
 
   <div class="mine-controls">
     <label for="colsAmount">columns:</label>
@@ -9,7 +9,7 @@
     <input id="rowsAmount" type="number" class="mine-controls-input" v-model="tableRows" />
     <label for="minesAmount">mines:</label>
     <input id="minesAmount" type="number" class="mine-controls-input" v-model="tableMines" />
-    <button class="mine-controls-button"  @click="resetValuesAndGame">
+    <button class="mine-controls-button"  @click="resetValues">
       RESET VALUES
     </button>
   </div>
@@ -18,7 +18,7 @@
     <span class="tooltip">Reset game</span>
   </div>
 
-  <table class="mine-table"
+  <table class="mine-table" id="gameTable"
          v-if="isValidField"
          @contextmenu.prevent>
     <tr v-for="row in tableRows" :key="'row' + row">
@@ -52,7 +52,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import MineSweeperCell from "@/components/MineSweeperCell.vue";
 
 const tableRows = ref(10);
@@ -62,10 +62,11 @@ const resetCounter = ref(0);
 const shownEmptyCells = ref([]);
 const flaggedCells = ref([]);
 
-function resetValuesAndGame() {
+function resetValues() {
   tableRows.value = 10;
   tableCols.value = 10;
   tableMines.value = 5;
+  resetGame();
 }
 
 watch(tableRows, () => {
@@ -235,10 +236,24 @@ function flag(col, row, flagged) {
   isWin.value = asManyFlagsAsMines && noFalseFlags;
 }
 
+document.addEventListener("keydown", keyDownHandler, false);
+
+let headerElement = null;
+
+onMounted(() => {
+  headerElement = document.getElementById("mineSweeperHeader");
+})
+
+function keyDownHandler(e) {
+  if (e.key === 'r' && headerElement.parentElement) {
+    resetGame();
+  }
+}
+
 // INIT
 
 initRowArrays();
-resetValuesAndGame();
+resetValues();
 
 </script>
 

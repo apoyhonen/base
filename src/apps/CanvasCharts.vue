@@ -1,5 +1,5 @@
 <template>
-  <SimpleCanvas id="simpleCanvas" @mouse-clicked="canvasClick" style="width: 100%; height: 95vh;">
+  <SimpleCanvas id="simpleCanvas" @mouse-clicked="canvasClick" class="canvas">
     <CanvasItem
         v-for="(obj, index) of chartValues"
         :key=index
@@ -105,12 +105,8 @@ var getRandomColor = () => {
 </script>
 
 <style scoped>
-html,
-body {
-  margin: 0;
-  position: relative;
-  height: 98vh;
-  padding: 20px;
-  box-sizing: border-box;
+.canvas {
+  margin: 0 10px;
+  height: 80vh;
 }
 </style>
