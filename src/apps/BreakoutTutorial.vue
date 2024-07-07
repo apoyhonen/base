@@ -16,7 +16,7 @@
     <b>Animation</b><br>
     <p>frame: {{ frameCount }}</p>
     <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
-    <p>BALL - x: {{ Math.floor(x) }}, y: {{ Math.floor(y) }}</p>
+    <p>ball x: {{ Math.floor(ballX) }}, ball y: {{ Math.floor(ballY) }}</p>
     <button @click="isRunning = !isRunning">START / STOP</button>
   </div>
   </body>
@@ -41,17 +41,15 @@ const scoreColor = 'white';
 
 let canvas = null;
 let ctx = null;
-let x = 0;
-let y = 0;
+let ballX = 0;
+let ballY = 0;
 
 onMounted(() => {
   canvas = document.getElementById("myCanvas");
   ctx = canvas.getContext("2d");
 
-  canvas.p
-
-  x = canvas.width / 2;
-  y = canvas.height - 100;
+  ballX = canvas.width / 2;
+  ballY = canvas.height - 100;
   paddleX = (canvas.width - paddleWidth) / 2;
 
   draw();
@@ -70,8 +68,8 @@ function draw() {
   brickCollisionDetection();
 
   if (isBallMoving) {
-    x += dx;
-    y += dy;
+    ballX += dx;
+    ballY += dy;
   }
 
   drawBall();
@@ -154,8 +152,8 @@ function resetBall() {
   dx = getRandomResetX();
   dy = -speed.value;
 
-  x = canvas.width / 2;
-  y = canvas.height - 100;
+  ballX = canvas.width / 2;
+  ballY = canvas.height - 100;
   paddleX = (canvas.width - paddleWidth) / 2;
 
   isBallMoving = false;
@@ -167,15 +165,15 @@ function getRandomResetX() {
 }
 
 function checkBounceAndLimits() {
-  if (x + dx - ballRadius < 0 || x + dx + ballRadius > canvas.width) dx = -dx;
-  if (y + dy - ballRadius < 0) dy = -dy;
+  if (ballX + dx - ballRadius < 0 || ballX + dx + ballRadius > canvas.width) dx = -dx;
+  if (ballY + dy - ballRadius < 0) dy = -dy;
 
-  if (y + dy + ballRadius > canvas.height) gameOver();
+  if (ballY + dy + ballRadius > canvas.height) gameOver();
 
-  const bottomX = x + dx + ballRadius;
+  const bottomX = ballX + dx + ballRadius;
   // if hitting paddle & heading down
   if (bottomX <= paddleX + paddleWidth + paddleGrace && bottomX >= paddleX - paddleGrace
-      && y + dy + ballRadius >= canvas.height - 20 - paddleHeightHalf
+      && ballY + dy + ballRadius >= canvas.height - 20 - paddleHeightHalf
       && dy > 0) {
     increaseBallSpeed();
     dy = -dy;
@@ -194,7 +192,7 @@ function increaseBallSpeed() {
 
 const drawBall = () => {
   ctx.beginPath();
-  ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
+  ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
   ctx.fillStyle = ballColor;
   ctx.fill();
   ctx.closePath();
@@ -307,15 +305,15 @@ function brickCollisionDetection() {
       let changed = false;
       if (b.status === 1) {
         // hitting sides of the brick
-        if (x > b.x - brickGrace && x < b.x + brickWidth + brickGrace
-            && y > b.y && y < b.y + brickHeight) {
+        if (ballX > b.x - brickGrace && ballX < b.x + brickWidth + brickGrace
+            && ballY > b.y && ballY < b.y + brickHeight) {
           dx = -dx;
           changed = true;
         }
 
         // hitting under/upper sides of the brick
-        if (x > b.x && x < b.x + brickWidth
-            && y > b.y - brickGrace && y < b.y + brickHeight + brickGrace) {
+        if (ballX > b.x && ballX < b.x + brickWidth
+            && ballY > b.y - brickGrace && ballY < b.y + brickHeight + brickGrace) {
           dy = -dy;
           changed = true;
         }
