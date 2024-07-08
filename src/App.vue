@@ -1,12 +1,12 @@
 <template>
   <div class="buttonBanner">
-    <button class="appButton" @click="shownApp = 'smileyPong'">Pong</button>
+    <button class="appButton" @click="shownApp = 'pong'">Pong</button>
     <button class="appButton" @click="shownApp = 'breakout'">Breakout</button>
     <button class="appButton" @click="shownApp = 'minesweeper'">MineSweeper</button>
     <button class="appButton" @click="shownApp = 'canvascharts'">CanvasCharts</button>
     <button class="appButton" @click="shownApp = 'misctesting'">MiscTesting</button>
   </div>
-  <SmileyPong v-if="shownApp === 'smileyPong'"></SmileyPong>
+  <Pong v-if="shownApp === 'pong'"></Pong>
   <Breakout v-if="shownApp === 'breakout'"></Breakout>
   <MineSweeper v-if="shownApp === 'minesweeper'"></MineSweeper>
   <CanvasCharts v-if="shownApp === 'canvascharts'"></CanvasCharts>
@@ -14,11 +14,11 @@
 </template>
 
 <script setup>
-import SmileyPong from "@/apps/SmileyPong.vue";
-import Breakout from "@/apps/BreakoutTutorial.vue";
-import MineSweeper from "@/apps/MineSweeper.vue";
+
+import Pong from "@/apps/PongApp.vue";
+import Breakout from "@/apps/BreakoutApp.vue";
+import MineSweeper from "@/apps/MineSweeperApp.vue";
 import CanvasCharts from "@/apps/CanvasCharts.vue";
-//import CanvasChartsOriginal from "@/apps/CanvasChartsOriginal.vue";
 import MiscTesting from "@/apps/MiscTesting.vue";
 
 import { ref } from "vue";
@@ -26,19 +26,17 @@ import { ref } from "vue";
 const shownApp = ref("smileyPong");
 
 /*
-import Pong from "@/apps/SmileyPong.vue";
-import Breakout from "@/apps/BreakoutTutorial.vue";
-import MineSweeper from "@/apps/MineSweeper.vue";
+import Pong from "@/apps/PongApp.vue";
+import Breakout from "@/apps/BreakoutApp.vue";
+import MineSweeper from "@/apps/MineSweeperApp.vue";
 import CanvasCharts from "@/apps/CanvasCharts.vue";
-import App from "@/apps/CanvasChartsOriginal.vue";
 import MiscTesting from "@/apps/MiscTesting.vue";
+
+import CanvasChartsOriginal from "@/apps/CanvasChartsOriginal.vue";
 */
 </script>
 
 <style>
-#app {
-
-}
 body {
   text-align: center;
   margin: 0;
