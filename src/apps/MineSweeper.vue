@@ -6,7 +6,7 @@
     <span class="tooltip">Reset game</span>
   </div>
 
-  <table class="mine-table" id="gameTable"
+  <table class="mine-table"
          v-if="isValidField"
          @contextmenu.prevent>
     <tr v-for="row in tableRows" :key="'row' + row">

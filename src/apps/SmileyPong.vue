@@ -1,6 +1,11 @@
 <template>
   <h1>Pong</h1>
-  <canvas id="myCanvas" width="400" height="300" @click="canvasClicked"></canvas>
+  <div>
+    :
+    <span class="left-aligned">Right Player: {{ rightScore }}</span>
+    <span class="right-aligned">Left Player: {{ leftScore }}</span>
+  </div>
+  <canvas id="pongCanvas" width="400" height="300" @click="canvasClicked"></canvas>
   <div>
     <br>
     <p>
@@ -15,11 +20,17 @@
     <p>
       'P' to pause, 'R' to reset, 'Space' / 'Enter' / 'Mouse Click' to launch ball
     </p>
-
     <br>
+    Mouse control:
+    <button @click="mouseControlsBoth = true">Both</button>
+    vs
+    <button @click="mouseControlsBoth = false">Left</button>
+    <br><br>
+
     <b>Game</b><br>
     <p>{{ leftScore }} : {{ rightScore }}</p>
     <p>speed: {{ speedPercent }} %</p>
+    <br>
     <button @click="resetClicked">RESET</button>
     <br><br>
 
@@ -39,7 +50,10 @@ import { onMounted, ref, watch } from "vue";
 
 const ballColor = 'white';
 const paddleColor = 'white';
-const scoreColor = 'white';
+
+function isAppActive() {
+  return document.getElementById("pongCanvas") !== null;
+}
 
 let canvas = null;
 let c = null;
@@ -48,13 +62,13 @@ const frameCount = ref(1);
 const isRunning = ref(true);
 
 onMounted(() => {
-  canvas = document.getElementById("myCanvas");
+  canvas = document.getElementById("pongCanvas");
   canvas.width = window.innerWidth * 0.5;
-  canvas.height = window.innerHeight * 0.6;
+  canvas.height = window.innerHeight * 0.55;
   c = canvas.getContext("2d");
 
   ballX = canvas.width / 2;
-  ballY = canvas.height - 100;
+  ballY = canvas.height / 2;
   leftPaddleY = canvas.height - paddleHeight / 2;
   rightPaddleY = canvas.height - paddleHeight / 2;
   rightPaddleX = canvas.width - 40;
@@ -77,15 +91,21 @@ function draw() {
     ballY += ballDeltaY;
   }
 
+  drawFieldLines();
   drawBall();
   drawPaddles();
-  drawScores();
 
   if (isRunning.value) requestAnimationFrame(draw); // redraw as soon as animation frame is available
 }
 
 function clear() {
   c.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function drawFieldLines() {
+  c.strokeOpacity = 0.5;
+  c.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+  c.strokeRect(canvas.width / 2, 0, 1, canvas.height);
 }
 
 function resetClicked() {
@@ -103,22 +123,13 @@ function resetScores() {
   rightScore.value = 0;
 }
 
-function drawScores() {
-  c.font = "42px Arial";
-  c.fillStyle = scoreColor;
-
-  c.fillText('' + leftScore.value, 60, 50);
-  c.fillText(':', canvas.width / 2 - 5, 45);
-  c.fillText('' + rightScore.value, canvas.width - 100, 50);
-}
-
 // BALL
 
 const ballRadius = 12;
 const paddleGrace = 10;
 const speedPercent = ref(100);
 const defaultSpeed = 1.5;
-const incrementPercent = 5;
+const incrementPercent = 10;
 let isBallMoving = false;
 let ballX = 0;
 let ballY = 0;
@@ -147,23 +158,6 @@ function resetBall() {
 function randomDirectionSpeed() {
   const random = Math.random() - 0.5;
   return defaultSpeed / 100 * speedPercent.value * (random < 0 ? -1 : 1);
-}
-
-function checkBounceAndLimits() {
-  const futureBallX = ballX + ballDeltaX;
-  const futureBallY = ballY + ballDeltaY
-  if (futureBallX - ballRadius < 0 || futureBallX + ballRadius > canvas.width) ballDeltaX = -ballDeltaX;
-  if (futureBallY - ballRadius < 0 || futureBallY + ballRadius > canvas.height) ballDeltaY = -ballDeltaY;
-
-  // hitting either paddle
-  const hittingLeftPaddle = futureBallY <= leftPaddleY + paddleHeight + paddleGrace && futureBallY >= leftPaddleY - paddleGrace
-      && futureBallX - ballRadius <= leftPaddleX + paddleWidth && ballDeltaX < 0;
-  const hittingRightPaddle = futureBallY <= rightPaddleY + paddleHeight + paddleGrace && futureBallY >= rightPaddleY - paddleGrace
-      && futureBallX + ballRadius >= rightPaddleX && ballDeltaX > 0;
-  if (hittingLeftPaddle || hittingRightPaddle) {
-    increaseBallSpeed();
-    ballDeltaX = -ballDeltaX;
-  }
 }
 
 function increaseBallSpeed() {
@@ -210,6 +204,34 @@ function resetPaddles() {
   rightPaddleY = leftPaddleY = (canvas.height - paddleHeight) / 2; // both paddles to mid
 }
 
+// Collisions and game states
+
+function checkBounceAndLimits() {
+  // hitting top/bottom
+  const futureBallY = ballY + ballDeltaY
+  if (futureBallY - ballRadius < 0 || futureBallY + ballRadius > canvas.height) ballDeltaY = -ballDeltaY;
+
+  // hitting sides, score to opposing player!
+  const futureBallX = ballX + ballDeltaX;
+  if (futureBallX - ballRadius < 0) {
+    rightScore.value++;
+    resetBall();
+  } else if (futureBallX + ballRadius > canvas.width) {
+    leftScore.value++;
+    resetBall();
+  }
+
+  // hitting either paddle
+  const hittingLeftPaddle = futureBallY <= leftPaddleY + paddleHeight + paddleGrace && futureBallY >= leftPaddleY - paddleGrace
+      && futureBallX - ballRadius <= leftPaddleX + paddleWidth && ballDeltaX < 0;
+  const hittingRightPaddle = futureBallY <= rightPaddleY + paddleHeight + paddleGrace && futureBallY >= rightPaddleY - paddleGrace
+      && futureBallX + ballRadius >= rightPaddleX && ballDeltaX > 0;
+  if (hittingLeftPaddle || hittingRightPaddle) {
+    increaseBallSpeed();
+    ballDeltaX = -ballDeltaX;
+  }
+}
+
 // key and mouse listeners
 
 document.addEventListener("keydown", keyDownHandler, false);
@@ -217,6 +239,8 @@ document.addEventListener("keyup", keyUpHandler, false);
 document.addEventListener("mousemove", mouseMoveHandler, false);
 
 function keyDownHandler(e) {
+  if (!isAppActive()) return;
+
   // left paddle keys
   if (e.key === 'w') {
     leftUpPressed = true;
@@ -232,19 +256,21 @@ function keyDownHandler(e) {
   }
 
   // launch ball with Space / Enter
-  if ((e.key === ' ' || e.key === 'Enter') && canvas.parentElement) {
+  if ((e.key === ' ' || e.key === 'Enter')) {
     canvasClicked();
   }
 
   // reset & pause
-  if (e.key === 'p' && canvas.parentElement) {
+  if (e.key === 'p') {
     isRunning.value = !isRunning.value;
-  } else if (e.key === 'r' && canvas.parentElement) {
+  } else if (e.key === 'r') {
     resetClicked();
   }
 }
 
 function keyUpHandler(e) {
+  if (!isAppActive()) return;
+
   // left paddle keys
   if (e.key === 'w') {
     leftUpPressed = false;
@@ -260,11 +286,14 @@ function keyUpHandler(e) {
   }
 }
 
+const mouseControlsBoth = ref(false);
 function mouseMoveHandler(e) {
+  if (!isAppActive()) return;
+
   const relativeY = e.clientY - canvas.offsetTop;
   if (relativeY > 0 && relativeY < canvas.height) {
-    leftPaddleY = relativeY - paddleHeight / 2;
-    rightPaddleY = relativeY - paddleHeight / 2;
+    leftPaddleY = relativeY - paddleHeight / 2; // always move left paddle
+    if (mouseControlsBoth.value) rightPaddleY = relativeY - paddleHeight / 2; // only move right paddle, if toggled
   }
 }
 
@@ -288,5 +317,17 @@ canvas {
   display: block;
   margin: 0 auto;
   border: none;
+}
+.left-aligned,
+.right-aligned {
+  position: relative;
+  font-size: 42px;
+  margin: 0 0 10px 10px;
+}
+.left-aligned {
+  left: 23%;
+}
+.right-aligned {
+  right: 25%;
 }
 </style>

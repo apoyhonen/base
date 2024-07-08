@@ -4,7 +4,7 @@
     <title>Gamedev Canvas Workshop</title>
   </head>
   <body>
-  <canvas id="myCanvas" width="820" height="500" @click="canvasClicked"></canvas>
+  <canvas id="breakoutCanvas" width="820" height="500" @click="canvasClicked"></canvas>
   <div>
     <br>
     <p>
@@ -41,6 +41,10 @@
 
 import { computed, onMounted, ref, watch } from "vue";
 
+function isAppActive() {
+  return document.getElementById("breakoutCanvas") !== null;
+}
+
 // GAME
 
 const frameCount = ref(1);
@@ -60,7 +64,7 @@ let ballX = 0;
 let ballY = 0;
 
 onMounted(() => {
-  canvas = document.getElementById("myCanvas");
+  canvas = document.getElementById("breakoutCanvas");
   ctx = canvas.getContext("2d");
 
   ballX = canvas.width / 2;
@@ -242,20 +246,24 @@ document.addEventListener("keyup", keyUpHandler, false);
 document.addEventListener("mousemove", mouseMoveHandler, false);
 
 function keyDownHandler(e) {
+  if (!isAppActive()) return;
+
   if (e.key === "Right" || e.key === "ArrowRight" || e.key === 'd') {
     rightPressed = true;
   } else if (e.key === "Left" || e.key === "ArrowLeft" || e.key === "a") {
     leftPressed = true;
-  } else if (e.key === 'p' && canvas.parentElement) {
+  } else if (e.key === 'p') {
     isRunning.value = !isRunning.value;
-  } else if (e.key === 'r' && canvas.parentElement) {
+  } else if (e.key === 'r') {
     resetClicked();
-  } else if ((e.key === ' ' || e.key === 'Enter') && canvas.parentElement) {
+  } else if ((e.key === ' ' || e.key === 'Enter')) {
     canvasClicked();
   }
 }
 
 function keyUpHandler(e) {
+  if (!isAppActive()) return;
+
   if (e.key === "Right" || e.key === "ArrowRight" || e.key === 'd') {
     rightPressed = false;
   } else if (e.key === "Left" || e.key === "ArrowLeft" || e.key === "a") {
@@ -264,6 +272,8 @@ function keyUpHandler(e) {
 }
 
 function mouseMoveHandler(e) {
+  if (!isAppActive()) return;
+
   const relativeX = e.clientX - canvas.offsetLeft;
   if (relativeX > 0 && relativeX < canvas.width) {
     paddleX = relativeX - paddleWidth / 2;
