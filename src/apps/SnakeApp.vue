@@ -1,11 +1,350 @@
+<template>
+  <h2>Snake</h2>
+  <canvas id="snakeCanvas" width="400" height="300"></canvas>
+  <div>
+    <br>
+    <p>
+      <b>Controls</b>
+    </p>
+    <p>
+      Movement: Arrow Keys
+    </p>
+    <p>
+      'R' to reset
+    </p>
+    <br>
+
+    <b>Game</b><br>
+    <p>length: {{ snakeLength }} </p>
+    <p>direction: {{ snakeDirection }}</p>
+    <p>speed: {{ animationSpeedPercent }}</p>
+    <br>
+    Speed:
+    <button @click="animationSpeedPercent += 10">+</button>
+    <button @click="animationSpeedPercent -= 10">-</button>
+    <br><br>
+    <button @click="resetClicked">RESET</button>
+    <br><br>
+
+    <b>Animation</b><br>
+    <p>frame: {{ frameCount }}</p>
+    <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
+    <p>snake x: {{ snakeCol }}, snake y: {{ snakeRow }}</p>
+    <br>
+    <button @click="isRunning = !isRunning">START / STOP</button>
+    <br><br>
+
+    <label for="colsAmount">columns:</label>
+    <input id="colsAmount" type="number" class="controls-input" v-model="gridCols" />
+    <label for="rowsAmount">rows:</label>
+    <input id="rowsAmount" type="number" class="controls-input" v-model="gridRows" />
+    <button class="controls-button"  @click="resetValues">
+      RESET VALUES
+    </button>
+  </div>
+</template>
+
 <script setup>
+
+import { computed, onMounted, ref, watch } from "vue";
+
+let canvas = null;
+let c = null;
+
+const frameCount = ref(1);
+const isRunning = ref(true);
+const animationSpeedPercent = ref(100);
+const animationSpeedMS = computed(() => 50 / 100 * animationSpeedPercent.value);
+let animationInterval = null;
+
+onMounted(() => {
+  canvas = document.getElementById("pongCanvas");
+  canvas.width = window.innerWidth * 0.5;
+  canvas.height = window.innerHeight * 0.55;
+  c = canvas.getContext("2d");
+
+  resetGame();
+  startAnimation();
+});
+
+function startAnimation() {
+  animationInterval = setInterval(draw, animationSpeedMS.value);
+}
+
+function stopAnimation() {
+  clearInterval(animationInterval);
+}
+
+watch(isRunning, () => {
+  if (isRunning.value) startAnimation();
+  else stopAnimation();
+})
+
+watch(animationSpeedMS, () => {
+  stopAnimation();
+  startAnimation();
+})
+
+// game
+
+const defaultCols = 15;
+const defaultRows = 10;
+const gridCols = ref(defaultCols);
+const gridRows = ref(defaultRows);
+
+function draw() {
+  frameCount.value++;
+
+  if (anyDirectionalKeyPressed()) {
+    isSnakeMoving = true;
+
+    isHorizontal = leftPressed || rightPressed;
+
+    if (isHorizontal) {
+      horizontalDirection = leftPressed ? -1 : 1;
+    } else {
+      verticalDirection = upPressed ? -1 : 1;
+    }
+  }
+
+  clear();
+  checkLimits();
+
+  if (isSnakeMoving) {
+    if (isHorizontal) snakeCol += horizontalDirection;
+    else snakeRow += verticalDirection;
+  }
+
+  drawFieldLines();
+
+  drawSnake();
+  if (checkScore()) addGoalTile();
+
+  drawGoals();
+}
+
+function clear() {
+  c.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function checkLimits() {
+  if (isHorizontal) {
+    const newCol = snakeCol + horizontalDirection;
+    if (newCol < 1 || newCol > gridCols.value) gameOver();
+  } else {
+    const newRow = snakeRow + verticalDirection;
+    if (newRow < 1 || newRow > gridRows.value) gameOver();
+  }
+}
+
+function drawFieldLines() {
+  // TODO stroke rectangles for grid? vague grey
+  /*c.strokeOpacity = 0.5;
+  c.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+  c.strokeRect(canvas.width / 2, 0, 1, canvas.height);*/
+}
+
+function checkScore() {
+  if (removeGoal(snakeCol, snakeRow)) {
+    snakeLength++;
+  }
+  return false;
+}
+
+function resetValues() {
+  gridCols.value = defaultCols;
+  gridRows.value = defaultRows;
+  resetGame();
+}
+
+function resetGame() {
+  resetSnake();
+  resetGoals();
+}
+
+function gameOver() {
+  resetGame();
+  alert("Game over!")
+}
+
+// snake
+
+let snakeCol = 0;
+let snakeRow = 0;
+let horizontalDirection = 1;
+let verticalDirection = 1;
+let snakeLength = 1;
+let isSnakeMoving = false;
+let isHorizontal = true;
+const snakeDirection = computed(() => {
+  if (isHorizontal) {
+    return horizontalDirection > 0 ? 'right' : 'left';
+  } else {
+    return verticalDirection > 0 ? 'down' : 'up';
+  }
+})
+
+const snakeTiles = [];
+
+function resetSnake() {
+  snakeCol = Math.floor(gridCols.value / 2);
+  snakeRow = Math.floor(gridCols.value / 2);
+  horizontalDirection = 1;
+  verticalDirection = 1;
+  isHorizontal = true;
+  snakeLength = 1;
+
+  emptySnakeTiles();
+  addSnakeTile(snakeCol, snakeRow);
+}
+
+function emptySnakeTiles() {
+  while (snakeTiles.value.length > 0) snakeTiles.value.pop();
+}
+
+function addSnakeTile(col, row) {
+  snakeTiles.value.push({ col: col, row: row });
+}
+
+function isSnakeTile(targetCol, targetRow) {
+  return snakeTiles.value.filter(snakeTile => snakeTile.col === targetCol && snakeTile.row === targetRow).length > 0;
+}
+
+function drawSnake() {
+  // TODO draw snake
+}
+
+// goals
+
+const goalTiles = [];
+
+function isGoalTile(targetCol, targetRow) {
+  return goalTiles.value.filter(goalTile => goalTile.col === targetCol && goalTile.row === targetRow).length > 0;
+}
+
+function resetGoals() {
+  emptyGoals();
+
+  // init with two goals
+  addGoalTile();
+  addGoalTile();
+}
+
+function removeGoal(targetCol, targetRow) {
+  if (isGoalTile(targetCol, targetRow)) {
+    const goalTile = goalTiles.value.filter(goalTile => goalTile.col === targetCol && goalTile.row === targetRow)[0];
+    goalTiles.splice(goalTiles.indexOf(goalTile), 1);
+    return true;
+  }
+  false;
+}
+
+function emptyGoals() {
+  while (goalTiles.value.length > 0) goalTiles.value.pop();
+}
+
+function addGoalTile() {
+  let goalTile = null;
+  let i = 0;
+
+  while (++i > 500) {
+    const tile = randomTile();
+    if (!isSnakeTile(tile.col, tile.row) && !isGoalTile(tile.col, tile.row)) {
+      goalTile = tile;
+      break;
+    }
+  }
+
+  if (goalTile) goalTiles.push(goalTile);
+}
+
+function randomTile() {
+  return {
+    col: randomNumber(1, gridCols.value + 1),
+    row: randomNumber(1, gridRows.value + 1),
+  }
+}
+
+function randomNumber(min, max) {
+  return Math.floor(Math.random() * (max - min)) + min;
+}
+
+function drawGoals() {
+  // TODO draw goals
+}
+
+// key & mouse listeners
+
+document.addEventListener("keydown", keyDownHandler, false);
+document.addEventListener("keyup", keyUpHandler, false);
+
+function isAppActive() {
+  return document.getElementById("snakeCanvas") !== null;
+}
+
+let upPressed = false;
+let downPressed = false;
+let leftPressed = false;
+let rightPressed = false;
+
+function keyDownHandler(e) {
+  if (!isAppActive()) return;
+
+  // direction keys
+  if (e.key === "Up" || e.key === "ArrowUp") {
+    upPressed = true;
+  } else if (e.key === "Down" || e.key === "ArrowDown") {
+    downPressed = true;
+  } else if (e.key === "Left" || e.key === "ArrowLeft") {
+    leftPressed = true;
+  } else if (e.key === "Right" || e.key === "ArrowRight") {
+    rightPressed = true;
+  }
+
+  // reset & pause
+  if (e.key === 'p') {
+    isRunning.value = !isRunning.value;
+  } else if (e.key === 'r') {
+    resetGame();
+  }
+}
+
+function keyUpHandler(e) {
+  if (!isAppActive()) return;
+
+  // direction keys
+  if (e.key === "Up" || e.key === "ArrowUp") {
+    upPressed = false;
+  } else if (e.key === "Down" || e.key === "ArrowDown") {
+    downPressed = false;
+  } else if (e.key === "Left" || e.key === "ArrowLeft") {
+    leftPressed = false;
+  } else if (e.key === "Right" || e.key === "ArrowRight") {
+    rightPressed = false;
+  }
+}
+
+function anyDirectionalKeyPressed() {
+  return upPressed || downPressed || leftPressed || rightPressed;
+}
 
 </script>
 
-<template>
-
-</template>
-
 <style scoped>
-
+p {
+  margin: 0;
+}
+canvas {
+  background: moccasin;
+  display: block;
+  margin: 0 auto;
+  border: 1px solid black;
+}
+.controls-button,
+.controls-input {
+  margin: 1px 10px;
+}
+.controls-input {
+  width: 40px;
+}
 </style>

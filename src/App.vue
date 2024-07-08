@@ -1,11 +1,13 @@
 <template>
   <div class="buttonBanner">
+    <button class="appButton" @click="shownApp = 'snake'">Snake</button>
     <button class="appButton" @click="shownApp = 'pong'">Pong</button>
     <button class="appButton" @click="shownApp = 'breakout'">Breakout</button>
     <button class="appButton" @click="shownApp = 'minesweeper'">MineSweeper</button>
     <button class="appButton" @click="shownApp = 'canvascharts'">CanvasCharts</button>
     <button class="appButton" @click="shownApp = 'misctesting'">MiscTesting</button>
   </div>
+  <Snake v-if="shownApp === 'snake'"></Snake>
   <Pong v-if="shownApp === 'pong'"></Pong>
   <Breakout v-if="shownApp === 'breakout'"></Breakout>
   <MineSweeper v-if="shownApp === 'minesweeper'"></MineSweeper>
@@ -15,6 +17,7 @@
 
 <script setup>
 
+import Snake from "@/apps/SnakeApp.vue";
 import Pong from "@/apps/PongApp.vue";
 import Breakout from "@/apps/BreakoutApp.vue";
 import MineSweeper from "@/apps/MineSweeperApp.vue";
@@ -23,9 +26,10 @@ import MiscTesting from "@/apps/MiscTesting.vue";
 
 import { ref } from "vue";
 
-const shownApp = ref("smileyPong");
+const shownApp = ref("snake");
 
 /*
+import Snake from "@/apps/SnakeApp.vue";
 import Pong from "@/apps/PongApp.vue";
 import Breakout from "@/apps/BreakoutApp.vue";
 import MineSweeper from "@/apps/MineSweeperApp.vue";
