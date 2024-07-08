@@ -1,6 +1,6 @@
 <template>
-  <h3>Pong</h3>
-  <canvas id="myCanvas" width="1200" height="800" @click="canvasClicked"></canvas>
+  <h1>Pong</h1>
+  <canvas id="myCanvas" width="400" height="300" @click="canvasClicked"></canvas>
   <div>
     <br>
     <b>Game</b><br>
@@ -34,6 +34,8 @@ const isRunning = ref(true);
 
 onMounted(() => {
   canvas = document.getElementById("myCanvas");
+  canvas.width = window.innerWidth * 0.5;
+  canvas.height = window.innerHeight * 0.6;
   c = canvas.getContext("2d");
 
   ballX = canvas.width / 2;
@@ -174,15 +176,15 @@ let rightDownPressed = false;
 
 function drawPaddles() {
   if (leftUpPressed) {
-    leftPaddleY = Math.min(leftPaddleY - 7, 0);
+    leftPaddleY = Math.max(leftPaddleY - 7, 0);
   } else if (leftDownPressed) {
-    leftPaddleY = Math.max(leftPaddleY + 7, canvas.height - paddleHeight);
+    leftPaddleY = Math.min(leftPaddleY + 7, canvas.height - paddleHeight);
   }
 
   if (rightUpPressed) {
-    rightPaddleY = Math.min(rightPaddleY - 7, 0);
+    rightPaddleY = Math.max(rightPaddleY - 7, 0);
   } else if (rightDownPressed) {
-    rightPaddleY = Math.max(rightPaddleY + 7, canvas.height - paddleHeight);
+    rightPaddleY = Math.min(rightPaddleY + 7, canvas.height - paddleHeight);
   }
 
   c.fillStyle = paddleColor;
@@ -213,6 +215,11 @@ function keyDownHandler(e) {
     rightUpPressed = true;
   } else if (e.key === "Down" || e.key === "ArrowDown") {
     rightDownPressed = true;
+  }
+
+  // launch ball with Space
+  if ((e.key === ' ' || e.key === 'Enter') && canvas.parentElement) {
+    canvasClicked();
   }
 
   // reset & pause
