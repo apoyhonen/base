@@ -3,11 +3,26 @@
   <canvas id="myCanvas" width="400" height="300" @click="canvasClicked"></canvas>
   <div>
     <br>
+    <p>
+      <b>Controls</b>
+    </p>
+    <p>
+      Left player: 'W' (up), 'S' (down) OR Mouse movement
+    </p>
+    <p>
+      Right player: 'Up arrow' (up), 'Down arrow' (down)
+    </p>
+    <p>
+      'P' to pause, 'R' to reset, 'Space' / 'Enter' / 'Mouse Click' to launch ball
+    </p>
+
+    <br>
     <b>Game</b><br>
     <p>{{ leftScore }} : {{ rightScore }}</p>
     <p>speed: {{ speedPercent }} %</p>
     <button @click="resetClicked">RESET</button>
     <br><br>
+
     <b>Animation</b><br>
     <p>frame: {{ frameCount }}</p>
     <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
@@ -20,7 +35,7 @@
 
 // GAME
 
-import { computed, onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
 
 const ballColor = 'white';
 const paddleColor = 'white';
@@ -102,7 +117,8 @@ function drawScores() {
 const ballRadius = 12;
 const paddleGrace = 10;
 const speedPercent = ref(100);
-const speed = computed(() => 1.5 / 100 * speedPercent.value);
+const defaultSpeed = 1.5;
+const incrementPercent = 5;
 let isBallMoving = false;
 let ballX = 0;
 let ballY = 0;
@@ -130,7 +146,7 @@ function resetBall() {
 
 function randomDirectionSpeed() {
   const random = Math.random() - 0.5;
-  return speed.value * (random < 0 ? -1 : 1);
+  return defaultSpeed / 100 * speedPercent.value * (random < 0 ? -1 : 1);
 }
 
 function checkBounceAndLimits() {
@@ -151,13 +167,11 @@ function checkBounceAndLimits() {
 }
 
 function increaseBallSpeed() {
-  speedPercent.value += 5;
+  speedPercent.value += incrementPercent;
 
-  if (ballDeltaX < 0) ballDeltaX -= 0.2;
-  else ballDeltaX += 0.2;
-
-  if (ballDeltaY < 0) ballDeltaY -= 0.2;
-  else ballDeltaY += 0.2;
+  let increment = defaultSpeed / 100 * incrementPercent;
+  ballDeltaX += ballDeltaX < 0 ? -increment : increment;
+  ballDeltaY += ballDeltaY < 0 ? -increment : increment;
 }
 
 // PADDLE
@@ -217,7 +231,7 @@ function keyDownHandler(e) {
     rightDownPressed = true;
   }
 
-  // launch ball with Space
+  // launch ball with Space / Enter
   if ((e.key === ' ' || e.key === 'Enter') && canvas.parentElement) {
     canvasClicked();
   }

@@ -7,12 +7,27 @@
   <canvas id="myCanvas" width="820" height="500" @click="canvasClicked"></canvas>
   <div>
     <br>
+    <p>
+      <b>Controls</b>
+    </p>
+    <p>
+      Mouse: Mouse to move the paddle, Click to release ball
+    </p>
+    <p>
+      Keyboard: 'Left Arrow' & 'Right Arrow' or 'A' & 'D', <br>'Space' / 'Enter' to release ball
+    </p>
+    <p>
+      'P' to pause, 'R' to reset
+    </p>
+
+    <br>
     <b>Game</b><br>
     <p>lives: {{ lives }}</p>
     <p>score: {{ score }} / {{ brickRowCount * brickColumnCount }}</p>
     <p>speed: {{ speedPercent }} %</p>
     <button @click="resetClicked">RESET</button>
     <br><br>
+
     <b>Animation</b><br>
     <p>frame: {{ frameCount }}</p>
     <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
@@ -235,6 +250,8 @@ function keyDownHandler(e) {
     isRunning.value = !isRunning.value;
   } else if (e.key === 'r' && canvas.parentElement) {
     resetClicked();
+  } else if ((e.key === ' ' || e.key === 'Enter') && canvas.parentElement) {
+    canvasClicked();
   }
 }
 
