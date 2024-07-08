@@ -58,7 +58,7 @@ const animationSpeedMS = computed(() => 50 / 100 * animationSpeedPercent.value);
 let animationInterval = null;
 
 onMounted(() => {
-  canvas = document.getElementById("pongCanvas");
+  canvas = document.getElementById("snakeCanvas");
   canvas.width = window.innerWidth * 0.5;
   canvas.height = window.innerHeight * 0.55;
   c = canvas.getContext("2d");
@@ -199,15 +199,15 @@ function resetSnake() {
 }
 
 function emptySnakeTiles() {
-  while (snakeTiles.value.length > 0) snakeTiles.value.pop();
+  while (snakeTiles.length > 0) snakeTiles.value.pop();
 }
 
 function addSnakeTile(col, row) {
-  snakeTiles.value.push({ col: col, row: row });
+  snakeTiles.push({ col: col, row: row });
 }
 
 function isSnakeTile(targetCol, targetRow) {
-  return snakeTiles.value.filter(snakeTile => snakeTile.col === targetCol && snakeTile.row === targetRow).length > 0;
+  return snakeTiles.filter(snakeTile => snakeTile.col === targetCol && snakeTile.row === targetRow).length > 0;
 }
 
 function drawSnake() {
@@ -219,7 +219,7 @@ function drawSnake() {
 const goalTiles = [];
 
 function isGoalTile(targetCol, targetRow) {
-  return goalTiles.value.filter(goalTile => goalTile.col === targetCol && goalTile.row === targetRow).length > 0;
+  return goalTiles.filter(goalTile => goalTile.col === targetCol && goalTile.row === targetRow).length > 0;
 }
 
 function resetGoals() {
@@ -232,7 +232,7 @@ function resetGoals() {
 
 function removeGoal(targetCol, targetRow) {
   if (isGoalTile(targetCol, targetRow)) {
-    const goalTile = goalTiles.value.filter(goalTile => goalTile.col === targetCol && goalTile.row === targetRow)[0];
+    const goalTile = goalTiles.filter(goalTile => goalTile.col === targetCol && goalTile.row === targetRow)[0];
     goalTiles.splice(goalTiles.indexOf(goalTile), 1);
     return true;
   }
@@ -240,7 +240,7 @@ function removeGoal(targetCol, targetRow) {
 }
 
 function emptyGoals() {
-  while (goalTiles.value.length > 0) goalTiles.value.pop();
+  while (goalTiles.length > 0) goalTiles.pop();
 }
 
 function addGoalTile() {
