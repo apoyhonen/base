@@ -86,7 +86,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import MineSweeperCell from "@/components/MineSweeperCell.vue";
 
 const defaultRows = 15;
