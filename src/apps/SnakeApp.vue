@@ -7,7 +7,7 @@
       <b>Controls</b>
     </p>
     <p>
-      Movement: Arrow Keys
+      Movement: Arrow Keys or WASD
     </p>
     <p>
       'R' to reset
@@ -17,13 +17,13 @@
     <b>Game</b><br>
     <p>length: {{ snakeLength }} </p>
     <p>direction: {{ snakeDirection }}</p>
-    <p>speed: {{ animationSpeedPercent }}</p>
+    <p>speed: {{ animationSpeedPercent }} % of original</p>
     <br>
     Speed:
-    <button @click="animationSpeedPercent += 10">+</button>
-    <button @click="animationSpeedPercent -= 10">-</button>
+    <button @click="animationSpeedPercent += 20">Slower</button>
+    <button @click="animationSpeedPercent -= 20">Faster</button>
     <br><br>
-    <button @click="resetClicked">RESET</button>
+    <button @click="resetGame">RESET</button>
     <br><br>
 
     <b>Animation</b><br>
@@ -54,7 +54,7 @@ let c = null;
 const frameCount = ref(1);
 const isRunning = ref(true);
 const animationSpeedPercent = ref(100);
-const animationSpeedMS = computed(() => 50 / 100 * animationSpeedPercent.value);
+const animationSpeedMS = computed(() => 500 / 100 * animationSpeedPercent.value);
 let animationInterval = null;
 
 onMounted(() => {
@@ -87,25 +87,13 @@ watch(animationSpeedMS, () => {
 
 // game
 
-const defaultCols = 15;
-const defaultRows = 10;
+const defaultCols = 29;
+const defaultRows = 19;
 const gridCols = ref(defaultCols);
 const gridRows = ref(defaultRows);
 
 function draw() {
   frameCount.value++;
-
-  if (anyDirectionalKeyPressed()) {
-    isSnakeMoving = true;
-
-    isHorizontal = leftPressed || rightPressed;
-
-    if (isHorizontal) {
-      horizontalDirection = leftPressed ? -1 : 1;
-    } else {
-      verticalDirection = upPressed ? -1 : 1;
-    }
-  }
 
   clear();
   checkLimits();
@@ -113,13 +101,14 @@ function draw() {
   if (isSnakeMoving) {
     if (isHorizontal) snakeCol += horizontalDirection;
     else snakeRow += verticalDirection;
+
+    addSnakeTile(snakeCol, snakeRow);
   }
 
   drawFieldLines();
-
   drawSnake();
-  if (checkScore()) addGoalTile();
 
+  if (checkScore()) addGoalTile();
   drawGoals();
 }
 
@@ -128,25 +117,43 @@ function clear() {
 }
 
 function checkLimits() {
+  let newCol = snakeCol;
+  let newRow = snakeRow;
   if (isHorizontal) {
-    const newCol = snakeCol + horizontalDirection;
+    newCol = snakeCol + horizontalDirection;
     if (newCol < 1 || newCol > gridCols.value) gameOver();
   } else {
-    const newRow = snakeRow + verticalDirection;
+    newRow = snakeRow + verticalDirection;
     if (newRow < 1 || newRow > gridRows.value) gameOver();
   }
+
+  if (isSnakeTile(newCol, newRow)) gameOver();
 }
 
 function drawFieldLines() {
-  // TODO stroke rectangles for grid? vague grey
-  /*c.strokeOpacity = 0.5;
-  c.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-  c.strokeRect(canvas.width / 2, 0, 1, canvas.height);*/
+  c.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+
+  const rectWidth = canvas.width / gridCols.value;
+  const rectHeight = canvas.height / gridRows.value;
+
+  let x = 0;
+  let y = 0;
+  for (let col = 0; col < gridCols.value; col++) {
+    for (let row = 0; row < gridRows.value; row++) {
+      c.strokeRect(x, y, rectWidth, rectHeight);
+
+      y += rectHeight;
+    }
+
+    x += rectWidth;
+    y = 0;
+  }
 }
 
 function checkScore() {
   if (removeGoal(snakeCol, snakeRow)) {
     snakeLength++;
+    addGoalTile();
   }
   return false;
 }
@@ -173,7 +180,7 @@ let snakeCol = 0;
 let snakeRow = 0;
 let horizontalDirection = 1;
 let verticalDirection = 1;
-let snakeLength = 1;
+let snakeLength = 3;
 let isSnakeMoving = false;
 let isHorizontal = true;
 const snakeDirection = computed(() => {
@@ -186,37 +193,59 @@ const snakeDirection = computed(() => {
 
 const snakeTiles = [];
 
+function drawSnake() {
+  const rectWidth = canvas.width / gridCols.value;
+  const rectHeight = canvas.height / gridRows.value;
+  c.fillStyle = 'green';
+
+  snakeTiles.forEach(snakeTile => {
+    let x = (snakeTile.col - 1) * rectWidth;
+    let y = (snakeTile.row - 1) * rectHeight;
+    c.fillRect(x, y, rectWidth, rectHeight);
+  })
+}
+
 function resetSnake() {
-  snakeCol = Math.floor(gridCols.value / 2);
-  snakeRow = Math.floor(gridCols.value / 2);
+  snakeCol = Math.ceil(gridCols.value / 2);
+  snakeRow = Math.ceil(gridCols.value / 2);
   horizontalDirection = 1;
   verticalDirection = 1;
   isHorizontal = true;
-  snakeLength = 1;
+  snakeLength = 2;
+  isSnakeMoving = false;
 
   emptySnakeTiles();
   addSnakeTile(snakeCol, snakeRow);
 }
 
 function emptySnakeTiles() {
-  while (snakeTiles.length > 0) snakeTiles.value.pop();
+  while (snakeTiles.length > 0) snakeTiles.pop();
 }
 
 function addSnakeTile(col, row) {
   snakeTiles.push({ col: col, row: row });
+  if (snakeTiles.length > snakeLength) snakeTiles.splice(0, 1);
 }
 
 function isSnakeTile(targetCol, targetRow) {
   return snakeTiles.filter(snakeTile => snakeTile.col === targetCol && snakeTile.row === targetRow).length > 0;
 }
 
-function drawSnake() {
-  // TODO draw snake
-}
-
 // goals
 
 const goalTiles = [];
+
+function drawGoals() {
+  const rectWidth = canvas.width / gridCols.value;
+  const rectHeight = canvas.height / gridRows.value;
+  c.fillStyle = 'red';
+
+  goalTiles.forEach(goalTile => {
+    let x = (goalTile.col - 1) * rectWidth;
+    let y = (goalTile.row - 1) * rectHeight;
+    c.fillRect(x, y, rectWidth, rectHeight);
+  })
+}
 
 function isGoalTile(targetCol, targetRow) {
   return goalTiles.filter(goalTile => goalTile.col === targetCol && goalTile.row === targetRow).length > 0;
@@ -226,8 +255,10 @@ function resetGoals() {
   emptyGoals();
 
   // init with two goals
-  addGoalTile();
-  addGoalTile();
+  const initialGoals = 5;
+  for (let i = 0; i < initialGoals; i++) {
+    addGoalTile();
+  }
 }
 
 function removeGoal(targetCol, targetRow) {
@@ -247,7 +278,7 @@ function addGoalTile() {
   let goalTile = null;
   let i = 0;
 
-  while (++i > 500) {
+  while (++i < 500) {
     const tile = randomTile();
     if (!isSnakeTile(tile.col, tile.row) && !isGoalTile(tile.col, tile.row)) {
       goalTile = tile;
@@ -269,63 +300,46 @@ function randomNumber(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
-function drawGoals() {
-  // TODO draw goals
-}
-
 // key & mouse listeners
 
 document.addEventListener("keydown", keyDownHandler, false);
-document.addEventListener("keyup", keyUpHandler, false);
 
 function isAppActive() {
   return document.getElementById("snakeCanvas") !== null;
 }
 
-let upPressed = false;
-let downPressed = false;
-let leftPressed = false;
-let rightPressed = false;
-
 function keyDownHandler(e) {
   if (!isAppActive()) return;
 
   // direction keys
-  if (e.key === "Up" || e.key === "ArrowUp") {
-    upPressed = true;
-  } else if (e.key === "Down" || e.key === "ArrowDown") {
-    downPressed = true;
-  } else if (e.key === "Left" || e.key === "ArrowLeft") {
-    leftPressed = true;
-  } else if (e.key === "Right" || e.key === "ArrowRight") {
-    rightPressed = true;
+  if (e.key === "Up" || e.key === "ArrowUp" || e.key === 'w') {
+    setVerticalDirection(false);
+  } else if (e.key === "Down" || e.key === "ArrowDown" || e.key === 's') {
+    setVerticalDirection(true);
+  } else if (e.key === "Left" || e.key === "ArrowLeft" || e.key === 'a') {
+    setHorizontalDirection(false);
+  } else if (e.key === "Right" || e.key === "ArrowRight" || e.key === 'd') {
+    setHorizontalDirection(true);
   }
 
   // reset & pause
-  if (e.key === 'p') {
+  if (e.key === 'p' || e.key === ' ') {
     isRunning.value = !isRunning.value;
   } else if (e.key === 'r') {
     resetGame();
   }
 }
 
-function keyUpHandler(e) {
-  if (!isAppActive()) return;
-
-  // direction keys
-  if (e.key === "Up" || e.key === "ArrowUp") {
-    upPressed = false;
-  } else if (e.key === "Down" || e.key === "ArrowDown") {
-    downPressed = false;
-  } else if (e.key === "Left" || e.key === "ArrowLeft") {
-    leftPressed = false;
-  } else if (e.key === "Right" || e.key === "ArrowRight") {
-    rightPressed = false;
-  }
+function setVerticalDirection(isDown) {
+  isSnakeMoving = true;
+  isHorizontal = false;
+  verticalDirection = isDown ? 1 : -1;
 }
 
-function anyDirectionalKeyPressed() {
-  return upPressed || downPressed || leftPressed || rightPressed;
+function setHorizontalDirection(isRight) {
+  isSnakeMoving = true;
+  isHorizontal = true;
+  horizontalDirection = isRight ? 1 : -1;
 }
 
 </script>
