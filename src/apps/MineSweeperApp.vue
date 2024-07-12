@@ -276,16 +276,16 @@ function flag(col, row, flagged) {
 
 document.addEventListener("keydown", keyDownHandler, false);
 
-let headerElement = null;
-
-onMounted(() => {
-  headerElement = document.getElementById("mineSweeperHeader");
-})
-
 function keyDownHandler(e) {
-  if (e.key === 'r' && headerElement.parentElement) {
+  if (!isAppActive()) return;
+
+  if (e.key === 'r') {
     resetGame();
   }
+}
+
+function isAppActive() {
+  return document.getElementById("mineSweeperHeader") !== null;
 }
 
 // INIT

@@ -51,10 +51,6 @@ import { onMounted, ref, watch } from "vue";
 const ballColor = 'white';
 const paddleColor = 'white';
 
-function isAppActive() {
-  return document.getElementById("pongCanvas") !== null;
-}
-
 let canvas = null;
 let c = null;
 
@@ -243,6 +239,10 @@ function checkBounceAndLimits() {
 document.addEventListener("keydown", keyDownHandler, false);
 document.addEventListener("keyup", keyUpHandler, false);
 document.addEventListener("mousemove", mouseMoveHandler, false);
+
+function isAppActive() {
+  return document.getElementById("pongCanvas") !== null;
+}
 
 function keyDownHandler(e) {
   if (!isAppActive()) return;

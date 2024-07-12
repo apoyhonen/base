@@ -41,10 +41,6 @@
 
 import { onMounted, ref, watch } from "vue";
 
-function isAppActive() {
-  return document.getElementById("breakoutCanvas") !== null;
-}
-
 // GAME
 
 const frameCount = ref(1);
@@ -250,6 +246,10 @@ let leftPressed = false;
 document.addEventListener("keydown", keyDownHandler, false);
 document.addEventListener("keyup", keyUpHandler, false);
 document.addEventListener("mousemove", mouseMoveHandler, false);
+
+function isAppActive() {
+  return document.getElementById("breakoutCanvas") !== null;
+}
 
 function keyDownHandler(e) {
   if (!isAppActive()) return;
