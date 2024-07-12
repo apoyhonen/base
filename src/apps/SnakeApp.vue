@@ -54,7 +54,7 @@ let c = null;
 const frameCount = ref(1);
 const isRunning = ref(true);
 const animationSpeedPercent = ref(100);
-const animationSpeedMS = computed(() => 500 / 100 * animationSpeedPercent.value);
+const animationSpeedMS = computed(() => 300 / 100 * animationSpeedPercent.value);
 let animationInterval = null;
 
 onMounted(() => {
