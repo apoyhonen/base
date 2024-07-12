@@ -39,7 +39,7 @@
 
 <script setup>
 
-import { computed, onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
 
 function isAppActive() {
   return document.getElementById("breakoutCanvas") !== null;
@@ -70,6 +70,11 @@ onMounted(() => {
   ballX = canvas.width / 2;
   ballY = canvas.height - 100;
   paddleX = (canvas.width - paddleWidth) / 2;
+
+  paddleMoveIncrement = canvas.width / 100; // feel-good magic number
+  ballDefaultSpeed = canvas.height / 300; // feel-good magic number
+  dx = getRandomResetX();
+  dy = -ballDefaultSpeed / 100 * speedPercent.value;
 
   draw();
   //animationInterval = setInterval(draw, 10)
@@ -137,6 +142,15 @@ function resetValues() {
   score.value = 0;
 }
 
+function canvasClicked() {
+  if (isRunning.value) {
+    isBallMoving = !isBallMoving;
+  } else {
+    isRunning.value = true;
+    isBallMoving = true;
+  }
+}
+
 function drawScoreAndLives() {
   ctx.font = "16px Arial";
 
@@ -152,24 +166,16 @@ function drawScoreAndLives() {
 const ballRadius = 12;
 const paddleGrace = 10;
 const speedPercent = ref(100);
-const speed = computed(() => 1.5 / 100 * speedPercent.value);
+const incrementPercent = 10;
+let ballDefaultSpeed = 1.5;
 let isBallMoving = false;
 let dx = getRandomResetX();
-let dy = -speed.value;
-
-function canvasClicked() {
-  if (isRunning.value) {
-    isBallMoving = !isBallMoving;
-  } else {
-    isRunning.value = true;
-    isBallMoving = true;
-  }
-}
+let dy = -ballDefaultSpeed / 100 * speedPercent.value;
 
 function resetBall() {
   speedPercent.value = 100;
   dx = getRandomResetX();
-  dy = -speed.value;
+  dy = -ballDefaultSpeed / 100 * speedPercent.value;
 
   ballX = canvas.width / 2;
   ballY = canvas.height - 100;
@@ -180,7 +186,7 @@ function resetBall() {
 
 function getRandomResetX() {
   const random = Math.random() - 0.5;
-  return speed.value * (random < 0 ? -1 : 1);
+  return ballDefaultSpeed / 100 * speedPercent.value * (random < 0 ? -1 : 1);
 }
 
 function checkBounceAndLimits() {
@@ -200,13 +206,11 @@ function checkBounceAndLimits() {
 }
 
 function increaseBallSpeed() {
-  speedPercent.value += 5;
+  speedPercent.value += incrementPercent;
 
-  if (dx < 0) dx -= 0.2;
-  else dx += 0.2;
-
-  if (dy < 0) dy -= 0.2;
-  else dy += 0.2;
+  let increment = ballDefaultSpeed / 100 * incrementPercent;
+  dx += dx < 0 ? -increment : increment;
+  dy += dy < 0 ? -increment : increment;
 }
 
 const drawBall = () => {
@@ -219,11 +223,13 @@ const drawBall = () => {
 
 // PADDLE
 
+let paddleMoveIncrement = 7;
+
 function drawPaddle() {
   if (rightPressed) {
-    paddleX = Math.min(paddleX + 7, canvas.width - paddleWidth);
+    paddleX = Math.min(paddleX + paddleMoveIncrement, canvas.width - paddleWidth);
   } else if (leftPressed) {
-    paddleX = Math.max(paddleX - 7, 0);
+    paddleX = Math.max(paddleX - paddleMoveIncrement, 0);
   }
 
   ctx.beginPath();

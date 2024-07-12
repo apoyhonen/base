@@ -69,9 +69,14 @@ onMounted(() => {
 
   ballX = canvas.width / 2;
   ballY = canvas.height / 2;
-  leftPaddleY = canvas.height - paddleHeight / 2;
-  rightPaddleY = canvas.height - paddleHeight / 2;
+  leftPaddleY = (canvas.height - paddleHeight) / 2;
+  rightPaddleY = leftPaddleY;
   rightPaddleX = canvas.width - 40;
+
+  paddleMoveIncrement = canvas.height / 90; // feel-good magic number
+  ballDefaultSpeed = canvas.height / 300; // feel-good magic number
+  ballDeltaX = randomDirectionSpeed();
+  ballDeltaY = randomDirectionSpeed();
 
   draw(); // init
 });
@@ -128,8 +133,8 @@ function resetScores() {
 const ballRadius = 12;
 const paddleGrace = 10;
 const speedPercent = ref(100);
-const defaultSpeed = 1.5;
 const incrementPercent = 10;
+let ballDefaultSpeed = 1.5;
 let isBallMoving = false;
 let ballX = 0;
 let ballY = 0;
@@ -157,13 +162,13 @@ function resetBall() {
 
 function randomDirectionSpeed() {
   const random = Math.random() - 0.5;
-  return defaultSpeed / 100 * speedPercent.value * (random < 0 ? -1 : 1);
+  return ballDefaultSpeed / 100 * speedPercent.value * (random < 0 ? -1 : 1);
 }
 
 function increaseBallSpeed() {
   speedPercent.value += incrementPercent;
 
-  let increment = defaultSpeed / 100 * incrementPercent;
+  let increment = ballDefaultSpeed / 100 * incrementPercent;
   ballDeltaX += ballDeltaX < 0 ? -increment : increment;
   ballDeltaY += ballDeltaY < 0 ? -increment : increment;
 }
@@ -176,6 +181,7 @@ const leftPaddleX = 40 - paddleWidth;
 let rightPaddleX = 0;
 let leftPaddleY = 0;
 let rightPaddleY = 0;
+let paddleMoveIncrement = 7;
 
 let leftUpPressed = false;
 let leftDownPressed = false;
@@ -184,15 +190,15 @@ let rightDownPressed = false;
 
 function drawPaddles() {
   if (leftUpPressed) {
-    leftPaddleY = Math.max(leftPaddleY - 7, 0);
+    leftPaddleY = Math.max(leftPaddleY - paddleMoveIncrement, 0);
   } else if (leftDownPressed) {
-    leftPaddleY = Math.min(leftPaddleY + 7, canvas.height - paddleHeight);
+    leftPaddleY = Math.min(leftPaddleY + paddleMoveIncrement, canvas.height - paddleHeight);
   }
 
   if (rightUpPressed) {
-    rightPaddleY = Math.max(rightPaddleY - 7, 0);
+    rightPaddleY = Math.max(rightPaddleY - paddleMoveIncrement, 0);
   } else if (rightDownPressed) {
-    rightPaddleY = Math.min(rightPaddleY + 7, canvas.height - paddleHeight);
+    rightPaddleY = Math.min(rightPaddleY + paddleMoveIncrement, canvas.height - paddleHeight);
   }
 
   c.fillStyle = paddleColor;
