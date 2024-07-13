@@ -135,7 +135,8 @@ function checkLimits() {
 }
 
 function drawFieldLines() {
-  c.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+  c.strokeStyle = 'rgba(0, 0, 0, 0.05)';
+  c.lineWidth = 1;
 
   const rectWidth = canvas.width / gridCols.value;
   const rectHeight = canvas.height / gridRows.value;
@@ -171,6 +172,7 @@ function resetValues() {
 function resetGame() {
   resetSnake();
   resetGoals();
+  isRunning.value = true;
 }
 
 function gameOver() {
@@ -257,17 +259,48 @@ function isSnakeTile(targetCol, targetRow) {
 // goals
 
 const goalTiles = [];
+const goalWidthFactor = 0.6;
+const goalRadius = computed(() => Math.min(rectWidth.value, rectHeight.value) * goalWidthFactor / 2);
 
 function drawGoals() {
-  const rectWidth = canvas.width / gridCols.value;
-  const rectHeight = canvas.height / gridRows.value;
   c.fillStyle = 'red';
-
+  c.strokeStyle = 'green';
+  c.lineWidth = 5;
   goalTiles.forEach(goalTile => {
-    let x = (goalTile.col - 1) * rectWidth;
-    let y = (goalTile.row - 1) * rectHeight;
-    c.fillRect(x, y, rectWidth, rectHeight);
+    let x = (goalTile.col - 1) * rectWidth.value + rectWidth.value / 2;
+    let y = (goalTile.row - 1) * rectHeight.value + rectHeight.value / 2;
+    c.beginPath();
+    c.arc(x, y, goalRadius.value, 0, 2 * Math.PI);
+    c.fill();
+
+    c.beginPath();
+    c.moveTo(x, y - goalRadius.value / 2);
+    c.lineTo(x, y - rectHeight.value / 2 + rectHeight.value * (1 - goalWidthFactor) / 4);
+    c.stroke();
   })
+
+
+  c.fillStyle = 'green';
+
+  const totalTiles = snakeTiles.length;
+  for (let i = 1; i <= totalTiles; i++) {
+    const tile = snakeTiles[i - 1];
+    const widthReduction = (rectWidth.value * (1 - largeSizeFactor)) + (rectWidth.value * (largeSizeFactor - smallSizeFactor) / totalTiles * (totalTiles - i));
+    const heightReduction = (rectHeight.value * (1 - largeSizeFactor)) + (rectHeight.value * (largeSizeFactor - smallSizeFactor) / totalTiles * (totalTiles - i));
+    let x = (tile.col - 1) * rectWidth.value + widthReduction / 2;
+    let y = (tile.row - 1) * rectHeight.value + heightReduction / 2;
+
+    if (isCircleSnake) {
+      const circleRadius = Math.min(rectWidth.value - widthReduction, rectHeight.value - heightReduction) / 2;
+      x += (rectWidth.value - widthReduction) / 2;
+      y += (rectHeight.value - heightReduction) / 2;
+      c.beginPath();
+      c.arc(x, y, circleRadius, 0, 2 * Math.PI);
+      c.fill();
+    } else {
+      c.fillRect(x, y, rectWidth.value - widthReduction, rectHeight.value - heightReduction);
+    }
+  }
 }
 
 function isGoalTile(targetCol, targetRow) {
