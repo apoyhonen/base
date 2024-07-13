@@ -22,6 +22,10 @@
     Speed:
     <button @click="animationSpeedPercent += 20">Slower</button>
     <button @click="animationSpeedPercent -= 20">Faster</button>
+    <br>
+    Shape:
+    <button @click="isCircleSnake = true;">Circle</button>
+    <button @click="isCircleSnake = false;">Square</button>
     <br><br>
     <button @click="resetGame">RESET</button>
     <br><br>
@@ -171,7 +175,7 @@ function resetGame() {
 
 function gameOver() {
   resetGame();
-  alert("Game over!")
+  alert("Snake: Game over!")
 }
 
 // snake
@@ -183,6 +187,8 @@ let verticalDirection = 1;
 let snakeLength = 3;
 let isSnakeMoving = false;
 let isHorizontal = true;
+let isCircleSnake = false;
+
 const snakeDirection = computed(() => {
   if (isHorizontal) {
     return horizontalDirection > 0 ? 'right' : 'left';
@@ -191,18 +197,35 @@ const snakeDirection = computed(() => {
   }
 })
 
+const rectWidth = computed(() => canvas.width / gridCols.value);
+const rectHeight = computed(() => canvas.height / gridRows.value);
+const largeSizeFactor = 0.8;
+const smallSizeFactor = 0.3;
+
 const snakeTiles = [];
 
 function drawSnake() {
-  const rectWidth = canvas.width / gridCols.value;
-  const rectHeight = canvas.height / gridRows.value;
   c.fillStyle = 'green';
 
-  snakeTiles.forEach(snakeTile => {
-    let x = (snakeTile.col - 1) * rectWidth;
-    let y = (snakeTile.row - 1) * rectHeight;
-    c.fillRect(x, y, rectWidth, rectHeight);
-  })
+  const totalTiles = snakeTiles.length;
+  for (let i = 1; i <= totalTiles; i++) {
+    const tile = snakeTiles[i - 1];
+    const widthReduction = (rectWidth.value * (1 - largeSizeFactor)) + (rectWidth.value * (largeSizeFactor - smallSizeFactor) / totalTiles * (totalTiles - i));
+    const heightReduction = (rectHeight.value * (1 - largeSizeFactor)) + (rectHeight.value * (largeSizeFactor - smallSizeFactor) / totalTiles * (totalTiles - i));
+    let x = (tile.col - 1) * rectWidth.value + widthReduction / 2;
+    let y = (tile.row - 1) * rectHeight.value + heightReduction / 2;
+
+    if (isCircleSnake) {
+      const circleRadius = Math.min(rectWidth.value - widthReduction, rectHeight.value - heightReduction) / 2;
+      x += (rectWidth.value - widthReduction) / 2;
+      y += (rectHeight.value - heightReduction) / 2;
+      c.beginPath();
+      c.arc(x, y, circleRadius, 0, 2 * Math.PI);
+      c.fill();
+    } else {
+      c.fillRect(x, y, rectWidth.value - widthReduction, rectHeight.value - heightReduction);
+    }
+  }
 }
 
 function resetSnake() {

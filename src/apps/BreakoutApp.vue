@@ -113,16 +113,16 @@ function stopReload() {
 function gameOver() {
   if (lives.value > 0) {
     lives.value--;
-    alert("You lost a life, keep trying!");
+    alert("Breakout: You lost a life, keep trying!");
     resetBall();
   } else {
-    alert("GAME OVER!");
+    alert("Breakout: GAME OVER!");
     stopReload();
   }
 }
 
 function win() {
-  alert("YOU WIN, CONGRATULATIONS!");
+  alert("Breakout: YOU WIN, CONGRATULATIONS!");
   stopReload();
 }
 
