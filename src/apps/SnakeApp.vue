@@ -1,8 +1,17 @@
 <template>
   <h2>Snake</h2>
-  <canvas id="snakeCanvas" width="400" height="300"></canvas>
+  <canvas id="snakeCanvas" :class="isWrapBorders ? 'green-border' : 'red-border'" width="400" height="300"></canvas>
   <div>
     <br>
+    <label for="colsAmount">columns:</label>
+    <input id="colsAmount" type="number" class="controls-input" v-model="gridCols" />
+    <label for="rowsAmount">rows:</label>
+    <input id="rowsAmount" type="number" class="controls-input" v-model="gridRows" />
+    <button class="controls-button"  @click="resetValues">
+      RESET VALUES
+    </button>
+    <br><br>
+
     <p>
       <b>Controls</b>
     </p>
@@ -14,37 +23,33 @@
     </p>
     <br>
 
-    <b>Game</b><br>
+    <b>Game</b>
+    <br>
     <p>length: {{ snakeLength }} </p>
     <p>direction: {{ snakeDirection }}</p>
-    <p>speed: {{ animationSpeedPercent }} % of original</p>
-    <br>
-    Speed:
-    <button @click="animationSpeedPercent += 20">Slower</button>
-    <button @click="animationSpeedPercent -= 20">Faster</button>
+    <button @click="resetGame">RESET</button>
+    <br><br>
+
+    Borders:
+    <button @click="isWrapBorders = true">Wrap</button>
+    <button @click="isWrapBorders = false">Walls</button>
     <br>
     Shape:
     <button @click="isCircleSnake = true;">Circle</button>
     <button @click="isCircleSnake = false;">Square</button>
     <br><br>
-    <button @click="resetGame">RESET</button>
+
+    <p>speed: {{ animationSpeedPercent }} % of original</p>
+    Speed:
+    <button @click="animationSpeedPercent += 20">Slower</button>
+    <button @click="animationSpeedPercent -= 20">Faster</button>
     <br><br>
 
     <b>Animation</b><br>
     <p>frame: {{ frameCount }}</p>
     <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
     <p>snake x: {{ snakeCol }}, snake y: {{ snakeRow }}</p>
-    <br>
     <button @click="isRunning = !isRunning">START / STOP</button>
-    <br><br>
-
-    <label for="colsAmount">columns:</label>
-    <input id="colsAmount" type="number" class="controls-input" v-model="gridCols" />
-    <label for="rowsAmount">rows:</label>
-    <input id="rowsAmount" type="number" class="controls-input" v-model="gridRows" />
-    <button class="controls-button"  @click="resetValues">
-      RESET VALUES
-    </button>
   </div>
 </template>
 
@@ -95,8 +100,14 @@ const defaultCols = 29;
 const defaultRows = 19;
 const gridCols = ref(defaultCols);
 const gridRows = ref(defaultRows);
+let isWrapBorders = true;
 
 function draw() {
+  if (!isAppActive()) {
+    stopAnimation();
+    return;
+  }
+
   frameCount.value++;
 
   clear();
@@ -105,6 +116,8 @@ function draw() {
   if (isSnakeMoving) {
     if (isHorizontal) snakeCol += horizontalDirection;
     else snakeRow += verticalDirection;
+
+    if (isWrapBorders) wrapSnake();
 
     addSnakeTile(snakeCol, snakeRow);
   }
@@ -121,17 +134,15 @@ function clear() {
 }
 
 function checkLimits() {
-  let newCol = snakeCol;
-  let newRow = snakeRow;
-  if (isHorizontal) {
-    newCol = snakeCol + horizontalDirection;
-    if (newCol < 1 || newCol > gridCols.value) gameOver();
-  } else {
-    newRow = snakeRow + verticalDirection;
-    if (newRow < 1 || newRow > gridRows.value) gameOver();
-  }
+  let newCol = snakeCol + (isHorizontal ? horizontalDirection : 0);
+  let newRow = snakeRow + (!isHorizontal ? verticalDirection : 0);
 
-  if (isSnakeTile(newCol, newRow)) gameOver();
+  if (isSnakeTile(newCol, newRow) || (!isWrapBorders && isOutOfBounds(newCol, newRow)))
+    gameOver();
+}
+
+function isOutOfBounds(col, row) {
+  return col < 1 || col > gridCols.value || row < 1 || row > gridRows.value;
 }
 
 function drawFieldLines() {
@@ -189,7 +200,7 @@ let verticalDirection = 1;
 let snakeLength = 3;
 let isSnakeMoving = false;
 let isHorizontal = true;
-let isCircleSnake = false;
+let isCircleSnake = true;
 
 const snakeDirection = computed(() => {
   if (isHorizontal) {
@@ -232,7 +243,7 @@ function drawSnake() {
 
 function resetSnake() {
   snakeCol = Math.ceil(gridCols.value / 2);
-  snakeRow = Math.ceil(gridCols.value / 2);
+  snakeRow = Math.ceil(gridRows.value / 2);
   horizontalDirection = 1;
   verticalDirection = 1;
   isHorizontal = true;
@@ -254,6 +265,13 @@ function addSnakeTile(col, row) {
 
 function isSnakeTile(targetCol, targetRow) {
   return snakeTiles.filter(snakeTile => snakeTile.col === targetCol && snakeTile.row === targetRow).length > 0;
+}
+
+function wrapSnake() {
+  if (snakeCol < 1) snakeCol = gridCols.value;
+  if (snakeCol > gridCols.value) snakeCol = 1;
+  if (snakeRow < 1) snakeRow = gridRows.value;
+  if (snakeRow > gridRows.value) snakeRow = 1;
 }
 
 // goals
@@ -408,7 +426,12 @@ canvas {
   background: moccasin;
   display: block;
   margin: 0 auto;
-  border: 1px solid black;
+}
+.green-border {
+  border: 3px solid green;
+}
+.red-border {
+  border: 3px solid red;
 }
 .controls-button,
 .controls-input {
