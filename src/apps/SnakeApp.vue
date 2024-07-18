@@ -9,9 +9,9 @@
     <table>
       <tr>
 
-        <td>
-          <p>length: {{ snakeLength }} </p>
-          <p>direction: {{ snakeDirection }}</p>
+        <td style="text-align: left;">
+          <p><b>length:</b> {{ snakeLength }} <span style="display: inline-block; width: 50px;"></span></p>
+          <p><b>direction:</b> {{ snakeDirection }}</p>
         </td>
 
         <td>
@@ -70,12 +70,14 @@
               </td>
 
               <td>
-                <p>speed: {{ animationSpeedPercent }} % of original</p>
+                <p>speed: {{ animationSpeedDisplay }} %</p>
                 Speed:
-                <button @click="animationSpeedPercent += 20">Slower</button>
-                <button @click="animationSpeedPercent -= 20">Faster</button>
+                <button @click="animationSpeedPercent += 10">Slower</button>
+                <button @click="animationSpeedPercent = Math.max(10, animationSpeedPercent - 10)">Faster</button>
                 <br>
                 <button @click="isRunning = !isRunning">START / STOP</button>
+                <span style="display: inline-block; width: 10px;"></span>
+                <button @click="animationSpeedPercent = 100">RESET SPEED</button>
               </td>
 
             </tr>
@@ -97,7 +99,9 @@ let c = null;
 const frameCount = ref(1);
 const isRunning = ref(true);
 const animationSpeedPercent = ref(100);
-const animationSpeedMS = computed(() => 300 / 100 * animationSpeedPercent.value);
+const animationSpeedDisplay = computed(() => Math.floor(100 * 100 / animationSpeedPercent.value));
+const defaultAnimationMs = 200;
+const animationSpeedMS = computed(() => defaultAnimationMs / 100 * animationSpeedPercent.value);
 let animationInterval = null;
 
 onMounted(() => {
@@ -231,7 +235,8 @@ let snakeCol = 0;
 let snakeRow = 0;
 let horizontalDirection = 1;
 let verticalDirection = 1;
-let snakeLength = 3;
+const defaultSnakeLength = 3;
+let snakeLength = defaultSnakeLength;
 let isSnakeMoving = false;
 let isHorizontal = true;
 let isCircleSnake = true;
@@ -280,7 +285,7 @@ function resetSnake() {
   horizontalDirection = 1;
   verticalDirection = 1;
   isHorizontal = true;
-  snakeLength = 2;
+  snakeLength = defaultSnakeLength;
   isSnakeMoving = false;
 
   emptySnakeTiles();
@@ -438,6 +443,12 @@ function keyDownHandler(e) {
 }
 
 function setVerticalDirection(isDown) {
+  if (!isHorizontal) {
+    if ((isDown && verticalDirection < 0) || (!isDown && verticalDirection > 0)) {
+      return; // opposite direction, don't allow
+    }
+  }
+
   isSnakeMoving = true;
   isHorizontal = false;
   verticalDirection = isDown ? 1 : -1;
@@ -445,6 +456,12 @@ function setVerticalDirection(isDown) {
 }
 
 function setHorizontalDirection(isRight) {
+  if (isHorizontal) {
+    if ((isRight && horizontalDirection < 0) || (!isRight && horizontalDirection > 0)) {
+      return; // opposite direction, don't allow
+    }
+  }
+
   isSnakeMoving = true;
   isHorizontal = true;
   horizontalDirection = isRight ? 1 : -1;
