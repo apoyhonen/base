@@ -97,7 +97,7 @@ function draw() {
   drawBricks();
   drawScoreAndLives();
 
-  if (isRunning.value) requestAnimationFrame(draw); // redraw as soon as animation frame is available
+  if (isRunning.value && isAppActive()) requestAnimationFrame(draw); // redraw as soon as animation frame is available
 }
 
 function clear() {

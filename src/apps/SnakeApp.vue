@@ -96,7 +96,7 @@ watch(animationSpeedMS, () => {
 
 // game
 
-const defaultCols = 29;
+const defaultCols = 33;
 const defaultRows = 19;
 const gridCols = ref(defaultCols);
 const gridRows = ref(defaultRows);
@@ -218,9 +218,9 @@ const smallSizeFactor = 0.3;
 const snakeTiles = [];
 
 function drawSnake() {
-  c.fillStyle = 'green';
-
   const totalTiles = snakeTiles.length;
+
+  c.fillStyle = 'green';
   for (let i = 1; i <= totalTiles; i++) {
     const tile = snakeTiles[i - 1];
     const widthReduction = (rectWidth.value * (1 - largeSizeFactor)) + (rectWidth.value * (largeSizeFactor - smallSizeFactor) / totalTiles * (totalTiles - i));
@@ -232,6 +232,11 @@ function drawSnake() {
       const circleRadius = Math.min(rectWidth.value - widthReduction, rectHeight.value - heightReduction) / 2;
       x += (rectWidth.value - widthReduction) / 2;
       y += (rectHeight.value - heightReduction) / 2;
+
+      if (i === 1) {
+        c.moveTo(x, y);
+      }
+
       c.beginPath();
       c.arc(x, y, circleRadius, 0, 2 * Math.PI);
       c.fill();
