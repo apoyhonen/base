@@ -1,5 +1,6 @@
 <template>
   <div class="buttonBanner">
+    <button class="appButton" @click="shownApp = 'swish'">Swish</button>
     <button class="appButton" @click="shownApp = 'snake'">Snake</button>
     <button class="appButton" @click="shownApp = 'pong'">Pong</button>
     <button class="appButton" @click="shownApp = 'breakout'">Breakout</button>
@@ -7,6 +8,7 @@
     <button class="appButton" @click="shownApp = 'canvascharts'">CanvasCharts</button>
     <button class="appButton" @click="shownApp = 'misctesting'">MiscTesting</button>
   </div>
+  <Swish v-if="shownApp === 'swish'"></Swish>
   <Snake v-if="shownApp === 'snake'"></Snake>
   <Pong v-if="shownApp === 'pong'"></Pong>
   <Breakout v-if="shownApp === 'breakout'"></Breakout>
@@ -17,6 +19,7 @@
 
 <script setup>
 
+import Swish from "@/apps/SwishApp.vue"
 import Snake from "@/apps/SnakeApp.vue";
 import Pong from "@/apps/PongApp.vue";
 import Breakout from "@/apps/BreakoutApp.vue";
@@ -26,9 +29,10 @@ import MiscTesting from "@/apps/MiscTesting.vue";
 
 import { ref } from "vue";
 
-const shownApp = ref("snake");
+const shownApp = ref("swish");
 
 /*
+import Swish from "@/apps/SwishApp.vue"
 import Snake from "@/apps/SnakeApp.vue";
 import Pong from "@/apps/PongApp.vue";
 import Breakout from "@/apps/BreakoutApp.vue";
