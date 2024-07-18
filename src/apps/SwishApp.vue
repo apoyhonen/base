@@ -16,8 +16,10 @@
         <td>
           <b>Game</b>
           <br><br>
-          <p>TBA...</p>
-          <br><br>
+          <p>Angle: {{ targetAngle }}</p>
+          <label for="angleAmount">Angle:</label>
+          <input id="angleAmount" type="number" class="controls-input" v-model="targetAngle" />
+          <br>
         </td>
 
         <td>
@@ -49,6 +51,9 @@ onMounted(() => {
   canvas.height = window.innerHeight * 0.55;
   c = canvas.getContext("2d");
 
+  middlePoint.x = canvas.width / 2;
+  middlePoint.y = canvas.height / 2;
+
   draw(); // init
 });
 
@@ -71,6 +76,16 @@ function isAppActive() {
 function clear() {
   c.clearRect(0, 0, canvas.width, canvas.height);
 }
+
+// game
+
+let middlePoint = { x: 0, y: 0 };
+const targetAngle = ref(0);
+watch(targetAngle, () => {
+  if (targetAngle.value < 0) targetAngle.value = 360 + targetAngle.value;
+  if (targetAngle.value > 359) targetAngle.value = 0 + targetAngle.value - 360;
+})
+
 </script>
 
 <style scoped>
@@ -88,5 +103,12 @@ table {
 }
 td {
   padding: 0 20px;
+}
+.controls-button,
+.controls-input {
+  margin: 1px 10px;
+}
+.controls-input {
+  width: 40px;
 }
 </style>
