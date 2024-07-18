@@ -1,6 +1,6 @@
 <template>
   <h2>Swish</h2>
-  <canvas id="swishCanvas" width="400" height="300" @click="canvasClicked"></canvas>
+  <canvas id="swishCanvas" width="400" height="300" @auxclick.prevent="canvasClicked" oncontextmenu="return false"></canvas>
   <br>
   <div>
     <table>
@@ -96,7 +96,6 @@ watch(angleInDegrees, () => {
 })
 
 function canvasClicked(e) {
-  // TODO: unnecessary?
   pointLineToEvent(e.clientX, e.clientY);
 }
 
@@ -118,12 +117,57 @@ function radianToDegrees(radians) {
 
 // key and mouse handlers
 
+const mouseDown = ref(false);
+const mouseDownPos = ref({ x: 0, y: 0 });
+
+document.addEventListener("mousedown", mouseDownHandler, false);
+document.addEventListener("mouseup", mouseUpHandler, false);
 document.addEventListener("mousemove", mouseMoveHandler, false);
 
-function mouseMoveHandler(e) {
+function mouseMoveHandler() {
   if (!isAppActive()) return;
 
-  pointLineToEvent(e.clientX, e.clientY);
+  //pointLineToEvent(e.clientX, e.clientY);
+}
+
+function mouseDownHandler(e) {
+  if (!isAppActive() || e.which !== 1) return;
+
+  mouseDown.value = true;
+  mouseDownPos.value.x = e.clientX - canvas.offsetLeft;
+  mouseDownPos.value.y = e.clientY - canvas.offsetTop;
+}
+
+function mouseUpHandler(e) {
+  if (!isAppActive() || e.which !== 1) return;
+
+  const relativeX = e.clientX - canvas.offsetLeft;
+  const deltaX = relativeX - mouseDownPos.value.x;
+  const relativeY = e.clientY - canvas.offsetTop;
+  const deltaY = relativeY - mouseDownPos.value.y;
+
+  if (Math.abs(deltaX) > Math.abs(deltaY)) {
+    // sideways move
+    if (deltaX > 0) {
+      // right swing
+      angleInDegrees.value += 90;
+    } else {
+      // left swing
+      angleInDegrees.value -= 90;
+    }
+  } else {
+    // upwards move
+    if (deltaY < 0) {
+      // forwards pierce
+    } else {
+      // backwards swing
+      angleInDegrees.value += 180;
+    }
+  }
+
+  mouseDown.value = false;
+  mouseDownPos.value.x = middlePoint.x;
+  mouseDownPos.value.y = middlePoint.y;
 }
 
 // character
