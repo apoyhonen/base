@@ -49,6 +49,7 @@
           <p>
             <b>Controls</b>
           </p>
+          <br>
           <p>
             Movement: Arrow Keys or WASD
           </p>

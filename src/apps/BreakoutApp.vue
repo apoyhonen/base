@@ -14,6 +14,7 @@
           <p>
             <b>Controls</b>
           </p>
+          <br>
           <p>
             Mouse: Mouse to move the paddle, Click to release ball
           </p>
@@ -27,26 +28,36 @@
 
         <td>
           <b>Game</b><br>
-          <p>lives: {{ lives }}</p>
-          <p>score: {{ score }} / {{ brickRowCount * brickColumnCount }}</p>
-          <p>speed: {{ speedPercent }} %</p>
-          <button @click="resetClicked">RESET GAME</button>
+          <table>
+            <tr>
+
+              <td>
+                <p>lives: {{ lives }}</p>
+                <p>score: {{ score }} / {{ brickRowCount * brickColumnCount }}</p>
+                <p>speed: {{ speedPercent }} %</p>
+                <br>
+                <button @click="resetClicked">RESET GAME</button>
+              </td>
+
+              <td>
+                <label for="colsAmount">columns:</label>
+                <input id="colsAmount" type="number" class="controls-input" v-model="brickColumnCount" />
+                <br>
+                <label for="rowsAmount">rows:</label>
+                <input id="rowsAmount" type="number" class="controls-input" v-model="brickRowCount" />
+                <br><br>
+                <button class="controls-button"  @click="resetValues">
+                  RESET SIZE
+                </button>
+              </td>
+
+            </tr>
+          </table>
         </td>
 
         <td>
-          <label for="colsAmount">columns:</label>
-          <input id="colsAmount" type="number" class="controls-input" v-model="brickColumnCount" />
-          <br>
-          <label for="rowsAmount">rows:</label>
-          <input id="rowsAmount" type="number" class="controls-input" v-model="brickRowCount" />
-          <br>
-          <button class="controls-button"  @click="resetValues">
-            RESET SIZE
-          </button>
-        </td>
-
-        <td>
-          <b>Animation</b><br>
+          <b>Animation</b>
+          <br><br>
           <p>frame: {{ frameCount }}</p>
           <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
           <p>ball x: {{ Math.floor(ballX) }}, ball y: {{ Math.floor(ballY) }}</p>
