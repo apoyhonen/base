@@ -51,7 +51,7 @@ const isRunning = ref(true);
 
 const ballColor = 'white';
 const paddleColor = 'grey';
-const brickColors = [ 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'turquoise'];
+const brickColors = [ 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'turquoise', 'white', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'turquoise', 'white' ];
 const scoreColor = 'white';
 
 let canvas = null;
@@ -65,12 +65,26 @@ onMounted(() => {
 
   ballX = canvas.width / 2;
   ballY = canvas.height - 100;
+  ballRadius = canvas.height / 50;
+  paddleGrace = ballRadius;
+
+  paddleHeight = ballRadius;
+  paddleHeightHalf = paddleHeight / 2;
+  paddleWidth = canvas.width / 8;
   paddleX = (canvas.width - paddleWidth) / 2;
 
   paddleMoveIncrement = canvas.width / 100; // feel-good magic number
   ballDefaultSpeed = canvas.height / 300; // feel-good magic number
   dx = getRandomResetX();
   dy = -ballDefaultSpeed / 100 * speedPercent.value;
+
+  brickOffsetTop = 50;
+  brickOffsetLeft = 30;
+  brickGrace = ballRadius / 2;
+  brickHeight = (canvas.height - brickOffsetTop) * 0.45 / (brickRowCount * 1.4 - 0.4);
+  brickHeightPadding = brickHeight * 0.4;
+  brickWidth = (canvas.width - brickOffsetLeft * 2) / (brickColumnCount * 1.2 - 0.2);
+  brickWidthPadding = brickWidth * 0.2;
 
   draw();
   //animationInterval = setInterval(draw, 10)
@@ -159,10 +173,10 @@ function drawScoreAndLives() {
 
 // BALL
 
-const ballRadius = 12;
-const paddleGrace = 10;
 const speedPercent = ref(100);
 const incrementPercent = 10;
+let ballRadius = 12;
+let paddleGrace = 10;
 let ballDefaultSpeed = 1.5;
 let isBallMoving = false;
 let dx = getRandomResetX();
@@ -220,6 +234,10 @@ const drawBall = () => {
 // PADDLE
 
 let paddleMoveIncrement = 7;
+let paddleHeight = 10;
+let paddleHeightHalf = paddleHeight / 2;
+let paddleWidth = 120;
+let paddleX = 0;
 
 function drawPaddle() {
   if (rightPressed) {
@@ -234,11 +252,6 @@ function drawPaddle() {
   ctx.fill();
   ctx.closePath();
 }
-
-const paddleHeight = 10;
-const paddleHeightHalf = paddleHeight / 2;
-const paddleWidth = 120;
-let paddleX = 0;
 
 let rightPressed = false;
 let leftPressed = false;
@@ -288,13 +301,15 @@ function mouseMoveHandler(e) {
 
 // BRICKS
 
+const brickColumnCount = 7;
 const brickRowCount = 4;
-const brickColumnCount = 6;
-const brickWidth = 100;
-const brickHeight = 20;
-const brickPadding = 30;
-const brickOffsetTop = 50;
-const brickOffsetLeft = 30;
+let brickWidth = 100;
+let brickHeight = 20;
+let brickWidthPadding = 30;
+let brickHeightPadding = 30;
+let brickOffsetTop = 50;
+let brickOffsetLeft = 30;
+let brickGrace = ballRadius / 2;
 
 const bricks = [];
 resetBricks();
@@ -312,8 +327,8 @@ function drawBricks() {
   for (let c = 0; c < brickColumnCount; c++) {
     for (let r = 0; r < brickRowCount; r++) {
       if (bricks[c][r].status === 1) {
-        const brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
-        const brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+        const brickX = c * (brickWidth + brickWidthPadding) + brickOffsetLeft;
+        const brickY = r * (brickHeight + brickHeightPadding) + brickOffsetTop;
 
         bricks[c][r].x = brickX;
         bricks[c][r].y = brickY;
@@ -327,8 +342,6 @@ function drawBricks() {
     }
   }
 }
-
-const brickGrace = ballRadius / 2;
 
 function brickCollisionDetection() {
   for (let c = 0; c < brickColumnCount; c++) {
