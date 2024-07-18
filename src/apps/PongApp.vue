@@ -65,11 +65,17 @@ onMounted(() => {
 
   ballX = canvas.width / 2;
   ballY = canvas.height / 2;
+  ballRadius = canvas.height / 60;
+
+  paddleHeight = canvas.height / 9;
+  paddleWidth = paddleHeight / 8;
+  leftPaddleX = 40 - paddleWidth;
+  paddleGrace = paddleWidth;
   leftPaddleY = (canvas.height - paddleHeight) / 2;
   rightPaddleY = leftPaddleY;
   rightPaddleX = canvas.width - 40;
 
-  paddleMoveIncrement = canvas.height / 90; // feel-good magic number
+  paddleMoveIncrement = canvas.height / 120; // feel-good magic number
   ballDefaultSpeed = canvas.height / 300; // feel-good magic number
   ballDeltaX = randomDirectionSpeed();
   ballDeltaY = randomDirectionSpeed();
@@ -126,10 +132,9 @@ function resetScores() {
 
 // BALL
 
-const ballRadius = 12;
-const paddleGrace = 10;
 const speedPercent = ref(100);
 const incrementPercent = 10;
+let ballRadius = 12;
 let ballDefaultSpeed = 1.5;
 let isBallMoving = false;
 let ballX = 0;
@@ -171,9 +176,10 @@ function increaseBallSpeed() {
 
 // PADDLE
 
-const paddleHeight = 80;
-const paddleWidth = 10;
-const leftPaddleX = 40 - paddleWidth;
+let paddleHeight = 80;
+let paddleWidth = 10;
+let leftPaddleX = 40 - paddleWidth;
+let paddleGrace = 10;
 let rightPaddleX = 0;
 let leftPaddleY = 0;
 let rightPaddleY = 0;
