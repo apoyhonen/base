@@ -7,6 +7,15 @@
   <canvas id="breakoutCanvas" width="820" height="500" @click="canvasClicked"></canvas>
   <div>
     <br>
+    <label for="colsAmount">columns:</label>
+    <input id="colsAmount" type="number" class="controls-input" v-model="brickColumnCount" />
+    <label for="rowsAmount">rows:</label>
+    <input id="rowsAmount" type="number" class="controls-input" v-model="brickRowCount" />
+    <button class="controls-button"  @click="resetValues">
+      RESET BRICK VALUES
+    </button>
+    <br><br>
+
     <p>
       <b>Controls</b>
     </p>
@@ -25,7 +34,7 @@
     <p>lives: {{ lives }}</p>
     <p>score: {{ score }} / {{ brickRowCount * brickColumnCount }}</p>
     <p>speed: {{ speedPercent }} %</p>
-    <button @click="resetClicked">RESET</button>
+    <button @click="resetClicked">RESET GAME</button>
     <br><br>
 
     <b>Animation</b><br>
@@ -51,7 +60,7 @@ const isRunning = ref(true);
 
 const ballColor = 'white';
 const paddleColor = 'grey';
-const brickColors = [ 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'turquoise', 'white', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'turquoise', 'white' ];
+const brickColors = [ 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'turquoise', 'white' ];
 const scoreColor = 'white';
 
 let canvas = null;
@@ -81,9 +90,9 @@ onMounted(() => {
   brickOffsetTop = 50;
   brickOffsetLeft = 30;
   brickGrace = ballRadius / 2;
-  brickHeight = (canvas.height - brickOffsetTop) * 0.45 / (brickRowCount * 1.4 - 0.4);
-  brickHeightPadding = brickHeight * 0.4;
-  brickWidth = (canvas.width - brickOffsetLeft * 2) / (brickColumnCount * 1.2 - 0.2);
+  brickHeight = (canvas.height - brickOffsetTop) * 0.45 / (brickRowCount.value * 1.6 - 0.6);
+  brickHeightPadding = brickHeight * 0.6;
+  brickWidth = (canvas.width - brickOffsetLeft * 2) / (brickColumnCount.value * 1.2 - 0.2);
   brickWidthPadding = brickWidth * 0.2;
 
   draw();
@@ -140,14 +149,20 @@ function win() {
   stopReload();
 }
 
+function resetValues() {
+  brickColumnCount.value = defaultColumns;
+  brickRowCount.value = defaultRows;
+  resetClicked();
+}
+
 function resetClicked() {
   resetBricks();
-  resetValues();
+  resetScore();
   resetBall();
   isRunning.value = true;
 }
 
-function resetValues() {
+function resetScore() {
   lives.value = 3;
   score.value = 0;
 }
@@ -301,8 +316,10 @@ function mouseMoveHandler(e) {
 
 // BRICKS
 
-const brickColumnCount = 7;
-const brickRowCount = 4;
+const defaultColumns = 6;
+const defaultRows = 4;
+const brickColumnCount = ref(defaultColumns);
+const brickRowCount = ref(defaultRows);
 let brickWidth = 100;
 let brickHeight = 20;
 let brickWidthPadding = 30;
@@ -314,28 +331,47 @@ let brickGrace = ballRadius / 2;
 const bricks = [];
 resetBricks();
 
+watch(brickColumnCount, () => {
+  brickWidth = (canvas.width - brickOffsetLeft * 2) / (brickColumnCount.value * 1.2 - 0.2);
+  brickWidthPadding = brickWidth * 0.2;
+  resetClicked();
+});
+watch(brickRowCount, () => {
+  brickHeight = (canvas.height - brickOffsetTop) * 0.45 / (brickRowCount.value * 1.6 - 0.6);
+  brickHeightPadding = brickHeight * 0.6;
+  resetClicked();
+});
+
 function resetBricks() {
-  for (let c = 0; c < brickColumnCount; c++) {
+  for (let c = 0; c < brickColumnCount.value; c++) {
     bricks[c] = [];
-    for (let r = 0; r < brickRowCount; r++) {
+    for (let r = 0; r < brickRowCount.value; r++) {
       bricks[c][r] = { x: 0, y: 0, status: 1 };
     }
   }
 }
 
 function drawBricks() {
-  for (let c = 0; c < brickColumnCount; c++) {
-    for (let r = 0; r < brickRowCount; r++) {
-      if (bricks[c][r].status === 1) {
-        const brickX = c * (brickWidth + brickWidthPadding) + brickOffsetLeft;
-        const brickY = r * (brickHeight + brickHeightPadding) + brickOffsetTop;
+  const colorsAmount = brickColors.length;
+  let colColorFactor = 0;
+  for (let col = 0; col < brickColumnCount.value; col++) {
 
-        bricks[c][r].x = brickX;
-        bricks[c][r].y = brickY;
+    // loop brick colors
+    if (col > 0 && col % colorsAmount === 0) {
+      colColorFactor++;
+    }
+
+    for (let row = 0; row < brickRowCount.value; row++) {
+      if (bricks[col][row].status === 1) {
+        const brickX = col * (brickWidth + brickWidthPadding) + brickOffsetLeft;
+        const brickY = row * (brickHeight + brickHeightPadding) + brickOffsetTop;
+
+        bricks[col][row].x = brickX;
+        bricks[col][row].y = brickY;
 
         ctx.beginPath();
         ctx.rect(brickX, brickY, brickWidth, brickHeight);
-        ctx.fillStyle = brickColors[c];
+        ctx.fillStyle = brickColors[col - colColorFactor * colorsAmount];
         ctx.fill();
         ctx.closePath();
       }
@@ -344,8 +380,8 @@ function drawBricks() {
 }
 
 function brickCollisionDetection() {
-  for (let c = 0; c < brickColumnCount; c++) {
-    for (let r = 0; r < brickRowCount; r++) {
+  for (let c = 0; c < brickColumnCount.value; c++) {
+    for (let r = 0; r < brickRowCount.value; r++) {
       const b = bricks[c][r];
 
       let changed = false;
@@ -368,7 +404,7 @@ function brickCollisionDetection() {
           b.status = 0;
           score.value++;
 
-          if (score.value === brickRowCount * brickColumnCount) {
+          if (score.value === brickRowCount.value * brickColumnCount.value) {
             win(); // all bricks have been destroyed
           }
         }
@@ -393,5 +429,12 @@ canvas {
   display: block;
   margin: 0 auto;
   border: 1px solid black;
+}
+.controls-button,
+.controls-input {
+  margin: 1px 10px;
+}
+.controls-input {
+  width: 40px;
 }
 </style>
