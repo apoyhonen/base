@@ -202,13 +202,7 @@ let isSnakeMoving = false;
 let isHorizontal = true;
 let isCircleSnake = true;
 
-const snakeDirection = computed(() => {
-  if (isHorizontal) {
-    return horizontalDirection > 0 ? 'right' : 'left';
-  } else {
-    return verticalDirection > 0 ? 'down' : 'up';
-  }
-})
+let snakeDirection = 'up';
 
 const rectWidth = computed(() => canvas.width / gridCols.value);
 const rectHeight = computed(() => canvas.height / gridRows.value);
@@ -413,12 +407,14 @@ function setVerticalDirection(isDown) {
   isSnakeMoving = true;
   isHorizontal = false;
   verticalDirection = isDown ? 1 : -1;
+  snakeDirection = isDown ? 'down' : 'up';
 }
 
 function setHorizontalDirection(isRight) {
   isSnakeMoving = true;
   isHorizontal = true;
   horizontalDirection = isRight ? 1 : -1;
+  snakeDirection = isRight ? 'right' : 'left';
 }
 
 </script>
