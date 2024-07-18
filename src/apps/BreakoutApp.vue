@@ -5,43 +5,56 @@
   </head>
   <body>
   <canvas id="breakoutCanvas" width="820" height="500" @click="canvasClicked"></canvas>
+  <br>
   <div>
-    <br>
-    <label for="colsAmount">columns:</label>
-    <input id="colsAmount" type="number" class="controls-input" v-model="brickColumnCount" />
-    <label for="rowsAmount">rows:</label>
-    <input id="rowsAmount" type="number" class="controls-input" v-model="brickRowCount" />
-    <button class="controls-button"  @click="resetValues">
-      RESET BRICK VALUES
-    </button>
-    <br><br>
+    <table>
+      <tr>
 
-    <p>
-      <b>Controls</b>
-    </p>
-    <p>
-      Mouse: Mouse to move the paddle, Click to release ball
-    </p>
-    <p>
-      Keyboard: 'Left Arrow' & 'Right Arrow' or 'A' & 'D', <br>'Space' / 'Enter' to release ball
-    </p>
-    <p>
-      'P' to pause, 'R' to reset
-    </p>
+        <td>
+          <p>
+            <b>Controls</b>
+          </p>
+          <p>
+            Mouse: Mouse to move the paddle, Click to release ball
+          </p>
+          <p>
+            Keyboard: 'Left Arrow' & 'Right Arrow' or 'A' & 'D', <br>'Space' / 'Enter' to release ball
+          </p>
+          <p>
+            'P' to pause, 'R' to reset
+          </p>
+        </td>
 
-    <br>
-    <b>Game</b><br>
-    <p>lives: {{ lives }}</p>
-    <p>score: {{ score }} / {{ brickRowCount * brickColumnCount }}</p>
-    <p>speed: {{ speedPercent }} %</p>
-    <button @click="resetClicked">RESET GAME</button>
-    <br><br>
+        <td>
+          <b>Game</b><br>
+          <p>lives: {{ lives }}</p>
+          <p>score: {{ score }} / {{ brickRowCount * brickColumnCount }}</p>
+          <p>speed: {{ speedPercent }} %</p>
+          <button @click="resetClicked">RESET GAME</button>
+        </td>
 
-    <b>Animation</b><br>
-    <p>frame: {{ frameCount }}</p>
-    <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
-    <p>ball x: {{ Math.floor(ballX) }}, ball y: {{ Math.floor(ballY) }}</p>
-    <button @click="isRunning = !isRunning">START / STOP</button>
+        <td>
+          <label for="colsAmount">columns:</label>
+          <input id="colsAmount" type="number" class="controls-input" v-model="brickColumnCount" />
+          <br>
+          <label for="rowsAmount">rows:</label>
+          <input id="rowsAmount" type="number" class="controls-input" v-model="brickRowCount" />
+          <br>
+          <button class="controls-button"  @click="resetValues">
+            RESET SIZE
+          </button>
+        </td>
+
+        <td>
+          <b>Animation</b><br>
+          <p>frame: {{ frameCount }}</p>
+          <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
+          <p>ball x: {{ Math.floor(ballX) }}, ball y: {{ Math.floor(ballY) }}</p>
+          <button @click="isRunning = !isRunning">START / STOP</button>
+        </td>
+
+      </tr>
+    </table>
   </div>
   </body>
 </template>
@@ -429,6 +442,12 @@ canvas {
   display: block;
   margin: 0 auto;
   border: 1px solid black;
+}
+table {
+  margin: 0 auto;
+}
+td {
+  padding: 0 20px;
 }
 .controls-button,
 .controls-input {

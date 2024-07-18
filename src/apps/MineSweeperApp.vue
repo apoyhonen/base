@@ -1,6 +1,7 @@
 <template>
-
-  <h3 id="mineSweeperHeader" style="font-size: 40px; font-weight: bold; font-style: italic;">&#129529; MineSweeper! &#129529;</h3>
+  <br>
+  <p id="mineSweeperHeader" style="font-size: 40px; font-weight: bold; font-style: italic;">&#129529; MineSweeper! &#129529;</p>
+  <br>
 
   <div v-if="isValidField" :class="'mine-controls-button-reset ' + buttonStyle" @click="resetGame">
     <span class="tooltip">Reset game</span>
@@ -38,50 +39,62 @@
     <p style="color: green; font-weight: bold;">You found all the mines! WIN! ^^</p>
   </div>
 
+  <br>
   <div>
-    <br>
-    <p>
-      <b>Controls</b>
-    </p>
-    <p>
-      Aim is to clear the minefield, 'sweep' it clean!
-    </p>
-    <p>
-      Click to open up a tile from the minefield. Right click to flag a probable mine.
-    </p>
-    <p>
-      Tiles with a number indicate amount of mines in the nearby tiles.
-    </p>
-    <p>
-      If you open a tile with a mine, you're finished.
-    </p>
-    <p>
-      Once all mines are correctly flagged, you win.
-    </p>
-    <br>
-    <p>
-      'R' to reset
-    </p>
+    <table class="info-table">
+      <tr>
 
-    <br>
-    <b>Game</b><br>
-    <p>Flags: {{ flaggedCells.length }}</p>
-    <p>Mines: {{ tableMines }}</p>
-    <br>
-    <button @click="resetGame">RESET GAME</button>
-    <br><br>
-  </div>
+        <td>
+          <p>
+            <b>Controls</b>
+          </p>
+          <p>
+            Aim is to clear the minefield, 'sweep' it clean!
+          </p>
+          <p>
+            Click to open up a tile from the minefield. Right click to flag a probable mine.
+          </p>
+          <p>
+            Tiles with a number indicate amount of mines in the nearby tiles.
+          </p>
+          <p>
+            If you open a tile with a mine, you're finished.
+          </p>
+          <p>
+            Once all mines are correctly flagged, you win.
+          </p>
+          <br>
+          <p>
+            'R' to reset
+          </p>
+        </td>
 
-  <div class="mine-controls">
-    <label for="colsAmount">columns:</label>
-    <input id="colsAmount" type="number" class="mine-controls-input" v-model="tableCols" />
-    <label for="rowsAmount">rows:</label>
-    <input id="rowsAmount" type="number" class="mine-controls-input" v-model="tableRows" />
-    <label for="minesAmount">mines:</label>
-    <input id="minesAmount" type="number" class="mine-controls-input" v-model="tableMines" />
-    <button class="mine-controls-button"  @click="resetValues">
-      RESET VALUES
-    </button>
+        <td>
+          <b>Game</b><br>
+          <br>
+          <p>Flags: {{ flaggedCells.length }}</p>
+          <p>Mines: {{ tableMines }}</p>
+          <br>
+          <button @click="resetGame">RESET GAME</button>
+        </td>
+
+        <td>
+          <div class="mine-controls">
+            <label for="colsAmount">columns:</label>
+            <input id="colsAmount" type="number" class="mine-controls-input" v-model="tableCols" />
+            <br>
+            <label for="rowsAmount">rows:</label>
+            <input id="rowsAmount" type="number" class="mine-controls-input" v-model="tableRows" />
+            <br>
+            <label for="minesAmount">mines:</label>
+            <input id="minesAmount" type="number" class="mine-controls-input" v-model="tableMines" />
+            <br><br>
+            <button class="mine-controls-button"  @click="resetValues">RESET VALUES</button>
+          </div>
+        </td>
+
+      </tr>
+    </table>
   </div>
 </template>
 
@@ -90,8 +103,8 @@ import { computed, ref, watch } from "vue";
 import MineSweeperCell from "@/components/MineSweeperCell.vue";
 
 const defaultRows = 15;
-const defaultCols = 15;
-const defaultMines = 15;
+const defaultCols = 30;
+const defaultMines = 35;
 
 const tableRows = ref(defaultRows);
 const tableCols = ref(defaultCols);
@@ -351,6 +364,12 @@ p {
 .mine-table {
   margin: 10px auto;
   border: 3px solid grey;
+}
+.info-table {
+  margin: 0 auto;
+}
+.info-table td {
+  padding: 0 20px;
 }
 
 </style>

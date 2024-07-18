@@ -1,55 +1,88 @@
 <template>
   <h2>Snake</h2>
   <canvas id="snakeCanvas" :class="isWrapBorders ? 'green-border' : 'red-border'" width="400" height="300"></canvas>
+  <br>
   <div>
-    <br>
-    <label for="colsAmount">columns:</label>
-    <input id="colsAmount" type="number" class="controls-input" v-model="gridCols" />
-    <label for="rowsAmount">rows:</label>
-    <input id="rowsAmount" type="number" class="controls-input" v-model="gridRows" />
-    <button class="controls-button"  @click="resetValues">
-      RESET VALUES
-    </button>
-    <br><br>
-
-    <p>
-      <b>Controls</b>
-    </p>
-    <p>
-      Movement: Arrow Keys or WASD
-    </p>
-    <p>
-      'R' to reset
-    </p>
-    <br>
 
     <b>Game</b>
     <br>
-    <p>length: {{ snakeLength }} </p>
-    <p>direction: {{ snakeDirection }}</p>
-    <button @click="resetGame">RESET</button>
-    <br><br>
+    <table>
+      <tr>
 
-    Borders:
-    <button @click="isWrapBorders = true">Wrap</button>
-    <button @click="isWrapBorders = false">Walls</button>
+        <td>
+          <p>length: {{ snakeLength }} </p>
+          <p>direction: {{ snakeDirection }}</p>
+        </td>
+
+        <td>
+          Borders:
+          <button @click="isWrapBorders = true">Wrap</button>
+          <button @click="isWrapBorders = false">Walls</button>
+          <br>
+          Shape:
+          <button @click="isCircleSnake = true;">Circle</button>
+          <button @click="isCircleSnake = false;">Square</button>
+        </td>
+
+        <td>
+          <label for="colsAmount">columns:</label>
+          <input id="colsAmount" type="number" class="controls-input" v-model="gridCols" />
+          <br>
+          <label for="rowsAmount">rows:</label>
+          <input id="rowsAmount" type="number" class="controls-input" v-model="gridRows" />
+        </td>
+
+        <td>
+          <button class="controls-button"  @click="resetValues">RESET SIZE</button>
+          <br>
+          <button @click="resetGame">RESET GAME</button>
+        </td>
+
+      </tr>
+    </table>
     <br>
-    Shape:
-    <button @click="isCircleSnake = true;">Circle</button>
-    <button @click="isCircleSnake = false;">Square</button>
-    <br><br>
 
-    <p>speed: {{ animationSpeedPercent }} % of original</p>
-    Speed:
-    <button @click="animationSpeedPercent += 20">Slower</button>
-    <button @click="animationSpeedPercent -= 20">Faster</button>
-    <br><br>
+    <table>
+      <tr>
 
-    <b>Animation</b><br>
-    <p>frame: {{ frameCount }}</p>
-    <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
-    <p>snake x: {{ snakeCol }}, snake y: {{ snakeRow }}</p>
-    <button @click="isRunning = !isRunning">START / STOP</button>
+        <td>
+          <p>
+            <b>Controls</b>
+          </p>
+          <p>
+            Movement: Arrow Keys or WASD
+          </p>
+          <p>
+            'R' to reset
+          </p>
+        </td>
+
+        <td>
+          <b>Animation</b><br>
+          <table>
+            <tr>
+
+              <td>
+                <p>frame: {{ frameCount }}</p>
+                <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
+                <p>snake x: {{ snakeCol }}, snake y: {{ snakeRow }}</p>
+              </td>
+
+              <td>
+                <p>speed: {{ animationSpeedPercent }} % of original</p>
+                Speed:
+                <button @click="animationSpeedPercent += 20">Slower</button>
+                <button @click="animationSpeedPercent -= 20">Faster</button>
+                <br>
+                <button @click="isRunning = !isRunning">START / STOP</button>
+              </td>
+
+            </tr>
+          </table>
+        </td>
+
+      </tr>
+    </table>
   </div>
 </template>
 
@@ -440,5 +473,11 @@ canvas {
 }
 .controls-input {
   width: 40px;
+}
+table {
+  margin: 0 auto;
+}
+td {
+  padding: 0 20px;
 }
 </style>
