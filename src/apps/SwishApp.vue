@@ -1,6 +1,6 @@
 <template>
   <h2>Swish</h2>
-  <canvas id="swishCanvas" width="400" height="300"></canvas>
+  <canvas id="swishCanvas" width="400" height="300" @click="canvasClicked"></canvas>
   <br>
   <div>
     <table>
@@ -16,10 +16,12 @@
         <td>
           <b>Game</b>
           <br><br>
-          <p>Angle: {{ targetAngle }}</p>
-          <label for="angleAmount">Angle:</label>
-          <input id="angleAmount" type="number" class="controls-input" v-model="targetAngle" />
+          <p>Angle (degrees): {{ Math.floor(angleInDegrees) }}</p>
+          <label for="angleAmount">Degrees:</label>
+          <input id="angleAmount" type="number" class="controls-input" v-model="angleInDegrees" />
           <br>
+          <button @click="angleInDegrees -= 45">- 45</button>
+          <button @click="angleInDegrees += 45">+ 45</button>
         </td>
 
         <td>
@@ -37,7 +39,7 @@
 
 <script setup>
 
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 
 let canvas = null;
 let c = null;
@@ -65,6 +67,8 @@ function draw() {
   frameCount.value++;
 
   clear();
+  drawChar();
+  drawLine();
 
   if (isRunning.value && isAppActive()) requestAnimationFrame(draw); // redraw as soon as animation frame is available
 }
@@ -79,12 +83,83 @@ function clear() {
 
 // game
 
+const charColor = 'red';
+const lineColor = 'green';
+
 let middlePoint = { x: 0, y: 0 };
-const targetAngle = ref(0);
-watch(targetAngle, () => {
-  if (targetAngle.value < 0) targetAngle.value = 360 + targetAngle.value;
-  if (targetAngle.value > 359) targetAngle.value = 0 + targetAngle.value - 360;
+const defaultAngle = 270;
+const angleInDegrees = ref(defaultAngle);
+const angleInRadians = computed(() => degreesToRadian(angleInDegrees.value))
+watch(angleInDegrees, () => {
+  if (angleInDegrees.value < 0) angleInDegrees.value = 360 + angleInDegrees.value;
+  if (angleInDegrees.value > 359) angleInDegrees.value = 0 + angleInDegrees.value - 360;
 })
+
+function canvasClicked(e) {
+  // TODO: unnecessary?
+  pointLineToEvent(e.clientX, e.clientY);
+}
+
+function pointLineToEvent(clientX, clientY) {
+  const eventX = clientX - canvas.offsetLeft;
+  const eventY = clientY - canvas.offsetTop;
+  const directionInRadians = Math.atan2(eventY - middlePoint.y, eventX - middlePoint.x);
+  const directionInDegrees = radianToDegrees(directionInRadians);
+  angleInDegrees.value = (directionInDegrees + 360) % 360; // change to positive angle
+}
+
+function degreesToRadian(degrees) {
+  return Math.PI * degrees / 180.0;
+}
+
+function radianToDegrees(radians) {
+  return radians * 180 / Math.PI;
+}
+
+// key and mouse handlers
+
+document.addEventListener("mousemove", mouseMoveHandler, false);
+
+function mouseMoveHandler(e) {
+  if (!isAppActive()) return;
+
+  pointLineToEvent(e.clientX, e.clientY);
+}
+
+// character
+
+const charRadius = ref(20);
+
+function drawChar() {
+  c.fillStyle = charColor;
+  c.beginPath();
+  c.arc(middlePoint.x, middlePoint.y, charRadius.value, 0, Math.PI * 2);
+  c.fill();
+}
+
+// line
+
+const lineLength = ref(100);
+
+function drawLine() {
+  let x = middlePoint.x;
+  let y = middlePoint.y;
+
+  c.strokeStyle = lineColor;
+  c.lineWidth = 3;
+  c.beginPath();
+  c.moveTo(x, y);
+  c.lineTo(lineX(x, lineLength.value, angleInRadians.value), lineY(y, lineLength.value, angleInRadians.value));
+  c.stroke();
+}
+
+function lineX(originX, length, radiansTheta) {
+  return originX + length * Math.cos(radiansTheta);
+}
+
+function lineY(originY, length, radiansTheta) {
+  return originY + length * Math.sin(radiansTheta);
+}
 
 </script>
 
