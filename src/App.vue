@@ -1,18 +1,15 @@
 <template>
   <div class="buttonBanner">
-    <button class="appButton" @click="shownApp = 'swish'">Swish</button>
-    <button class="appButton" @click="shownApp = 'snake'">Snake</button>
-    <button class="appButton" @click="shownApp = 'pong'">Pong</button>
-    <button class="appButton" @click="shownApp = 'breakout'">Breakout</button>
-    <button class="appButton" @click="shownApp = 'minesweeper'">MineSweeper</button>
-    <button class="appButton" @click="shownApp = 'canvascharts'">CanvasCharts</button>
-    <button class="appButton" @click="shownApp = 'misctesting'">MiscTesting</button>
+    <template v-for="(app, index) in apps" :key="'buttonTemplate-' + index">
+      <button class="appButton" @click="shownApp = app.refName">{{ app.name }}</button>
+    </template>
   </div>
   <Swish v-if="shownApp === 'swish'"></Swish>
   <Snake v-if="shownApp === 'snake'"></Snake>
   <Pong v-if="shownApp === 'pong'"></Pong>
   <Breakout v-if="shownApp === 'breakout'"></Breakout>
   <MineSweeper v-if="shownApp === 'minesweeper'"></MineSweeper>
+  <Othello v-if="shownApp === 'othello'"></Othello>
   <CanvasCharts v-if="shownApp === 'canvascharts'"></CanvasCharts>
   <MiscTesting v-if="shownApp === 'misctesting'"></MiscTesting>
 </template>
@@ -24,6 +21,7 @@ import Snake from "@/apps/SnakeApp.vue";
 import Pong from "@/apps/PongApp.vue";
 import Breakout from "@/apps/BreakoutApp.vue";
 import MineSweeper from "@/apps/MineSweeperApp.vue";
+import Othello from "@/apps/OthelloApp.vue";
 import CanvasCharts from "@/apps/CanvasCharts.vue";
 import MiscTesting from "@/apps/MiscTesting.vue";
 
@@ -31,12 +29,23 @@ import { ref } from "vue";
 
 const shownApp = ref("swish");
 
+const apps = [];
+apps.push({ refName: 'swish', name: 'Swish *' });
+apps.push({ refName: 'snake', name: 'Snake' });
+apps.push({ refName: 'pong', name: 'Pong' });
+apps.push({ refName: 'breakout', name: 'Breakout' });
+apps.push({ refName: 'minesweeper', name: 'Minesweeper' });
+apps.push({ refName: 'othello', name: 'Othello *' });
+apps.push({ refName: 'canvascharts', name: 'Auto-Charts' });
+apps.push({ refName: 'misctesting', name: 'Misc Testing' });
+
 /*
 import Swish from "@/apps/SwishApp.vue"
 import Snake from "@/apps/SnakeApp.vue";
 import Pong from "@/apps/PongApp.vue";
 import Breakout from "@/apps/BreakoutApp.vue";
 import MineSweeper from "@/apps/MineSweeperApp.vue";
+import Othello from "@/apps/OthelloApp.vue";
 import CanvasCharts from "@/apps/CanvasCharts.vue";
 import MiscTesting from "@/apps/MiscTesting.vue";
 
