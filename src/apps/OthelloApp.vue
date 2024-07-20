@@ -4,6 +4,14 @@
     <tr>
 
       <td>
+        <p>Player One<br><b>{{ playerOne === 1 ? 'WHITE' : 'BLACK' }}</b></p>
+        <p>Player Two<br><b>{{ playerOne === 1 ? 'BLACK' : 'WHITE' }}{{ cpuOpponent ? ' - COMPUTER' : '' }}</b></p>
+
+        <button class="controls-button"  @click="cpuOpponent = false">2 PLAYERS</button>
+        <br>
+        <button class="controls-button"  @click="cpuOpponent = true">VS COMPUTER</button>
+        <br><br>
+
         <span :class="currentPlayerRef === 1 ? 'player-white' : 'player-black'">
           Turn: {{ currentPlayerRef === 1 ? 'white' : 'black' }}
         </span>
@@ -59,7 +67,7 @@
 <script setup>
 
 import OthelloCell from "@/components/OthelloCell.vue";
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { randomIntBetween } from "@/util/MathUtil";
 import {
   initGrid,
@@ -92,7 +100,14 @@ function calculateCellSizeByWindow() {
 
 // game
 
+const playerOne = ref(1);
+const cpuOpponent = ref(true); // cpu opponent by default
 const currentPlayerRef = ref(1);
+watch(cpuOpponent, () => {
+  // if turning CPU opponent on and is Player Two turn, run single simulation step straight away
+  if (isCpuOpponentTurn()) runSingleSimulationStep();
+})
+
 const whitePieces = computed(() => sumValuesCount(grid.value, 1));
 const blackPieces = computed(() => sumValuesCount(grid.value, 2));
 
@@ -114,6 +129,7 @@ function startGame() {
 
   // random player starts
   setCurrentPlayer(randomIntBetween(1, 2));
+  playerOne.value = currentPlayerRef.value;
   resetPossibleMoves(true);
 }
 
@@ -135,13 +151,17 @@ function afterPiecePlaced() {
       const winnerTiles = Math.max(whitePieces.value, blackPieces.value);
       winText += winnerName + ' has won with a score of ' + winnerTiles + ':' + (64 - winnerTiles) + '. Congratulations!'
     }
-    alert(winText);
-    resetGame();
+
+    requestAnimationFrame(() => {
+      alert(winText);
+      resetGame();
+    })
 
     return true;
   } else {
     togglePlayer();
     resetPossibleMoves(true);
+    runCpuMoveIfApplicable();
   }
   return false;
 }
@@ -152,11 +172,20 @@ function resetPossibleMoves(tryAgain) {
 
   if (!isPossibleMoves()) {
     if (tryAgain) {
+      alert('No possible moves! ' + (isCpuOpponentTurn() ? 'Computer has passed their turn.' : 'Turn passed!'));
       togglePlayer();
-      alert('No possible moves! Turn passed!');
       resetPossibleMoves(false);
+      requestAnimationFrame(() => runCpuMoveIfApplicable());
     }
   }
+}
+
+function runCpuMoveIfApplicable(){
+  if (isCpuOpponentTurn()) runSingleSimulationStep();
+}
+
+function isCpuOpponentTurn() {
+  return cpuOpponent.value && playerOne.value !== currentPlayerRef.value;
 }
 
 function isPossibleMoves() {
