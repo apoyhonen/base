@@ -1,6 +1,6 @@
 <template>
   <td>
-    <canvas v-bind:id="canvasId" class="othello-cell-canvas" @click="leftClick" oncontextmenu="return false"></canvas>
+    <canvas v-bind:id="canvasId" class="othello-cell-canvas" @click="leftClick"></canvas>
   </td>
 </template>
 
@@ -27,6 +27,7 @@ let c = null;
 let midX = 0;
 let midY = 0;
 let circleRadius = 1;
+const borderWidth = 2;
 
 onMounted(() => {
   canvas = document.getElementById(canvasId.value);
@@ -44,7 +45,8 @@ function sizeChanged() {
 
   midX = canvas.width / 2;
   midY = canvas.height / 2;
-  circleRadius = Math.min(canvas.width / 2, canvas.height / 2) - 3;
+  const calculatedRadius = Math.min(canvas.width / 2, canvas.height / 2) - 5;
+  circleRadius = Math.max(calculatedRadius, 1); // at least 1px
 }
 
 const canvasId = computed(() => props.col + '-' + props.row + '-canvas');
@@ -65,13 +67,17 @@ function reDraw() {
   clear();
 
   if (cellValue.value > 0) {
-    c.fillStyle = cellValue.value === 1 ? 'white' : 'black';
-    c.strokeStyle = cellValue.value === 1 ? 'black' : 'white';
-
+    // border circle
+    c.fillStyle = cellValue.value === 1 ? 'black' : 'white';
     c.beginPath();
-    c.arc(midX, midY, Math.max(circleRadius, 1), 0, 2*Math.PI, false);
+    c.arc(midX, midY, circleRadius + borderWidth, 0, 2*Math.PI);
     c.fill();
-    c.stroke();
+
+    // main piece circle
+    c.fillStyle = cellValue.value === 1 ? 'white' : 'black';
+    c.beginPath();
+    c.arc(midX, midY, circleRadius, 0, 2*Math.PI);
+    c.fill();
   }
 }
 
@@ -82,18 +88,22 @@ function clear() {
 const emit = defineEmits([ 'leftClick' ]);
 
 function leftClick() {
+  emit('leftClick', props.col, props.row);
+  /*
   if (cellValue.value <= 0) { // only transmit clicks on open cells
     emit('leftClick', props.col, props.row);
-  }
+  }*/
 }
 
 </script>
 
 <style scoped>
+td {
+  padding: 0;
+  line-height:0; /* eliminate td specially reserved line for text */
+}
 .othello-cell-canvas {
-  background-color: darkgreen;
-  border: 2px solid forestgreen;
-  width: 50px;
-  height: 50px;
+  background-color: forestgreen;
+  border: 2px solid black;
 }
 </style>
