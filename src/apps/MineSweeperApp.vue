@@ -101,6 +101,7 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import MineSweeperCell from "@/components/MineSweeperCell.vue";
+import { randomIntBetween } from "@/util/MathUtil";
 
 const defaultRows = 15;
 const defaultCols = 30;
@@ -137,14 +138,10 @@ const isValidField = ref(true);
 const isGameOver = ref(false);
 const isWin = ref(false);
 
-function randomNumber(min, max) {
-  return Math.floor(Math.random() * (max - min)) + min;
-}
-
 function randomCell() {
   return {
-    col: randomNumber(0, tableCols.value),
-    row: randomNumber(0, tableRows.value),
+    col: randomIntBetween(0, tableCols.value - 1),
+    row: randomIntBetween(0, tableRows.value - 1),
   }
 }
 

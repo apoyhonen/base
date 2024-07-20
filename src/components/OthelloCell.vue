@@ -1,6 +1,12 @@
 <template>
   <td>
-    <canvas v-bind:id="canvasId" class="othello-cell-canvas" @click="leftClick"></canvas>
+    <canvas
+        v-bind:id="canvasId"
+        class="othello-cell-canvas"
+        @click="leftClick"
+        @auxclick="rightClick"
+        oncontextmenu="return false"
+    />
   </td>
 </template>
 
@@ -78,6 +84,12 @@ function reDraw() {
     c.beginPath();
     c.arc(midX, midY, circleRadius, 0, 2*Math.PI);
     c.fill();
+  } else if (cellValue.value < 0) {
+    // indicate possible move
+    c.fillStyle = 'lightgrey';
+    c.beginPath();
+    c.arc(midX, midY, 5, 0, 2*Math.PI);
+    c.fill();
   }
 }
 
@@ -85,14 +97,14 @@ function clear() {
   c.clearRect(0, 0, canvasSize.value, canvasSize.value);
 }
 
-const emit = defineEmits([ 'leftClick' ]);
+const emit = defineEmits([ 'leftClick', 'rightClick' ]);
 
 function leftClick() {
   emit('leftClick', props.col, props.row);
-  /*
-  if (cellValue.value <= 0) { // only transmit clicks on open cells
-    emit('leftClick', props.col, props.row);
-  }*/
+}
+
+function rightClick() {
+  emit('rightClick', props.col, props.row);
 }
 
 </script>
