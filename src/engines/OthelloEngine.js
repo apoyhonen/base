@@ -1,6 +1,6 @@
 
 import { randomIntBetween } from "@/util/MathUtil";
-export { initGrid, resetGrid, emptyGrid, addStarterPieces, placePiece, markPossibleMoves, togglePiece };
+export { initGrid, resetGrid, emptyGrid, addStarterPieces, placePiece, markPossibleMoves };
 
 // GRID MANIPULATION
 
@@ -50,7 +50,6 @@ function placePiece(grid, possibleMovesGrid, currentPlayerVal, colIndex, rowInde
     } else {
         const possibleTurns = getPossibleMoves(possibleMovesGrid, colIndex, rowIndex);
         if (possibleTurns.length > 0) {
-            console.log('placing piece: col ' + colIndex + ', row ' + rowIndex);
             grid[rowIndex][colIndex] = currentPlayerVal;
             possibleTurns.forEach(possibleTurn => grid[possibleTurn.row][possibleTurn.col] = currentPlayerVal);
             return true;
@@ -58,13 +57,6 @@ function placePiece(grid, possibleMovesGrid, currentPlayerVal, colIndex, rowInde
             return false; // can't turn anything, can't place piece
         }
     }
-}
-
-function togglePiece(grid, colIndex, rowIndex) {
-    // TODO debug function
-    const currValue = getValue(grid, colIndex, rowIndex);
-    grid[rowIndex][colIndex] = currValue === 1 ? 2 : 1;
-    console.log('aux-clicking piece: col ' + colIndex + ', row ' + rowIndex);
 }
 
 function getPossibleMoves(possibleMovesGrid, colIndex, rowIndex) {
