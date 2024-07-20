@@ -4,7 +4,6 @@
         v-bind:id="canvasId"
         class="othello-cell-canvas"
         @click="leftClick"
-        @auxclick="rightClick"
         oncontextmenu="return false"
     />
   </td>
@@ -97,14 +96,10 @@ function clear() {
   c.clearRect(0, 0, canvasSize.value, canvasSize.value);
 }
 
-const emit = defineEmits([ 'leftClick', 'rightClick' ]);
+const emit = defineEmits([ 'leftClick' ]);
 
 function leftClick() {
   emit('leftClick', props.col, props.row);
-}
-
-function rightClick() {
-  emit('rightClick', props.col, props.row);
 }
 
 </script>

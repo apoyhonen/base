@@ -1,22 +1,37 @@
 
 import { randomIntBetween } from "@/util/MathUtil";
-export { initGrid, resetGrid, addStarterPieces, placePiece, markPossibleMoves, togglePiece };
+export { initGrid, resetGrid, emptyGrid, addStarterPieces, placePiece, markPossibleMoves, togglePiece };
 
-function initGrid(grid) {
+// GRID MANIPULATION
+
+function initGrid(grid, value) {
     for (let rowIndex = 0; rowIndex < 8; rowIndex++) {
         const row = [];
-        for (let colIndex = 0; colIndex < 8; colIndex++) row.push(0);
+        for (let colIndex = 0; colIndex < 8; colIndex++) row.push(value);
         grid.push(row);
     }
 }
 
-function resetGrid(grid) {
+function resetGrid(grid, value) {
     for (let i = 0; i < 8; i++) {
         for (let j = 0; j < 8; j++) {
-            grid[i][j] = 0;
+            grid[i][j] = value;
         }
     }
 }
+
+function emptyGrid(grid) {
+    for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+            const arr = grid[i][j];
+            while (arr.length > 0) {
+                grid[i][j] = arr.pop();
+            }
+        }
+    }
+}
+
+// PLACING PIECES & CELL VALUES
 
 function addStarterPieces(grid) {
     // starter pieces
@@ -28,15 +43,20 @@ function addStarterPieces(grid) {
     grid[4][4] = firstVal;
 }
 
-function placePiece(grid, currentPlayerVal, colIndex, rowIndex) {
+function placePiece(grid, possibleMovesGrid, currentPlayerVal, colIndex, rowIndex) {
     const val = getValue(grid, colIndex, rowIndex);
     if (val > 0) {
         return false;
     } else {
-        // TODO check if is possible move and only do/return true if yes
-        console.log('placing piece: col ' + colIndex + ', row ' + rowIndex);
-        grid[rowIndex][colIndex] = currentPlayerVal;
-        return true;
+        const possibleTurns = getPossibleMoves(possibleMovesGrid, colIndex, rowIndex);
+        if (possibleTurns.length > 0) {
+            console.log('placing piece: col ' + colIndex + ', row ' + rowIndex);
+            grid[rowIndex][colIndex] = currentPlayerVal;
+            possibleTurns.forEach(possibleTurn => grid[possibleTurn.row][possibleTurn.col] = currentPlayerVal);
+            return true;
+        } else {
+            return false; // can't turn anything, can't place piece
+        }
     }
 }
 
@@ -47,203 +67,252 @@ function togglePiece(grid, colIndex, rowIndex) {
     console.log('aux-clicking piece: col ' + colIndex + ', row ' + rowIndex);
 }
 
-const possibleMoveVal = -1;
-//const emptyCellVal = 0;
-
-function markPossibleMoves(grid) {
-    if (grid.length === 0) return;
-
-    for (let rowIndex = 0; rowIndex < 8; rowIndex++) {
-        for (let colIndex = 0; colIndex < 8; colIndex++) {
-            const val = getValue(grid, colIndex, rowIndex);
-            if (val <= 0) {
-                grid[rowIndex][colIndex] = possibleMoveVal;
-                //game[row][col] = cellMovePossible(col, row) ? possibleMoveVal : emptyCellVal;
-            }
-        }
-    }
+function getPossibleMoves(possibleMovesGrid, colIndex, rowIndex) {
+    return possibleMovesGrid[rowIndex][colIndex];
 }
 
 function getValue(grid, colIndex, rowIndex) {
     return grid[rowIndex][colIndex];
 }
 
-/*
-function cellMovePossible(colIndex, rowIndex) {
-    return tryTopMove(colIndex, rowIndex)
-        || tryTopRightMove(colIndex, rowIndex)
-        || tryRightMove(colIndex, rowIndex)
-        || tryBottomRightMove(colIndex, rowIndex)
-        || tryBottomMove(colIndex, rowIndex)
-        || tryBottomLeftMove(colIndex, rowIndex)
-        || tryLeftMove(colIndex, rowIndex)
-        || tryTopLeftMove(colIndex, rowIndex);
+function isOpponentValue(val, currentPlayerVal) {
+    return val === (currentPlayerVal === 1 ? 2 : 1);
 }
 
-function isOpponentPiece(colIndex, rowIndex) {
-    const val = getValue(colIndex, rowIndex);
-    return isOwnValue(val) || val <= 0;
+function isOwnValue(val, currentPlayerVal) {
+    return val === currentPlayerVal;
 }
 
-function isOpponentValue(val) {
-    return val === (currentPlayer.value === 1 ? 2 : 1);
-}
+// POSSIBLE MOVES GATHERING
 
-function isOwnValue(val) {
-    return val === currentPlayer.value;
-}
+const possibleMoveVal = -1;
+const emptyCellVal = 0;
 
-/*
-function tryTopMove(colIndex, rowIndex) {
-
-    // if first piece is not opponent's
-    if (rowIndex <= 0 || !isOpponentPiece(colIndex, --rowIndex)) return false;
-
-    while (--rowIndex >= 0) {
-        const val = getValue(colIndex, rowIndex);
-        if (!isOpponentValue(val)) {
-            if (isOwnValue(val)) {
-                return true; // ends in own piece
+function markPossibleMoves(grid, possibleMovesGrid, currentPlayerVal) {
+    for (let rowIndex = 0; rowIndex < 8; rowIndex++) {
+        for (let colIndex = 0; colIndex < 8; colIndex++) {
+            const val = getValue(grid, colIndex, rowIndex);
+            if (val <= 0) {
+                const possibleMoves = gatherPossibleMoves(grid, colIndex, rowIndex, currentPlayerVal);
+                possibleMovesGrid[rowIndex][colIndex] = possibleMoves;
+                grid[rowIndex][colIndex] = possibleMoves.length > 0 ? possibleMoveVal : emptyCellVal;
             } else {
-                break; // no piece
+                possibleMovesGrid[rowIndex][colIndex] = [];
             }
         }
     }
-
-    return false;
 }
 
-function tryTopRightMove(colIndex, rowIndex) {
+function gatherPossibleMoves(grid, colIndex, rowIndex, currentPlayerVal) {
+    const possibleMoves = [];
+    possibleMoves.push(...tryTopMove(grid, colIndex, rowIndex, currentPlayerVal));
+    possibleMoves.push(...tryTopRightMove(grid, colIndex, rowIndex, currentPlayerVal));
+    possibleMoves.push(...tryRightMove(grid, colIndex, rowIndex, currentPlayerVal));
+    possibleMoves.push(...tryBottomRightMove(grid, colIndex, rowIndex, currentPlayerVal));
+    possibleMoves.push(...tryBottomMove(grid, colIndex, rowIndex, currentPlayerVal));
+    possibleMoves.push(...tryBottomLeftMove(grid, colIndex, rowIndex, currentPlayerVal));
+    possibleMoves.push(...tryLeftMove(grid, colIndex, rowIndex, currentPlayerVal));
+    possibleMoves.push(...tryTopLeftMove(grid, colIndex, rowIndex, currentPlayerVal));
 
+    return possibleMoves;
+}
+
+function tryTopMove(grid, colIndex, rowIndex, currentPlayerVal) {
+    const opponentPieces= [];
     // if first piece is not opponent's
-    if (colIndex >= 7 || rowIndex <= 0 || !isOpponentPiece(++colIndex, --rowIndex)) return false;
-
-    while (++colIndex <= 7 && --rowIndex >= 0) {
-        const val = getValue(colIndex, rowIndex);
-        if (!isOpponentValue(val)) {
-            if (isOwnValue(val)) {
-                return true; // ends in own piece
+    if (rowIndex > 0) {
+        rowIndex--;
+        while (rowIndex >= 0) {
+            const val = getValue(grid, colIndex, rowIndex);
+            if (isOpponentValue(val, currentPlayerVal)) {
+                opponentPieces.push({ col: colIndex, row: rowIndex });
+            } else if (isOwnValue(val, currentPlayerVal)) {
+                if (isOwnValue(val, currentPlayerVal)) {
+                    return opponentPieces; // ends in own piece, return gathered opponent pieces
+                }
             } else {
-                break; // no piece
+                return [];
             }
+
+            rowIndex--;
         }
     }
 
-    return false;
+    return [];
 }
 
-function tryRightMove(colIndex, rowIndex) {
-
+function tryTopRightMove(grid, colIndex, rowIndex, currentPlayerVal) {
+    const opponentPieces= [];
     // if first piece is not opponent's
-    if (colIndex >= 7 || !isOpponentPiece(++colIndex, rowIndex)) return false;
-
-    while (++colIndex <= 7) {
-        const val = getValue(colIndex, rowIndex);
-        if (!isOpponentValue(val)) {
-            if (isOwnValue(val)) {
-                return true; // ends in own piece
+    if (colIndex < 7 && rowIndex > 0) {
+        colIndex++;
+        rowIndex--;
+        while (colIndex <= 7 && rowIndex >= 0) {
+            const val = getValue(grid, colIndex, rowIndex);
+            if (isOpponentValue(val, currentPlayerVal)) {
+                opponentPieces.push({ col: colIndex, row: rowIndex });
+            } else if (isOwnValue(val, currentPlayerVal)) {
+                if (isOwnValue(val, currentPlayerVal)) {
+                    return opponentPieces; // ends in own piece, return gathered opponent pieces
+                }
             } else {
-                break; // no piece
+                return [];
             }
+
+            colIndex++;
+            rowIndex--;
         }
     }
 
-    return false;
+    return [];
 }
 
-function tryBottomRightMove(colIndex, rowIndex) {
-
+function tryRightMove(grid, colIndex, rowIndex, currentPlayerVal) {
+    const opponentPieces= [];
     // if first piece is not opponent's
-    if (colIndex >= 7 || rowIndex >= 7 || !isOpponentPiece(++colIndex, ++rowIndex)) return false;
-
-    while (++colIndex <= 7 && ++rowIndex <= 7) {
-        const val = getValue(colIndex, rowIndex);
-        if (!isOpponentValue(val)) {
-            if (isOwnValue(val)) {
-                return true; // ends in own piece
+    if (colIndex < 7) {
+        colIndex++;
+        while (colIndex <= 7) {
+            const val = getValue(grid, colIndex, rowIndex);
+            if (isOpponentValue(val, currentPlayerVal)) {
+                opponentPieces.push({ col: colIndex, row: rowIndex });
+            } else if (isOwnValue(val, currentPlayerVal)) {
+                if (isOwnValue(val, currentPlayerVal)) {
+                    return opponentPieces; // ends in own piece, return gathered opponent pieces
+                }
             } else {
-                break; // no piece
+                return [];
             }
+
+            colIndex++;
         }
     }
 
-    return false;
+    return [];
 }
 
-function tryBottomMove(colIndex, rowIndex) {
-
+function tryBottomRightMove(grid, colIndex, rowIndex, currentPlayerVal) {
+    const opponentPieces= [];
     // if first piece is not opponent's
-    if (rowIndex >= 7 || !isOpponentPiece(colIndex, ++rowIndex)) return false;
-
-    while (++rowIndex <= 7) {
-        const val = getValue(colIndex, rowIndex);
-        if (!isOpponentValue(val)) {
-            if (isOwnValue(val)) {
-                return true; // ends in own piece
+    if (colIndex < 7 && rowIndex < 7) {
+        colIndex++;
+        rowIndex++;
+        while (colIndex <= 7 && rowIndex <= 7) {
+            const val = getValue(grid, colIndex, rowIndex);
+            if (isOpponentValue(val, currentPlayerVal)) {
+                opponentPieces.push({ col: colIndex, row: rowIndex });
+            } else if (isOwnValue(val, currentPlayerVal)) {
+                if (isOwnValue(val, currentPlayerVal)) {
+                    return opponentPieces; // ends in own piece, return gathered opponent pieces
+                }
             } else {
-                break; // no piece
+                return [];
             }
+
+            colIndex++;
+            rowIndex++;
         }
     }
 
-    return false;
+    return [];
 }
 
-function tryBottomLeftMove(colIndex, rowIndex) {
-
+function tryBottomMove(grid, colIndex, rowIndex, currentPlayerVal) {
+    const opponentPieces= [];
     // if first piece is not opponent's
-    if (colIndex <= 0 || rowIndex >= 7 || !isOpponentPiece(--colIndex, ++rowIndex)) return false;
-
-    while (--colIndex >= 0 && ++rowIndex <= 7) {
-        const val = getValue(colIndex, rowIndex);
-        if (!isOpponentValue(val)) {
-            if (isOwnValue(val)) {
-                return true; // ends in own piece
+    if (rowIndex < 7) {
+        rowIndex++;
+        while (rowIndex <= 7) {
+            const val = getValue(grid, colIndex, rowIndex);
+            if (isOpponentValue(val, currentPlayerVal)) {
+                opponentPieces.push({ col: colIndex, row: rowIndex });
+            } else if (isOwnValue(val, currentPlayerVal)) {
+                if (isOwnValue(val, currentPlayerVal)) {
+                    return opponentPieces; // ends in own piece, return gathered opponent pieces
+                }
             } else {
-                break; // no piece
+                return [];
             }
+
+            rowIndex++;
         }
     }
 
-    return false;
+    return [];
 }
 
-function tryLeftMove(colIndex, rowIndex) {
-
+function tryBottomLeftMove(grid, colIndex, rowIndex, currentPlayerVal) {
+    const opponentPieces= [];
     // if first piece is not opponent's
-    if (colIndex <= 0 || !isOpponentPiece(--colIndex, rowIndex)) return false;
-
-    while (--colIndex >= 0) {
-        const val = getValue(colIndex, rowIndex);
-        if (!isOpponentValue(val)) {
-            if (isOwnValue(val)) {
-                return true; // ends in own piece
+    if (colIndex > 0 && rowIndex < 7) {
+        colIndex--;
+        rowIndex++;
+        while (colIndex >= 0 && rowIndex <= 7) {
+            const val = getValue(grid, colIndex, rowIndex);
+            if (isOpponentValue(val, currentPlayerVal)) {
+                opponentPieces.push({ col: colIndex, row: rowIndex });
+            } else if (isOwnValue(val, currentPlayerVal)) {
+                if (isOwnValue(val, currentPlayerVal)) {
+                    return opponentPieces; // ends in own piece, return gathered opponent pieces
+                }
             } else {
-                break; // no piece
+                return [];
             }
+
+            colIndex--;
+            rowIndex++;
         }
     }
 
-    return false;
+    return [];
 }
 
-function tryTopLeftMove(colIndex, rowIndex) {
-
+function tryLeftMove(grid, colIndex, rowIndex, currentPlayerVal) {
+    const opponentPieces= [];
     // if first piece is not opponent's
-    if (colIndex <= 0 || rowIndex <= 0 || !isOpponentPiece(--colIndex, --rowIndex)) return false;
-
-    while (--colIndex >= 0 && --rowIndex >= 0) {
-        const val = getValue(colIndex, rowIndex);
-        if (!isOpponentValue(val)) {
-            if (isOwnValue(val)) {
-                return true; // ends in own piece
+    if (colIndex > 0) {
+        colIndex--;
+        while (colIndex >= 0) {
+            const val = getValue(grid, colIndex, rowIndex);
+            if (isOpponentValue(val, currentPlayerVal)) {
+                opponentPieces.push({ col: colIndex, row: rowIndex });
+            } else if (isOwnValue(val, currentPlayerVal)) {
+                if (isOwnValue(val, currentPlayerVal)) {
+                    return opponentPieces; // ends in own piece, return gathered opponent pieces
+                }
             } else {
-                break; // no piece
+                return [];
             }
+
+            colIndex--;
         }
     }
 
-    return false;
+    return [];
 }
 
- */
+function tryTopLeftMove(grid, colIndex, rowIndex, currentPlayerVal) {
+    const opponentPieces= [];
+    // if first piece is not opponent's
+    if (colIndex > 0 && rowIndex > 0) {
+        colIndex--;
+        rowIndex--;
+        while (colIndex >= 0 && rowIndex >= 0) {
+            const val = getValue(grid, colIndex, rowIndex);
+            if (isOpponentValue(val, currentPlayerVal)) {
+                opponentPieces.push({ col: colIndex, row: rowIndex });
+            } else if (isOwnValue(val, currentPlayerVal)) {
+                if (isOwnValue(val, currentPlayerVal)) {
+                    return opponentPieces; // ends in own piece, return gathered opponent pieces
+                }
+            } else {
+                return [];
+            }
+
+            colIndex--;
+            rowIndex--;
+        }
+    }
+
+    return [];
+}

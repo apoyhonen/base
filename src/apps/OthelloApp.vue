@@ -39,7 +39,6 @@
                 :value="grid[rowIndex - 1][colIndex - 1]"
                 :size="cellSize"
                 @left-click="cellClicked"
-                @right-click="cellSecondaryClicked"
             />
           </tr>
         </table>
@@ -60,14 +59,18 @@ import {
   resetGrid,
   addStarterPieces,
   placePiece,
-  markPossibleMoves, togglePiece
+  markPossibleMoves,
+  emptyGrid
 } from "@/engines/OthelloEngine";
 
 const defaultCellSize = 50;
 const cellSize = ref(defaultCellSize);
 
 const grid = ref([]);
-initGrid(grid.value);
+initGrid(grid.value, 0);
+
+const possibleMovesGrid = ref([]);
+initGrid(possibleMovesGrid.value, []);
 
 onMounted(() => {
   const table = document.getElementById("othello-table");
@@ -91,7 +94,7 @@ function sumValuesCount(arrayOfArrays, value) {
 }
 
 function resetGame() {
-  resetGrid(grid.value);
+  resetGrid(grid.value, 0);
   startGame();
 }
 
@@ -100,15 +103,20 @@ function startGame() {
 
   // random player starts
   setCurrentPlayer(randomIntBetween(1, 2));
-  markPossibleMoves(grid.value);
+  resetPossibleMoves();
 }
 
 function cellClicked(col, row) {
-  const placed = placePiece(grid.value, currentPlayerRef.value, col -1, row -1);
+  const placed = placePiece(grid.value, possibleMovesGrid.value, currentPlayerRef.value, col -1, row -1);
   if (placed) {
     togglePlayer();
-    markPossibleMoves(grid.value);
+    resetPossibleMoves();
   }
+}
+
+function resetPossibleMoves() {
+  emptyGrid(possibleMovesGrid.value);
+  markPossibleMoves(grid.value, possibleMovesGrid.value, currentPlayerRef.value);
 }
 
 function togglePlayer() {
@@ -117,11 +125,6 @@ function togglePlayer() {
 
 function setCurrentPlayer(playerVal) {
   currentPlayerRef.value = playerVal;
-}
-
-function cellSecondaryClicked(col, row) {
-  // TODO debug function
-  togglePiece(grid.value, col - 1, row - 1);
 }
 
 </script>
