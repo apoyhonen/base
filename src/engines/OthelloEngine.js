@@ -1,6 +1,6 @@
 
 import { randomIntBetween } from "@/util/MathUtil";
-export { initGrid, resetGrid, emptyGrid, addStarterPieces, placePiece, markPossibleMoves };
+export { initGrid, resetGrid, emptyGrid, addStarterPieces, placePiece, markPossibleMoves, selectRandomOptionFromPossibleMoves };
 
 // GRID MANIPULATION
 
@@ -13,9 +13,9 @@ function initGrid(grid, value) {
 }
 
 function resetGrid(grid, value) {
-    for (let i = 0; i < 8; i++) {
-        for (let j = 0; j < 8; j++) {
-            grid[i][j] = value;
+    for (let rowIndex = 0; rowIndex < 8; rowIndex++) {
+        for (let colIndex = 0; colIndex < 8; colIndex++) {
+            grid[rowIndex][colIndex] = value;
         }
     }
 }
@@ -73,6 +73,21 @@ function isOpponentValue(val, currentPlayerVal) {
 
 function isOwnValue(val, currentPlayerVal) {
     return val === currentPlayerVal;
+}
+
+function selectRandomOptionFromPossibleMoves(possibleMovesGrid) {
+    const possibleMoves = [];
+    for (let rowIndex = 0; rowIndex < 8; rowIndex++) {
+        for (let colIndex = 0; colIndex < 8; colIndex++) {
+            if (getPossibleMoves(possibleMovesGrid, colIndex, rowIndex).length > 0) {
+                possibleMoves.push({ col: colIndex, row: rowIndex });
+            }
+        }
+    }
+    const randomIndex = randomIntBetween(0, possibleMoves.length - 1);
+    const randomMove = possibleMoves[randomIndex];
+    console.log('SIMULATION: ' + possibleMoves.length + ' moves available, choosing ' + randomIndex + ' option.');
+    return randomMove > 0 ? null : randomMove;
 }
 
 // POSSIBLE MOVES GATHERING
@@ -308,3 +323,6 @@ function tryTopLeftMove(grid, colIndex, rowIndex, currentPlayerVal) {
 
     return [];
 }
+
+
+// SIMULATED GAME

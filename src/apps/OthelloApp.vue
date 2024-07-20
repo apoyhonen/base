@@ -1,34 +1,41 @@
 <template>
-  <h1>Othello</h1>
 
   <table class="info-table">
     <tr>
 
       <td>
-        <h3>Board</h3>
-        <div class="controls-div">
-          <label for="cellSize">cell size (px):</label>
-          <input id="cellSize" type="number" class="controls-input" v-model="cellSize" />
-          <br><br>
-          <button class="controls-button"  @click="cellSize = defaultCellSize">RESET SIZE</button>
-        </div>
-        <br><br>
-
-        <h3>Game</h3>
-        <p style="font-size: 20px;">
-          Turn: <b>{{ currentPlayerRef === 1 ? 'white' : 'black' }}</b>
-          <br>
-          <span :class="currentPlayerRef === 1 ? 'player-white' : 'player-black'"></span>
-        </p>
+        <span :class="currentPlayerRef === 1 ? 'player-white' : 'player-black'">
+          Turn: {{ currentPlayerRef === 1 ? 'white' : 'black' }}
+        </span>
         <p>
           White: <b>{{ whitePieces }}</b> pieces
           <br>
           Black: <b>{{ blackPieces }}</b> pieces
         </p>
         <button class="controls-button"  @click="resetGame">RESTART</button>
+        <br><br>
+        <button class="controls-button"  @click="runSingleSimulationStep">SIMULATE ONE STEP</button>
+        <br>
+        <button class="controls-button"  @click="runSimulatedGame(true)">SIMULATE GAME TO END</button>
+        <br>
+        <button class="controls-button"  @click="stopSimulation = true">STOP SIMULATION</button>
+
+        <br><br>
+        <br><br>
+        <br><br>
+
+        <h3>Board size</h3>
+        <div class="controls-div">
+          <label for="cellSize">cell size (px):</label>
+          <input id="cellSize" type="number" class="controls-input" v-model="cellSize" />
+          <br><br>
+          <button class="controls-button"  @click="cellSize = calculateCellSizeByWindow()">RESET SIZE</button>
+        </div>
       </td>
 
       <td>
+        <h1 style="font-size: 60px;">Othello</h1>
+
         <table id="othello-table">
           <tr v-for="rowIndex in 8" :key="'row' + rowIndex">
             <OthelloCell
@@ -60,7 +67,7 @@ import {
   addStarterPieces,
   placePiece,
   markPossibleMoves,
-  emptyGrid
+  emptyGrid, selectRandomOptionFromPossibleMoves
 } from "@/engines/OthelloEngine";
 
 const defaultCellSize = 50;
@@ -73,11 +80,15 @@ const possibleMovesGrid = ref([]);
 initGrid(possibleMovesGrid.value, []);
 
 onMounted(() => {
-  const table = document.getElementById("othello-table");
-  cellSize.value = Math.floor(Math.min(window.innerWidth - table.offsetLeft, window.innerHeight - table.offsetTop) * 0.8 / 8);
+  cellSize.value = calculateCellSizeByWindow();
 
   startGame();
 })
+
+function calculateCellSizeByWindow() {
+  const table = document.getElementById("othello-table");
+  return Math.floor(Math.min(window.innerWidth - table.offsetLeft, window.innerHeight - table.offsetTop) * 0.8 / 8);
+}
 
 // game
 
@@ -103,20 +114,58 @@ function startGame() {
 
   // random player starts
   setCurrentPlayer(randomIntBetween(1, 2));
-  resetPossibleMoves();
+  resetPossibleMoves(true);
 }
 
 function cellClicked(col, row) {
   const placed = placePiece(grid.value, possibleMovesGrid.value, currentPlayerRef.value, col -1, row -1);
-  if (placed) {
+
+  if (placed) afterPiecePlaced();
+}
+
+function afterPiecePlaced() {
+  if (whitePieces.value + blackPieces.value === 64) {
+    // game has ended
+    let winText = '';
+    if (whitePieces.value === blackPieces.value) {
+      // tie
+      winText += 'The game ended in a tie of 32:32 points. What a wonderful match!';
+    } else {
+      const winnerName = whitePieces.value > blackPieces.value ? 'White' : 'Black';
+      const winnerTiles = Math.max(whitePieces.value, blackPieces.value);
+      winText += winnerName + ' has won with a score of ' + winnerTiles + ':' + (64 - winnerTiles) + '. Congratulations!'
+    }
+    alert(winText);
+    resetGame();
+
+    return true;
+  } else {
     togglePlayer();
-    resetPossibleMoves();
+    resetPossibleMoves(true);
+  }
+  return false;
+}
+
+function resetPossibleMoves(tryAgain) {
+  emptyGrid(possibleMovesGrid.value);
+  markPossibleMoves(grid.value, possibleMovesGrid.value, currentPlayerRef.value);
+
+  if (!isPossibleMoves()) {
+    if (tryAgain) {
+      togglePlayer();
+      alert('No possible moves! Turn passed!');
+      resetPossibleMoves(false);
+    }
   }
 }
 
-function resetPossibleMoves() {
-  emptyGrid(possibleMovesGrid.value);
-  markPossibleMoves(grid.value, possibleMovesGrid.value, currentPlayerRef.value);
+function isPossibleMoves() {
+  for (let rowIndex = 0; rowIndex < 8; rowIndex++) {
+    for (let colIndex = 0; colIndex < 8; colIndex++) {
+      if (possibleMovesGrid.value[rowIndex][colIndex].length > 0) return true; // possible moves found
+    }
+  }
+  return false;
 }
 
 function togglePlayer() {
@@ -125,6 +174,56 @@ function togglePlayer() {
 
 function setCurrentPlayer(playerVal) {
   currentPlayerRef.value = playerVal;
+}
+
+// SIMULATED (RANDOM) GAME
+
+const simulationStepLengthMs = 100;
+let lastSimulatedStepTimeStamp = 0;
+let stopSimulation = false;
+
+function runSingleSimulationStep() {
+  runSimulatedGameStep(false);
+  stopSimulation = true;
+}
+
+function runSimulatedGame(trySimulationAgain) {
+  runSimulatedGameStep(trySimulationAgain);
+}
+
+function runSimulatedGameStep(trySimulationAgain) {
+  if (stopSimulation) {
+    stopSimulation = false;
+    return;
+  }
+
+  if (getRemainingMoves() > 0) {
+    if (Date.now() - lastSimulatedStepTimeStamp > simulationStepLengthMs) {
+
+      const randomPlacement = selectRandomOptionFromPossibleMoves(possibleMovesGrid.value);
+      if (randomPlacement) {
+        placePiece(grid.value, possibleMovesGrid.value, currentPlayerRef.value, randomPlacement.col, randomPlacement.row);
+        lastSimulatedStepTimeStamp = Date.now();
+        if (afterPiecePlaced()) return; // game was won, no need to continue animating
+      } else {
+        // couldn't find next simulated step
+        if (trySimulationAgain) {
+          alert('Ran into a dead-end with simulation, resetting the game!');
+          runSimulatedGame(false);
+        } else {
+          alert('Could not run simulator to the end.');
+        }
+        return;
+      }
+
+    }
+
+    requestAnimationFrame(() => runSimulatedGameStep(trySimulationAgain));
+  }
+}
+
+function getRemainingMoves() {
+  return 64 - whitePieces.value - blackPieces.value;
 }
 
 </script>
@@ -150,17 +249,22 @@ function setCurrentPlayer(playerVal) {
 .player-white,
 .player-black {
   display: inline-block;
-  width: 100px;
-  height: 20px;
+  width: 180px;
+  height: 120px;
   margin: 10px;
+  line-height: 120px;
+  font-size: 26px;
+  font-weight: bold;
 }
 .player-white {
   background-color: white;
-  border: 1px solid black;
+  border: 3px solid black;
+  color: black;
 }
 .player-black {
   background-color: black;
-  border: 1px solid white;
+  border: 3px solid white;
+  color: white;
 }
 
 #othello-table {
