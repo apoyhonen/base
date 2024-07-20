@@ -31,7 +31,7 @@ const shownApp = ref("othello");
 
 const apps = [];
 apps.push({ refName: 'swish', name: 'Swish *' });
-apps.push({ refName: 'othello', name: 'Othello *' });
+apps.push({ refName: 'othello', name: 'Othello' });
 apps.push({ refName: 'snake', name: 'Snake' });
 apps.push({ refName: 'pong', name: 'Pong' });
 apps.push({ refName: 'breakout', name: 'Breakout' });

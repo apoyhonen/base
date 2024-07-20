@@ -221,7 +221,7 @@ function runSimulatedGame(trySimulationAgain) {
 }
 
 function runSimulatedGameStep(trySimulationAgain) {
-  if (stopSimulation) {
+  if (!isCpuOpponentTurn() && stopSimulation) {
     stopSimulation = false;
     return;
   }

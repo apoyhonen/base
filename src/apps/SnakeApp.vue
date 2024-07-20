@@ -92,6 +92,7 @@
 <script setup>
 
 import { computed, onMounted, ref, watch } from "vue";
+import { randomIntBetween } from "@/util/MathUtil";
 
 let canvas = null;
 let c = null;
@@ -403,13 +404,9 @@ function addGoalTile() {
 
 function randomTile() {
   return {
-    col: randomNumber(1, gridCols.value + 1),
-    row: randomNumber(1, gridRows.value + 1),
+    col: randomIntBetween(1, gridCols.value),
+    row: randomIntBetween(1, gridRows.value),
   }
-}
-
-function randomNumber(min, max) {
-  return Math.floor(Math.random() * (max - min)) + min;
 }
 
 // key & mouse listeners

@@ -40,6 +40,7 @@
 <script setup>
 
 import { computed, onMounted, ref, watch } from "vue";
+import { angleBetweenPointsDegreesPositive, degreesToRadian, projectedPoint } from "@/util/MathUtil";
 
 let canvas = null;
 let c = null;
@@ -102,17 +103,7 @@ function canvasClicked(e) {
 function pointLineToEvent(clientX, clientY) {
   const eventX = clientX - canvas.offsetLeft;
   const eventY = clientY - canvas.offsetTop;
-  const directionInRadians = Math.atan2(eventY - middlePoint.y, eventX - middlePoint.x);
-  const directionInDegrees = radianToDegrees(directionInRadians);
-  angleInDegrees.value = (directionInDegrees + 360) % 360; // change to positive angle
-}
-
-function degreesToRadian(degrees) {
-  return Math.PI * degrees / 180.0;
-}
-
-function radianToDegrees(radians) {
-  return radians * 180 / Math.PI;
+  angleInDegrees.value = angleBetweenPointsDegreesPositive(middlePoint.x, middlePoint.y, eventX, eventY);
 }
 
 // key and mouse handlers
@@ -127,6 +118,7 @@ document.addEventListener("mousemove", mouseMoveHandler, false);
 function mouseMoveHandler() {
   if (!isAppActive()) return;
 
+  // TODO delete later if unnecessary
   //pointLineToEvent(e.clientX, e.clientY);
 }
 
@@ -193,16 +185,9 @@ function drawLine() {
   c.lineWidth = 3;
   c.beginPath();
   c.moveTo(x, y);
-  c.lineTo(lineX(x, lineLength.value, angleInRadians.value), lineY(y, lineLength.value, angleInRadians.value));
+  const linePoint = projectedPoint(x, y, lineLength.value, angleInRadians.value);
+  c.lineTo(linePoint.x, linePoint.y);
   c.stroke();
-}
-
-function lineX(originX, length, radiansTheta) {
-  return originX + length * Math.cos(radiansTheta);
-}
-
-function lineY(originY, length, radiansTheta) {
-  return originY + length * Math.sin(radiansTheta);
 }
 
 </script>
@@ -223,11 +208,8 @@ table {
 td {
   padding: 0 20px;
 }
-.controls-button,
 .controls-input {
   margin: 1px 10px;
-}
-.controls-input {
   width: 40px;
 }
 </style>
