@@ -27,7 +27,7 @@ import MiscTesting from "@/apps/MiscTesting.vue";
 
 import { ref } from "vue";
 
-const shownApp = ref("swish");
+const shownApp = ref("othello");
 
 const apps = [];
 apps.push({ refName: 'swish', name: 'Swish *' });
