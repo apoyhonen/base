@@ -1,4 +1,4 @@
-export { randomIntBetween, degreesToRadian, radianToDegrees, angleBetweenPointsRadian, angleBetweenPointsDegreesPositive, projectedPoint };
+export { randomIntBetween, degreesToRadian, radianToDegrees, angleBetweenPointsRadian, angleBetweenPointsDegreesPositive, projectPoint };
 
 // PURE MATH (RANDOM, ETC.)
 
@@ -25,14 +25,14 @@ function angleBetweenPointsDegreesPositive(originX, originY, targetX, targetY) {
     return (directionInDegrees + 360) % 360; // change to positive angle
 }
 
-function projectedPoint(originX, originY, length, radiansTheta) {
-    return { x: projectedPointX(originX, length, radiansTheta), y: projectedPointY(originY, length, radiansTheta) };
+function projectPoint(originX, originY, length, radiansTheta) {
+    return { x: projectPointX(originX, length, radiansTheta), y: projectPointY(originY, length, radiansTheta) };
 }
 
-function projectedPointX(originX, length, radiansTheta) {
+function projectPointX(originX, length, radiansTheta) {
     return originX + length * Math.cos(radiansTheta);
 }
 
-function projectedPointY(originY, length, radiansTheta) {
+function projectPointY(originY, length, radiansTheta) {
     return originY + length * Math.sin(radiansTheta);
 }

@@ -5,11 +5,12 @@
     </template>
   </div>
   <Swish v-if="shownApp === 'swish'"></Swish>
+  <Othello v-if="shownApp === 'othello'"></Othello>
   <Snake v-if="shownApp === 'snake'"></Snake>
   <Pong v-if="shownApp === 'pong'"></Pong>
   <Breakout v-if="shownApp === 'breakout'"></Breakout>
   <MineSweeper v-if="shownApp === 'minesweeper'"></MineSweeper>
-  <Othello v-if="shownApp === 'othello'"></Othello>
+  <CircleMotion v-if="shownApp === 'circlemotion'"></CircleMotion>
   <CanvasCharts v-if="shownApp === 'canvascharts'"></CanvasCharts>
   <MiscTesting v-if="shownApp === 'misctesting'"></MiscTesting>
 </template>
@@ -22,12 +23,13 @@ import Pong from "@/apps/PongApp.vue";
 import Breakout from "@/apps/BreakoutApp.vue";
 import MineSweeper from "@/apps/MineSweeperApp.vue";
 import Othello from "@/apps/OthelloApp.vue";
+import CircleMotion from "@/apps/CircleMotionAnimationApp.vue";
 import CanvasCharts from "@/apps/CanvasCharts.vue";
 import MiscTesting from "@/apps/MiscTesting.vue";
 
 import { ref } from "vue";
 
-const shownApp = ref("othello");
+const shownApp = ref("circlemotion");
 
 const apps = [];
 apps.push({ refName: 'swish', name: 'Swish *' });
@@ -36,6 +38,7 @@ apps.push({ refName: 'snake', name: 'Snake' });
 apps.push({ refName: 'pong', name: 'Pong' });
 apps.push({ refName: 'breakout', name: 'Breakout' });
 apps.push({ refName: 'minesweeper', name: 'Minesweeper' });
+apps.push({ refName: 'circlemotion', name: 'CircleMotion *' })
 apps.push({ refName: 'canvascharts', name: 'Auto-Charts' });
 apps.push({ refName: 'misctesting', name: 'Misc Testing' });
 
@@ -46,6 +49,7 @@ import Pong from "@/apps/PongApp.vue";
 import Breakout from "@/apps/BreakoutApp.vue";
 import MineSweeper from "@/apps/MineSweeperApp.vue";
 import Othello from "@/apps/OthelloApp.vue";
+import CircleMotion from "@/apps/CircleMotionAnimationApp.vue";
 import CanvasCharts from "@/apps/CanvasCharts.vue";
 import MiscTesting from "@/apps/MiscTesting.vue";
 

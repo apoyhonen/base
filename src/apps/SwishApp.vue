@@ -40,7 +40,7 @@
 <script setup>
 
 import { computed, onMounted, ref, watch } from "vue";
-import { angleBetweenPointsDegreesPositive, degreesToRadian, projectedPoint } from "@/util/MathUtil";
+import { angleBetweenPointsDegreesPositive, degreesToRadian, projectPoint } from "@/util/MathUtil";
 
 let canvas = null;
 let c = null;
@@ -185,7 +185,7 @@ function drawLine() {
   c.lineWidth = 3;
   c.beginPath();
   c.moveTo(x, y);
-  const linePoint = projectedPoint(x, y, lineLength.value, angleInRadians.value);
+  const linePoint = projectPoint(x, y, lineLength.value, angleInRadians.value);
   c.lineTo(linePoint.x, linePoint.y);
   c.stroke();
 }
