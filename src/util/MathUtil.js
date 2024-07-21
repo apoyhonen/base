@@ -1,9 +1,18 @@
-export { randomIntBetween, degreesToRadian, radianToDegrees, angleBetweenPointsRadian, angleBetweenPointsDegreesPositive, projectPoint };
+export {
+    randomIntBetween, randomBetween,
+    degreesToRadian, radianToDegrees,
+    angleBetweenPointsRadian, angleBetweenPointsDegreesPositive,
+    projectPoint
+};
 
-// PURE MATH (RANDOM, ETC.)
+// RANDOM
 
 function randomIntBetween(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+function randomBetween(min, max) {
+    return Math.random() * (max - min) + min;
 }
 
 // TRIGONOMETRY (ANGLES, LINES, VECTORS)

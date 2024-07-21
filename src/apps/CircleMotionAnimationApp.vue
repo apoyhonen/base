@@ -26,7 +26,8 @@
 <script setup>
 
 import { onMounted, ref, watch } from "vue";
-import { angleBetweenPointsRadian } from "@/util/MathUtil";
+import { angleBetweenPointsRadian, randomBetween, randomIntBetween } from "@/util/MathUtil";
+import { randomColor } from "@/util/ColorUtil";
 
 let canvas = null;
 let c = null;
@@ -96,24 +97,27 @@ function mouseMoveHandler(e) {
 let particles = [];
 
 function initParticles() {
-  for (let i = 0; i < 1; i++) {
+  for (let i = 0; i < 100; i++) {
     particles.push(new Particle(middlePoint.x, middlePoint.y, 5, 'blue'));
   }
 }
 
-function Particle(x, y, radius, color) {
+function Particle(x, y, radius) {
   this.x = x;
   this.y = y;
   this.radius = radius;
-  this.color = color;
-  this.radians = 0;
-  this.velocity = 0.05;
+  this.color = randomColor();
+  this.radians = randomBetween(0, Math.PI * 2);
+  this.velocity = randomBetween(0.02, 0.04);
+  this.oscillation = randomIntBetween(100, 500); // factor to oscillate past radius
 
   this.update = () => {
     // move points over time
     this.radians += this.velocity;
-    this.x = x + Math.cos(this.radians) * 100; // oscillation factor
-    this.y = y + Math.sin(this.radians) * 100;
+    if (this.radians >= Math.PI * 2) this.radians -= Math.PI * 2;
+
+    this.x = x + Math.cos(this.radians) * this.oscillation;
+    this.y = y + Math.sin(this.radians) * this.oscillation;
 
     this.draw();
   }

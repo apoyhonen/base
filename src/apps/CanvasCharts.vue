@@ -17,6 +17,7 @@
 import {onMounted, ref} from 'vue'
 import SimpleCanvas from '../components/SimpleCanvas.vue';
 import CanvasItem from '../components/CanvasItemBase.vue';
+import { randomColor } from "@/util/ColorUtil";
 
 const chartValues = ref([
   { val: 24, color: 'red' },
@@ -87,19 +88,10 @@ function canvasClick(x, y) {
       // clicked x area for this chart
       if (yMin <= clickYPercent) {
         // clicked actual bar
-        chartVal.color = getRandomColor();
+        chartVal.color = randomColor();
       }
     }
   })
-}
-
-var getRandomColor = () => {
-  var letters = '0123456789ABCDEF';
-  var color = '#';
-  for (var i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
-  }
-  return color;
 }
 
 </script>
