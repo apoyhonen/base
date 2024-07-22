@@ -25,7 +25,13 @@
         <label for="particlesAmount">Particles: </label>
         <input id="particlesAmount" type="number" class="controls-input" v-model="particlesAmount" />
         <br>
-        <button @click="particlesAmount = defaultParticlesAmount">RESET PARTICLES</button>/
+        <label for="particlesMinDistance">Min distance: </label>
+        <input id="particlesMinDistance" type="number" class="controls-input" v-model="particleMinDistance" />
+        <br>
+        <label for="particlesMaxDistance">Max distance: </label>
+        <input id="particlesMaxDistance" type="number" class="controls-input" v-model="particleMaxDistance" />
+        <br>
+        <button @click="resetParticlesValues">RESET PARTICLES</button>
         <br><br><br>
         <button @click="clearCanvas">RESET CANVAS</button>
       </td>
@@ -50,6 +56,7 @@ const isRunning = ref(true);
 onMounted(() => {
   canvas = document.getElementById("circleMotionCanvas");
   c = canvas.getContext("2d");
+  c.lineCap = 'round';
 
   setupCanvasSizes();
   initParticles();
@@ -64,8 +71,10 @@ function setupCanvasSizes() {
   middlePoint.x = canvas.width / 2;
   middlePoint.y = canvas.height / 2;
 
-  particleMaxDistance = Math.min(canvas.width, canvas.height) / 4;
-  particleMinDistance = particleMaxDistance / 2;
+  defaultParticleMinDistance = Math.floor(Math.min(canvas.width, canvas.height) / 4);
+  defaultParticleMaxDistance = Math.floor(particleMaxDistance.value / 2);
+  particleMaxDistance.value = defaultParticleMinDistance;
+  particleMinDistance.value = defaultParticleMaxDistance;
 }
 
 watch(isRunning, () => {
@@ -141,18 +150,22 @@ const particleCenterPoint = computed(() => {
   }
 })
 
-let particleMinDistance = 100;
-let particleMaxDistance = 200;
-const defaultParticlesAmount = 200;
-const particlesAmount = ref(defaultParticlesAmount);
+let defaultParticleMinDistance = 100;
+let defaultParticleMaxDistance = 200;
+const particleMinDistance = ref(defaultParticleMinDistance);
+const particleMaxDistance = ref(defaultParticleMaxDistance);
+watch(particleMinDistance, () => particles.forEach(particle => particle.refreshDistance()));
+watch(particleMaxDistance, () => particles.forEach(particle => particle.refreshDistance()));
 
 let particles = [];
 function initParticles() {
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < defaultParticlesAmount; i++) {
     particles.push(new Particle(middlePoint.x, middlePoint.y));
   }
 }
 
+const defaultParticlesAmount = 200;
+const particlesAmount = ref(defaultParticlesAmount);
 watch(particlesAmount, () => {
   if (particlesAmount.value > particles.length) {
     while (particles.length < particlesAmount.value) {
@@ -165,17 +178,23 @@ watch(particlesAmount, () => {
   }
 })
 
+function resetParticlesValues() {
+  particleMinDistance.value = defaultParticleMinDistance;
+  particleMaxDistance.value = defaultParticleMaxDistance;
+  particlesAmount.value = defaultParticlesAmount;
+}
+
 function Particle(x, y) {
   this.x = x;
   this.y = y;
-  this.radius = randomIntBetween(1, 2);
+  this.radius = randomIntBetween(2, 4);
   this.color = randomColor();
   this.radians = Math.random() * Math.PI * 2;
-  this.velocity = randomBetween(0.015, 0.03);
-  this.distanceFromCenter = randomIntBetween(particleMinDistance, particleMaxDistance);
+  this.velocity = randomBetween(0.015, 0.02);
+  this.distanceFromCenter = randomIntBetween(particleMinDistance.value, particleMaxDistance.value);
   this.lastTowardsMousePosition = { x: x, y: y };
 
-  this.refreshDistance = () => this.distanceFromCenter = randomIntBetween(particleMinDistance, particleMaxDistance);
+  this.refreshDistance = () => this.distanceFromCenter = randomIntBetween(particleMinDistance.value, particleMaxDistance.value);
 
   this.update = () => {
     // move points over time
