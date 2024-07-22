@@ -38,7 +38,7 @@ apps.push({ refName: 'snake', name: 'Snake' });
 apps.push({ refName: 'pong', name: 'Pong' });
 apps.push({ refName: 'breakout', name: 'Breakout' });
 apps.push({ refName: 'minesweeper', name: 'Minesweeper' });
-apps.push({ refName: 'circlemotion', name: 'CircleMotion *' })
+apps.push({ refName: 'circlemotion', name: 'CircleMotion' })
 apps.push({ refName: 'canvascharts', name: 'Auto-Charts' });
 apps.push({ refName: 'misctesting', name: 'Misc Testing' });
 
