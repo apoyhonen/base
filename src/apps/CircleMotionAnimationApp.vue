@@ -6,24 +6,28 @@
     <tr>
 
       <td>
-        <b>Animation</b>
-        <br><br>
-        <p>frame: {{ frameCount }}</p>
-        <br>
-        <button @click="isRunning = !isRunning">START / STOP</button>
-
-        <br><br><br><br>
-
-        <span>Following: {{ particlesFollowMouse ? 'mouse' : 'middle' }}</span>
-        <br>
-        <button @click="particlesFollowMouse = !particlesFollowMouse">TOGGLE CENTER</button>
-        <br><br>
-        <button @click="clearCanvas">RESET CANVAS</button>
+        <h2>Circular Motion</h2>
+        <canvas id="circleMotionCanvas" width="400" height="300" @auxclick.prevent="canvasClicked" oncontextmenu="return false"></canvas>
       </td>
 
       <td>
-        <h2>Circular Motion</h2>
-        <canvas id="circleMotionCanvas" width="400" height="300" @auxclick.prevent="canvasClicked" oncontextmenu="return false"></canvas>
+        <b>Animation</b>
+        <br><br>
+        <p>frame: {{ frameCount }}</p>
+        <button @click="isRunning = !isRunning">START / STOP</button>
+
+        <br><br><br>
+
+        <span>Following: {{ particlesFollowMouse ? 'mouse' : 'middle' }}</span>
+        <br>
+        <button @click="particlesFollowMouse = !particlesFollowMouse">TOGGLE FOLLOWING</button>
+        <br><br><br>
+        <label for="particlesAmount">Particles: </label>
+        <input id="particlesAmount" type="number" class="controls-input" v-model="particlesAmount" />
+        <br>
+        <button @click="particlesAmount = defaultParticlesAmount">RESET PARTICLES</button>/
+        <br><br><br>
+        <button @click="clearCanvas">RESET CANVAS</button>
       </td>
 
     </tr>
@@ -34,7 +38,7 @@
 <script setup>
 
 import { computed, onMounted, ref, watch } from "vue";
-import { angleBetweenPointsRadian, randomBetween, randomIntBetween } from "@/util/MathUtil";
+import { randomBetween, randomIntBetween } from "@/util/MathUtil";
 import { randomColor } from "@/util/ColorUtil";
 
 let canvas = null;
@@ -45,20 +49,24 @@ const isRunning = ref(true);
 
 onMounted(() => {
   canvas = document.getElementById("circleMotionCanvas");
+  c = canvas.getContext("2d");
+
+  setupCanvasSizes();
+  initParticles();
+
+  draw(); // init
+});
+
+function setupCanvasSizes() {
   canvas.width = window.innerWidth * 0.7;
   canvas.height = window.innerHeight * 0.8;
-  c = canvas.getContext("2d");
 
   middlePoint.x = canvas.width / 2;
   middlePoint.y = canvas.height / 2;
 
   particleMaxDistance = Math.min(canvas.width, canvas.height) / 4;
   particleMinDistance = particleMaxDistance / 2;
-
-  initParticles();
-
-  draw(); // init
-});
+}
 
 watch(isRunning, () => {
   if (isRunning.value) draw();
@@ -83,27 +91,43 @@ function isAppActive() {
 let middlePoint = { x: 0, y: 0 };
 const mousePoint = ref({ x: 0, y: 0 });
 
-const angleInRadians = ref(0.5);
-
-function canvasClicked(e) {
-  const eventX = e.clientX - canvas.offsetLeft;
-  const eventY = e.clientY - canvas.offsetTop;
-  angleInRadians.value = angleBetweenPointsRadian(mousePoint.value.x, mousePoint.value.y, eventX, eventY);
-}
-
 function clearCanvas() {
   c.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-// key and mouse handlers
+// document listeners
 
-document.addEventListener("mousemove", mouseMoveHandler, false);
+document.addEventListener("mousemove", mouseMoveHandler);
+window.addEventListener('resize', () => {
+  setupCanvasSizes();
+  particles.forEach(particle => particle.refreshDistance());
+});
 
 function mouseMoveHandler(e) {
   if (!isAppActive()) return;
 
-  mousePoint.value.x = e.clientX - canvas.offsetLeft;
-  mousePoint.value.y = e.clientY - canvas.offsetTop;
+  mousePoint.value.x = e.clientX - getOffsetLeft(canvas);
+  mousePoint.value.y = e.clientY - getOffsetTop(canvas);
+}
+
+function getOffsetLeft(element) {
+  let offsetLeft = element.offsetLeft;
+  let offsetParent = element.offsetParent;
+  while (offsetParent) {
+    offsetLeft += offsetParent.offsetLeft;
+    offsetParent = offsetParent.offsetParent;
+  }
+  return offsetLeft;
+}
+
+function getOffsetTop(element) {
+  let offsetTop = element.offsetTop;
+  let offsetParent = element.offsetParent;
+  while (offsetParent) {
+    offsetTop += offsetParent.offsetTop;
+    offsetParent = offsetParent.offsetParent;
+  }
+  return offsetTop;
 }
 
 // particles
@@ -119,32 +143,51 @@ const particleCenterPoint = computed(() => {
 
 let particleMinDistance = 100;
 let particleMaxDistance = 200;
+const defaultParticlesAmount = 200;
+const particlesAmount = ref(defaultParticlesAmount);
 
 let particles = [];
 function initParticles() {
-  for (let i = 0; i < 100; i++) {
-    particles.push(new Particle(middlePoint.x, middlePoint.y, 5, 'blue'));
+  for (let i = 0; i < 300; i++) {
+    particles.push(new Particle(middlePoint.x, middlePoint.y));
   }
 }
 
-function Particle(x, y, radius) {
+watch(particlesAmount, () => {
+  if (particlesAmount.value > particles.length) {
+    while (particles.length < particlesAmount.value) {
+      particles.push(new Particle(middlePoint.x, middlePoint.y));
+    }
+  } else {
+    while (particles.length > particlesAmount.value) {
+      particles.pop();
+    }
+  }
+})
+
+function Particle(x, y) {
   this.x = x;
   this.y = y;
-  this.radius = radius;
+  this.radius = randomIntBetween(1, 2);
   this.color = randomColor();
   this.radians = Math.random() * Math.PI * 2;
   this.velocity = randomBetween(0.015, 0.03);
-  this.distanceFromCenter = randomIntBetween(particleMinDistance, particleMaxDistance); // factor to oscillate past radius
+  this.distanceFromCenter = randomIntBetween(particleMinDistance, particleMaxDistance);
+  this.lastTowardsMousePosition = { x: x, y: y };
+
+  this.refreshDistance = () => this.distanceFromCenter = randomIntBetween(particleMinDistance, particleMaxDistance);
 
   this.update = () => {
     // move points over time
     this.radians += this.velocity;
-    if (this.radians >= Math.PI * 2) this.radians -= Math.PI * 2;
 
     const lastPoint = { x: this.x, y: this.y };
 
-    this.x = particleCenterPoint.value.x + Math.cos(this.radians) * this.distanceFromCenter;
-    this.y = particleCenterPoint.value.y + Math.sin(this.radians) * this.distanceFromCenter;
+    this.lastTowardsMousePosition.x += (particleCenterPoint.value.x - this.lastTowardsMousePosition.x) * 0.05;
+    this.lastTowardsMousePosition.y += (particleCenterPoint.value.y - this.lastTowardsMousePosition.y) * 0.05;
+
+    this.x = this.lastTowardsMousePosition.x + Math.cos(this.radians) * this.distanceFromCenter;
+    this.y = this.lastTowardsMousePosition.y + Math.sin(this.radians) * this.distanceFromCenter;
 
     this.draw(lastPoint);
   }
@@ -170,6 +213,10 @@ table {
 }
 table > tr > td {
   padding: 0 20px;
+}
+.controls-input {
+  margin: 1px 10px;
+  width: 40px;
 }
 canvas {
   display: block;
