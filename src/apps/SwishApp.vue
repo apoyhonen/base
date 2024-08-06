@@ -9,19 +9,17 @@
         <td>
           <p><b>Controls</b></p>
           <br>
-          <p>TBA...</p>
+          <p>WASD or Arrow Keys to move character.</p>
+          <p>Mouse click or swipe (while holding button) to swipe with weapon.</p>
           <br><br>
         </td>
 
         <td>
           <b>Game</b>
           <br><br>
-          <p>Angle (degrees): {{ Math.floor(angleInDegrees) }}</p>
-          <label for="angleAmount">Degrees:</label>
-          <input id="angleAmount" type="number" class="controls-input" v-model="angleInDegrees" />
+          <p>Degrees: {{ Math.floor(angleInDegrees) }}</p>
+          <p>Radians: {{ Math.floor(angleInRadians * 100) / 100 }}</p>
           <br>
-          <button @click="angleInDegrees -= 45">- 45</button>
-          <button @click="angleInDegrees += 45">+ 45</button>
         </td>
 
         <td>
@@ -75,7 +73,7 @@ function draw() {
   clear();
 
   const currTimestamp = Date.now();
-  if (animationOnGoing) {
+  if (currTimestamp - animateTimestamp >= animationSpeedMs.value) {
     if (prevTimestamp) moveChar(currTimestamp - prevTimestamp); // move char
     angleLineByMoveDirections(); // set new angle by move direction
   }
@@ -182,8 +180,6 @@ function drawLine() {
     lineHandlePoint = projectPoint(charPoint.x, charPoint.y, charRadius.value * 1.1, angleRadians);
     projectedPoint = projectPoint(charPoint.x, charPoint.y, lineLength.value, angleRadians);
   } else {
-    // normal state
-
     if (animationOnGoing) {
       // animation end
       animationOnGoing = false;
