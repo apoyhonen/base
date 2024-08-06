@@ -78,6 +78,8 @@ function draw() {
   if (prevTimestamp) moveChar(currTimestamp - prevTimestamp);
   prevTimestamp = currTimestamp;
 
+  angleLineByMoveDirections();
+
   drawChar();
   drawLine();
 
@@ -165,6 +167,48 @@ function drawLine() {
   c.stroke();
 }
 
+
+const angleDirectionChangeIntervalMs = 50;
+let lastCrossDirectionalTimestamp = Date.now;
+
+function angleLineByMoveDirections() {
+  let crossDirectional = false;
+  let cardinalDirectional = false;
+  if (isAnyDirectionPressed()) {
+    // moving is affecting angle
+    let angleDegrees;
+    if (upPressed) {
+      if (rightPressed || leftPressed) {
+        angleDegrees = leftPressed ? 225 : 315;
+        crossDirectional = true;
+      } else {
+        angleDegrees = 270;
+        cardinalDirectional = true;
+      }
+    } else if (downPressed) {
+      if (rightPressed || leftPressed) {
+        angleDegrees = leftPressed ? 135 : 45;
+        crossDirectional = true;
+      } else {
+        angleDegrees = 90;
+        cardinalDirectional = true;
+      }
+    } else {
+      angleDegrees = leftPressed ? 180 : 0;
+      cardinalDirectional = true;
+    }
+
+    if (crossDirectional) lastCrossDirectionalTimestamp = Date.now();
+
+    if (cardinalDirectional) {
+      const currTimestamp = Date.now();
+      if (currTimestamp - lastCrossDirectionalTimestamp < angleDirectionChangeIntervalMs) return;
+    }
+
+    angleInDegrees.value = angleDegrees;
+  }
+}
+
 // mouse handlers
 
 const mouseDown = ref(false);
@@ -225,6 +269,10 @@ let upPressed = false;
 let rightPressed = false;
 let downPressed = false;
 let leftPressed = false;
+
+function isAnyDirectionPressed() {
+  return upPressed || rightPressed || downPressed || leftPressed;
+}
 
 document.addEventListener("keydown", keyDownHandler, false);
 document.addEventListener("keyup", keyUpHandler, false);
