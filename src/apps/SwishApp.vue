@@ -13,6 +13,9 @@
           <p>Mouse click or swipe (while holding button) to swipe with weapon.</p>
           <br><br>
         </td>
+      </tr>
+
+      <tr>
 
         <td>
           <b>Game</b>
@@ -20,14 +23,6 @@
           <p>Degrees: {{ Math.floor(angleInDegrees) }}</p>
           <p>Radians: {{ Math.floor(angleInRadians * 100) / 100 }}</p>
           <br>
-        </td>
-
-        <td>
-          <b>Animation</b>
-          <br><br>
-          <p>frame: {{ frameCount }}</p>
-          <br>
-          <button @click="isRunning = !isRunning">START / STOP</button>
         </td>
 
       </tr>
@@ -157,6 +152,10 @@ function moveChar(moveMs) {
   if (leftPressed) {
     charPoint.x -= charMoveDelta;
   }
+
+  // ensure move bounds
+  charPoint.x = Math.max(0 + charRadius.value, Math.min(canvas.width - charRadius.value, charPoint.x));
+  charPoint.y = Math.max(0 + charRadius.value, Math.min(canvas.height - charRadius.value, charPoint.y));
 }
 
 // line
@@ -291,14 +290,6 @@ const mouseDownPos = { x: 0, y: 0 };
 
 document.addEventListener("mousedown", mouseDownHandler, false);
 document.addEventListener("mouseup", mouseUpHandler, false);
-document.addEventListener("mousemove", mouseMoveHandler, false);
-
-function mouseMoveHandler() {
-  if (!isAppActive()) return;
-
-  // TODO delete later if unnecessary
-  //pointLineToEvent(e.clientX, e.clientY);
-}
 
 function mouseDownHandler(e) {
   if (!isAppActive() || e.which !== 1) return;
@@ -322,22 +313,15 @@ function mouseUpHandler(e) {
       // sideways move
       if (deltaX > 0) {
         swingRight();
-        // right swing
-        //angleInDegrees.value += 90;
       } else {
         swingLeft();
-        // left swing
-        //angleInDegrees.value -= 90;
       }
     } else {
       // upwards move
       if (deltaY < 0) {
         swingForward();
-        // forwards pierce
       } else {
         swingBackwards();
-        // backwards swing
-        //angleInDegrees.value += 180;
       }
     }
   }
@@ -404,9 +388,5 @@ table {
 }
 td {
   padding: 0 20px;
-}
-.controls-input {
-  margin: 1px 10px;
-  width: 40px;
 }
 </style>
