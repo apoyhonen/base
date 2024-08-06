@@ -323,6 +323,3 @@ function tryTopLeftMove(grid, colIndex, rowIndex, currentPlayerVal) {
 
     return [];
 }
-
-
-// SIMULATED GAME

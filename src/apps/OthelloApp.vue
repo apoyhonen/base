@@ -29,6 +29,15 @@
         <button class="controls-button"  @click="stopSimulation = true">STOP SIMULATION</button>
 
         <br><br>
+
+        <label for="animationSpeed">animation speed (ms):</label>
+        <input id="animationSpeed" type="number" class="controls-input" v-model="animationDurationMs" />
+
+        <br>
+
+        <label for="simulatedSpeed">simulated move speed (ms):</label>
+        <input id="simulatedSpeed" type="number" class="controls-input" v-model="simulationStepLengthMs" />
+
         <br><br>
         <br><br>
 
@@ -53,6 +62,7 @@
                 :row="rowIndex"
                 :value="grid[rowIndex - 1][colIndex - 1]"
                 :size="cellSize"
+                :animation-duration-ms="animationDurationMs"
                 @left-click="cellClicked"
             />
           </tr>
@@ -80,6 +90,8 @@ import {
 
 const defaultCellSize = 50;
 const cellSize = ref(defaultCellSize);
+
+const animationDurationMs = ref(500);
 
 const grid = ref([]);
 initGrid(grid.value, 0);
@@ -181,7 +193,7 @@ function resetPossibleMoves(tryAgain) {
 }
 
 function runCpuMoveIfApplicable(){
-  if (isCpuOpponentTurn()) runSingleSimulationStep();
+  if (isCpuOpponentTurn()) setTimeout(runSingleSimulationStep, simulationStepLengthMs.value);
 }
 
 function isCpuOpponentTurn() {
@@ -207,7 +219,7 @@ function setCurrentPlayer(playerVal) {
 
 // SIMULATED (RANDOM) GAME
 
-const simulationStepLengthMs = 100;
+const simulationStepLengthMs = ref(750);
 let lastSimulatedStepTimeStamp = 0;
 let stopSimulation = false;
 
@@ -227,7 +239,7 @@ function runSimulatedGameStep(trySimulationAgain) {
   }
 
   if (getRemainingMoves() > 0) {
-    if (Date.now() - lastSimulatedStepTimeStamp > simulationStepLengthMs) {
+    if (Date.now() - lastSimulatedStepTimeStamp > simulationStepLengthMs.value) {
 
       const randomPlacement = selectRandomOptionFromPossibleMoves(possibleMovesGrid.value);
       if (randomPlacement) {

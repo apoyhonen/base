@@ -18,6 +18,7 @@ const props = defineProps({
   row: Number,
   value: Number,
   size: Number,
+  animationDurationMs: Number,
 })
 
 const canvasSize = computed(() => props.size);
@@ -28,6 +29,8 @@ watch(canvasSize, () => {
 
 let canvas = null;
 let c = null;
+
+// base drawing
 
 let midX = 0;
 let midY = 0;
@@ -64,31 +67,82 @@ watch(canvasId, () => {
 })
 
 const cellValue = computed(() => props.value);
-watch(cellValue, () => reDraw());
+let prevValue = null;
+
+let animationTimestamp = null;
+let animatingPrevValue = null;
+
+watch(cellValue, () => {
+  if (cellValue.value > 0) {
+    animationTimestamp = Date.now();
+    animatingPrevValue = prevValue;
+    prevValue = cellValue.value;
+  } else {
+    prevValue = null; // cell reset
+  }
+
+  reDraw();
+});
 
 function reDraw() {
   if (!canvas) return;
 
   clear();
 
-  if (cellValue.value > 0) {
-    // border circle
-    c.fillStyle = cellValue.value === 1 ? 'black' : 'white';
-    c.beginPath();
-    c.arc(midX, midY, circleRadius + borderWidth, 0, 2*Math.PI);
-    c.fill();
+  if (animationTimestamp) {
+    const animationRatio = (Date.now() - animationTimestamp) / props.animationDurationMs;
 
-    // main piece circle
-    c.fillStyle = cellValue.value === 1 ? 'white' : 'black';
-    c.beginPath();
-    c.arc(midX, midY, circleRadius, 0, 2*Math.PI);
-    c.fill();
-  } else if (cellValue.value < 0) {
-    // indicate possible move
-    c.fillStyle = 'lightgrey';
-    c.beginPath();
-    c.arc(midX, midY, 5, 0, 2*Math.PI);
-    c.fill();
+    if (animationRatio >= 0.5 || animatingPrevValue) {
+      const valueToAnimate = animationRatio < 0.5 ? animatingPrevValue : cellValue.value;
+      let radius;
+
+      if (animationRatio < 0.5) {
+        // animate removing old value, if present
+        radius = circleRadius * (1 - animationRatio / 0.5);
+      } else {
+        // animate new value
+        radius = circleRadius * ((Math.min(animationRatio, 1) - 0.5) / 0.5);
+      }
+
+      // border circle
+      c.fillStyle = valueToAnimate === 1 ? 'black' : 'white';
+      c.beginPath();
+      c.ellipse(midX, midY, radius + borderWidth, circleRadius + borderWidth, 0, 0, 2 * Math.PI);
+      c.fill();
+
+      // main piece circle
+      c.fillStyle = valueToAnimate === 1 ? 'white' : 'black';
+      c.beginPath();
+      c.ellipse(midX, midY, radius, circleRadius, 0, 0, 2 * Math.PI);
+      c.fill();
+    }
+
+    if (animationRatio < 1) {
+      requestAnimationFrame(reDraw); // continue animating
+    } else {
+      animatingPrevValue = cellValue.value;
+      animationTimestamp = null;
+    }
+  } else {
+    if (cellValue.value > 0) {
+      // border circle
+      c.fillStyle = cellValue.value === 1 ? 'black' : 'white';
+      c.beginPath();
+      c.arc(midX, midY, circleRadius + borderWidth, 0, 2*Math.PI);
+      c.fill();
+
+      // main piece circle
+      c.fillStyle = cellValue.value === 1 ? 'white' : 'black';
+      c.beginPath();
+      c.arc(midX, midY, circleRadius, 0, 2*Math.PI);
+      c.fill();
+    } else if (cellValue.value < 0) {
+      // indicate possible move
+      c.fillStyle = 'lightgrey';
+      c.beginPath();
+      c.arc(midX, midY, 5, 0, 2*Math.PI);
+      c.fill();
+    }
   }
 }
 
