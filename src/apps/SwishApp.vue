@@ -54,8 +54,11 @@ onMounted(() => {
   canvas.height = window.innerHeight * 0.55;
   c = canvas.getContext("2d");
 
-  middlePoint.x = canvas.width / 2;
-  middlePoint.y = canvas.height / 2;
+  charPoint.x = canvas.width / 2;
+  charPoint.y = canvas.height / 2;
+  charRadius.value = canvas.height / 30;
+  charSpeedPerSec.value = charRadius.value * 15;
+  lineLength.value = charRadius.value * 3;
 
   draw(); // init
 });
@@ -64,10 +67,17 @@ watch(isRunning, () => {
   if (isRunning.value) draw();
 })
 
+let prevTimestamp = null;
+
 function draw() {
   frameCount.value++;
 
   clear();
+
+  const currTimestamp = Date.now();
+  if (prevTimestamp) moveChar(currTimestamp - prevTimestamp);
+  prevTimestamp = currTimestamp;
+
   drawChar();
   drawLine();
 
@@ -87,7 +97,7 @@ function clear() {
 const charColor = 'red';
 const lineColor = 'green';
 
-let middlePoint = { x: 0, y: 0 };
+let charPoint = { x: 0, y: 0 };
 const defaultAngle = 270;
 const angleInDegrees = ref(defaultAngle);
 const angleInRadians = computed(() => degreesToRadian(angleInDegrees.value))
@@ -103,10 +113,59 @@ function canvasClicked(e) {
 function pointLineToEvent(clientX, clientY) {
   const eventX = clientX - canvas.offsetLeft;
   const eventY = clientY - canvas.offsetTop;
-  angleInDegrees.value = angleBetweenPointsDegreesPositive(middlePoint.x, middlePoint.y, eventX, eventY);
+  angleInDegrees.value = angleBetweenPointsDegreesPositive(charPoint.x, charPoint.y, eventX, eventY);
 }
 
-// key and mouse handlers
+// character
+
+const charRadius = ref(20);
+const charSpeedPerSec = ref(charRadius.value);
+
+function drawChar() {
+  c.fillStyle = charColor;
+  c.beginPath();
+  c.arc(charPoint.x, charPoint.y, charRadius.value, 0, Math.PI * 2);
+  c.fill();
+}
+
+function moveChar(moveMs) {
+  const charMoveDelta = charSpeedPerSec.value / 1000 * moveMs;
+
+  if (upPressed) {
+    charPoint.y -= charMoveDelta;
+  }
+
+  if (downPressed) {
+    charPoint.y += charMoveDelta;
+  }
+
+  if (rightPressed) {
+    charPoint.x += charMoveDelta;
+  }
+
+  if (leftPressed) {
+    charPoint.x -= charMoveDelta;
+  }
+}
+
+// line
+
+const lineLength = ref(100);
+
+function drawLine() {
+  let x = charPoint.x;
+  let y = charPoint.y;
+
+  c.strokeStyle = lineColor;
+  c.lineWidth = 3;
+  c.beginPath();
+  c.moveTo(x, y);
+  const linePoint = projectPoint(x, y, lineLength.value, angleInRadians.value);
+  c.lineTo(linePoint.x, linePoint.y);
+  c.stroke();
+}
+
+// mouse handlers
 
 const mouseDown = ref(false);
 const mouseDownPos = ref({ x: 0, y: 0 });
@@ -158,36 +217,46 @@ function mouseUpHandler(e) {
   }
 
   mouseDown.value = false;
-  mouseDownPos.value.x = middlePoint.x;
-  mouseDownPos.value.y = middlePoint.y;
 }
 
-// character
+// key handlers
 
-const charRadius = ref(20);
+let upPressed = false;
+let rightPressed = false;
+let downPressed = false;
+let leftPressed = false;
 
-function drawChar() {
-  c.fillStyle = charColor;
-  c.beginPath();
-  c.arc(middlePoint.x, middlePoint.y, charRadius.value, 0, Math.PI * 2);
-  c.fill();
+document.addEventListener("keydown", keyDownHandler, false);
+document.addEventListener("keyup", keyUpHandler, false);
+
+function keyDownHandler(e) {
+  if (!isAppActive()) return;
+
+  // left paddle keys
+  if (e.key === 'w' || e.key === "ArrowUp") {
+    upPressed = true;
+  } else if (e.key === "d" || e.key === "ArrowRight") {
+    rightPressed = true;
+  } else if (e.key === "s" || e.key === "ArrowDown") {
+    downPressed = true;
+  } else if (e.key === "a" || e.key === "ArrowLeft") {
+    leftPressed = true;
+  }
 }
 
-// line
+function keyUpHandler(e) {
+  if (!isAppActive()) return;
 
-const lineLength = ref(100);
-
-function drawLine() {
-  let x = middlePoint.x;
-  let y = middlePoint.y;
-
-  c.strokeStyle = lineColor;
-  c.lineWidth = 3;
-  c.beginPath();
-  c.moveTo(x, y);
-  const linePoint = projectPoint(x, y, lineLength.value, angleInRadians.value);
-  c.lineTo(linePoint.x, linePoint.y);
-  c.stroke();
+  // left paddle keys
+  if (e.key === 'w' || e.key === "ArrowUp") {
+    upPressed = false;
+  } else if (e.key === "d" || e.key === "ArrowRight") {
+    rightPressed = false;
+  } else if (e.key === "s" || e.key === "ArrowDown") {
+    downPressed = false;
+  } else if (e.key === "a" || e.key === "ArrowLeft") {
+    leftPressed = false;
+  }
 }
 
 </script>

@@ -29,7 +29,7 @@ import MiscTesting from "@/apps/MiscTesting.vue";
 
 import { ref } from "vue";
 
-const shownApp = ref("circlemotion");
+const shownApp = ref("swish");
 
 const apps = [];
 apps.push({ refName: 'swish', name: 'Swish *' });
