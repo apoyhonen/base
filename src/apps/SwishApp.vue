@@ -1,34 +1,61 @@
 <template>
-  <h2>Swish</h2>
-  <canvas id="swishCanvas" width="400" height="300" @auxclick.prevent="canvasClicked" oncontextmenu="return false"></canvas>
-  <br>
+  <br><br>
   <div>
     <table>
       <tr>
 
         <td>
-          <p><b>Controls</b></p>
-          <br>
-          <p>WASD or Arrow Keys to move character.</p>
-          <p>Mouse click or swipe (while holding button) to swipe with weapon.</p>
-          <br><br>
-        </td>
-      </tr>
+          <table>
+            <tr>
 
-      <tr>
+              <td>
+                <p><b>Controls</b></p>
+                <br>
+                <p>WASD or Arrow Keys to move character.</p>
+                <p>Mouse click or swipe (while holding button) to swipe with weapon.</p>
+                <br><br>
+              </td>
+            </tr>
+
+            <tr>
+
+              <td>
+                <b>Game</b>
+                <br><br>
+                <p>Points: {{ enemiesKilled }}</p>
+                <p>Enemies: {{ enemiesSpawned - enemiesKilled }}</p>
+                <br><br>
+                <button class="controls-button" @click="isRunning = !isRunning">START / STOP</button>
+                <br>
+                <button class="controls-button" @click="resetGame">RESET</button>
+                <br><br>
+                <label for="enemySpeedMs">Enemy speed / sec (px):</label>
+                <input id="enemySpeedMs" type="number" class="controls-input" v-model="enemySpeedPerSec" />
+                <br>
+                <label for="enemiesMaxAmount">Max enemies:</label>
+                <input id="enemiesMaxAmount" type="number" class="controls-input" v-model="maxEnemies" />
+                <br>
+                <label for="enemySpawnMs">Enemy spawn time (ms):</label>
+                <input id="enemySpawnMs" type="number" class="controls-input" v-model="enemySpawnTimerMs" />
+              </td>
+
+            </tr>
+          </table>
+        </td>
 
         <td>
-          <b>Game</b>
-          <br><br>
-          <button @click="isRunning = !isRunning">START / STOP</button>
+          <h2>Swish</h2>
+          <canvas id="swishCanvas" width="400" height="300" @auxclick.prevent="canvasSecondaryClicked" oncontextmenu="return false"></canvas>
           <br>
-          <button @click="resetGame">RESET</button>
-          <br><br>
-          <p>Points: {{ enemiesKilled }}</p>
-          <p>Enemies: {{ enemiesSpawned - enemiesKilled }}</p>
-          <p>Degrees: {{ Math.floor(angleInDegrees) }}</p>
-          <p>Radians: {{ Math.floor(angleInRadians * 100) / 100 }}</p>
+          <table><tr>
+            <td v-for="n in charHealth" :key="'health-' + n" class="health-emoji">&#x1F496;</td>
+            <td v-for="i in (initialHealth - charHealth)" :key="'skull-' + i" class="health-emoji">&#128128;</td>
+          </tr></table>
           <br>
+          <div v-if="gameFinished">
+            <h2 style="color: darkred;">Game finished, you killed {{ enemiesKilled }} enemies!</h2>
+            <button class="controls-button" @click="resetGame">Try again!</button>
+          </div>
         </td>
 
       </tr>
@@ -39,14 +66,15 @@
 <script setup>
 
 import { computed, onMounted, ref, watch } from "vue";
+import { degreesToRadian, distanceBetweenPoints, projectPoint, radianToDegrees, } from "@/util/MathUtil";
 import {
-  angleBetweenPointsDegreesPositive, angleBetweenPointsRadian,
-  degreesToRadian, distanceBetweenPoints, distanceToLine,
-  projectPoint,
-  radianToDegrees, randomBetween,
-  randomIntBetween
-} from "@/util/MathUtil";
-import { randomColor } from "@/util/ColorUtil";
+  angleLineByMoveDirections, angleToCoords,
+  checkCollisions,
+  enemiesMoved,
+  initEnemies,
+  moveEnemies,
+  newEnemy, removeEnemies
+} from "@/engines/SwishEngine";
 
 let canvas = null;
 let c = null;
@@ -67,27 +95,12 @@ onMounted(() => {
 
 watch(isRunning, () => {
   if (isRunning.value) {
-    lastEnemyMoveTimestamp = Date.now();
+    enemiesMoved();
     draw();
   }
 })
 
-function resetGame() {
-  charPoint.x = canvas.width / 2;
-  charPoint.y = canvas.height / 2;
-  charRadius.value = canvas.height / 30;
-  charSpeedPerSec.value = charRadius.value * 15;
-  lineLength.value = charRadius.value * 4;
-
-  while (enemies.length > 0) {
-    enemies.pop();
-  }
-  for (let i = 0; i < initialEnemies; i++) {
-    newEnemy();
-  }
-}
-
-let prevTimestamp = null;
+let prevDrawTimestamp = null;
 
 function draw() {
   frameCount.value++;
@@ -96,19 +109,23 @@ function draw() {
 
   const currTimestamp = Date.now();
   if (currTimestamp - animateTimestamp >= animationSpeedMs.value) {
-    if (prevTimestamp) moveChar(currTimestamp - prevTimestamp); // move char
-    angleLineByMoveDirections(); // set new angle by move direction
-  }
-  prevTimestamp = currTimestamp;
+    if (prevDrawTimestamp) moveChar(currTimestamp - prevDrawTimestamp); // move char
 
-  if (enemies.length < maxEnemies && currTimestamp - prevEnemySpawnTimestamp > enemySpawnTimerMs) {
+    const angle = angleLineByMoveDirections(upPressed, rightPressed, downPressed, leftPressed);
+    if (angle || angle === 0) angleInDegrees.value = angle; // set new angle by move direction
+  }
+  prevDrawTimestamp = currTimestamp;
+
+  if (enemies.length < maxEnemies.value && currTimestamp - prevEnemySpawnTimestamp > enemySpawnTimerMs.value) {
     prevEnemySpawnTimestamp = currTimestamp;
-    newEnemy();
+    enemiesSpawned.value += newEnemy(canvas, enemies, charPoint);
   }
 
-  moveEnemies();
+  moveEnemies(enemies, charPoint, charRadius.value * 0.3, enemySpeedPerSec.value);
+  const enemiesHit = checkCollisions(enemies, lineHandlePoint, lineEndPoint, charPoint, charRadius.value);
+  enemiesKilled.value += enemiesHit;
 
-  checkCollisions();
+  checkDamage();
 
   drawChar();
   drawLine();
@@ -140,118 +157,65 @@ watch(angleInDegrees, () => {
 
 const angleInRadians = computed(() => degreesToRadian(angleInDegrees.value))
 
-function canvasClicked(e) {
-  pointLineToEvent(e.clientX, e.clientY);
+function canvasSecondaryClicked(e) {
+  angleInDegrees.value = angleToCoords(e.clientX, e.clientY, charPoint, canvas);
 }
 
-function pointLineToEvent(clientX, clientY) {
-  const eventX = clientX - canvas.offsetLeft;
-  const eventY = clientY - canvas.offsetTop;
-  angleInDegrees.value = angleBetweenPointsDegreesPositive(charPoint.x, charPoint.y, eventX, eventY);
+const gameFinished = ref(false);
+
+function resetGame() {
+  charPoint.x = canvas.width / 2;
+  charPoint.y = canvas.height / 2;
+  charRadius.value = canvas.height / 30;
+  charSpeedPerSec.value = charRadius.value * 15;
+  enemySpeedPerSec.value = Math.floor(charSpeedPerSec.value * 0.4);
+  lineLength.value = charRadius.value * 4;
+
+  charHealth.value = initialHealth;
+
+  enemiesSpawned.value = initEnemies(canvas, enemies, charPoint);
+  enemiesKilled.value = 0;
+
+  isRunning.value = true;
+  gameFinished.value = false;
 }
 
-// enemies
-
-const enemies = [];
-const enemySpawnTimerMs = 2000;
-const enemiesSpawned = ref(0);
-const enemiesKilled = ref(0);
-let prevEnemySpawnTimestamp = Date.now();
-let minSpawnDistance = 100;
-let maxEnemies = 10;
-
-function drawEnemies() {
-  enemies.forEach(enemy => {
-    c.fillStyle = 'blue';
-    c.beginPath();
-    c.arc(enemy.x, enemy.y, charRadius.value / 2, 0, Math.PI * 2);
-    c.fill();
-  })
-}
-
-const initialEnemies = 3;
-let enemyId = 0;
-
-function newEnemy() {
-  let coords = { x: charPoint.x, y: charPoint.y };
-  while (distanceToChar(coords) < minSpawnDistance) {
-    const spawnDirection = randomIntBetween(1, 4); // 1 = top, 2 = right, 3 = bottom, 4 = left
-
-    if (spawnDirection === 1) {
-      coords.y = 0;
-      coords.x = randomBetween(0, canvas.width);
-    } else if (spawnDirection === 2) {
-      coords.y = randomBetween(0, canvas.height);
-      coords.x = canvas.width;
-    } else if (spawnDirection === 3) {
-      coords.y = canvas.height;
-      coords.x = randomBetween(0, canvas.width);
-    } else if (spawnDirection === 4) {
-      coords.y = randomBetween(0, canvas.height);
-      coords.x = 0;
-    }
-  }
-
-  enemies.push({ id: enemyId++, x: coords.x, y: coords.y, color: randomColor() });
-  enemiesSpawned.value++;
-}
-
-function distanceToChar(coords) {
-  return distanceBetweenPoints(coords.x, coords.y, charPoint.x, charPoint.y);
-}
-
-const enemySpeedPerSec = ref(50);
-let lastEnemyMoveTimestamp = Date.now();
-
-function moveEnemies() {
-  const currentTime = Date.now();
-  const enemyMoveDelta = enemySpeedPerSec.value / 1000 * (currentTime - lastEnemyMoveTimestamp);
-  enemies.forEach(enemy => {
-    const originX = enemy.x;
-    const originY = enemy.y;
-    const angleBetweenEnemyAndChar = angleBetweenPointsRadian(originX, originY, charPoint.x, charPoint.y);
-    const newPoint = projectPoint(originX, originY, enemyMoveDelta, angleBetweenEnemyAndChar);
-
-
-    if (enemies
-        .filter(otherEnemy => enemy.id !== otherEnemy.id && distanceBetweenPoints(newPoint.x, newPoint.y, otherEnemy.x, otherEnemy.y) < charRadius.value * 0.8)
-        .length > 0) {
-      return; // enemies collide, don't move this enemy
-    }
-
-    enemy.x = newPoint.x;
-    enemy.y = newPoint.y;
-  })
-  lastEnemyMoveTimestamp = Date.now();
-}
-
-function checkCollisions() {
-  const enemiesHit = enemies.filter(enemy => {
-    const distance = distanceToLine(enemy.x, enemy.y, lineHandlePoint.x, lineHandlePoint.y, lineEndPoint.x, lineHandlePoint.y);
-    return distance < charRadius.value;
-  });
-  enemiesHit.forEach(enemyHit => enemies.splice(enemies.indexOf(enemyHit), 1));
-  enemiesKilled.value += enemiesHit.length;
+function gameOver() {
+  isRunning.value = false;
+  gameFinished.value = true;
 }
 
 // character
 
 const charRadius = ref(20);
 const charSpeedPerSec = ref(charRadius.value);
+const initialHealth = 10;
+const charHealth = ref(initialHealth);
 
 function drawChar() {
   c.fillStyle = charColor;
   c.beginPath();
-  c.arc(charPoint.x, charPoint.y, charRadius.value, 0, Math.PI * 2);
+  c.arc(charPoint.x, charPoint.y, charRadius.value * 0.6, 0, Math.PI * 2);
   c.fill();
 
   c.lineCap = "round";
   c.strokeStyle = charColor;
-  c.lineWidth = charRadius.value / 2;
+  c.lineWidth = charRadius.value / 3;
+
+  let armStartPoint = projectPoint(charPoint.x, charPoint.y, charRadius.value * 0.5, angleInRadians.value + Math.PI / 2.2);
+  let armEndPoint = projectPoint(charPoint.x, charPoint.y, charRadius.value, angleInRadians.value + Math.PI / 4);
+
   c.beginPath();
-  c.moveTo(charPoint.x, charPoint.y);
-  const projectedPoint = projectPoint(charPoint.x, charPoint.y, charRadius.value, angleInRadians.value);
-  c.lineTo(projectedPoint.x, projectedPoint.y);
+  c.moveTo(armStartPoint.x, armStartPoint.y);
+  c.lineTo(armEndPoint.x, armEndPoint.y);
+  c.stroke();
+
+  armStartPoint = projectPoint(charPoint.x, charPoint.y, charRadius.value * 0.5, angleInRadians.value - Math.PI / 2.2);
+  armEndPoint = projectPoint(charPoint.x, charPoint.y, charRadius.value, angleInRadians.value - Math.PI / 4);
+
+  c.beginPath();
+  c.moveTo(armStartPoint.x, armStartPoint.y);
+  c.lineTo(armEndPoint.x, armEndPoint.y);
   c.stroke();
 }
 
@@ -279,6 +243,35 @@ function moveChar(moveMs) {
   charPoint.y = Math.max(0 + charRadius.value, Math.min(canvas.height - charRadius.value, charPoint.y));
 }
 
+// enemies
+
+const enemies = [];
+const enemySpawnTimerMs = ref(2000);
+const maxEnemies = ref(10);
+const enemiesSpawned = ref(0);
+const enemiesKilled = ref(0);
+const enemySpeedPerSecDefault = 120;
+const enemySpeedPerSec = ref(enemySpeedPerSecDefault);
+let prevEnemySpawnTimestamp = Date.now();
+
+function drawEnemies() {
+  const size = Math.floor(charRadius.value);
+  c.font = '' + size + 'px serif'; // emoji size with font
+  c.textAlign = "center"; // align to given coords
+  c.textBaseline = "middle"; // align to given coords
+  enemies.forEach(enemy => c.fillText('💀', enemy.x, enemy.y));
+}
+
+function checkDamage() {
+  const damagingEnemies = enemies.filter(enemy => distanceBetweenPoints(charPoint.x, charPoint.y, enemy.x, enemy.y) < charRadius.value * (0.6 + 0.5));
+  if (damagingEnemies.length > 0) {
+    charHealth.value--;
+    removeEnemies(enemies, damagingEnemies);
+  }
+
+  if (charHealth.value <= 0) gameOver();
+}
+
 // line
 
 const lineLength = ref(100);
@@ -286,7 +279,6 @@ let lineHandlePoint = { x: 0, y: 0 };
 let lineEndPoint = { x: 0, y: 0 };
 
 function drawLine() {
-
   c.strokeStyle = lineColor;
   c.lineWidth = 3;
   c.beginPath();
@@ -306,54 +298,13 @@ function drawLine() {
       angleInDegrees.value = radianToDegrees(afterSwingAngleInRadians);
     }
 
-    lineHandlePoint = projectPoint(charPoint.x, charPoint.y, charRadius.value * 1.1, angleInRadians.value + 0.45);
+    lineHandlePoint = projectPoint(charPoint.x, charPoint.y, charRadius.value * 1.1, angleInRadians.value + Math.PI / 4);
     lineEndPoint = projectPoint(charPoint.x, charPoint.y, lineLength.value, angleInRadians.value + 0.45);
   }
 
   c.moveTo(lineHandlePoint.x, lineHandlePoint.y);
   c.lineTo(lineEndPoint.x, lineEndPoint.y);
   c.stroke();
-}
-
-const angleDirectionChangeIntervalMs = 50;
-let lastCrossDirectionalTimestamp = Date.now;
-
-function angleLineByMoveDirections() {
-  let crossDirectional = false;
-  let cardinalDirectional = false;
-  if (isAnyDirectionPressed()) {
-    // moving is affecting angle
-    let angleDegrees;
-    if (upPressed) {
-      if (rightPressed || leftPressed) {
-        angleDegrees = leftPressed ? 225 : 315;
-        crossDirectional = true;
-      } else {
-        angleDegrees = 270;
-        cardinalDirectional = true;
-      }
-    } else if (downPressed) {
-      if (rightPressed || leftPressed) {
-        angleDegrees = leftPressed ? 135 : 45;
-        crossDirectional = true;
-      } else {
-        angleDegrees = 90;
-        cardinalDirectional = true;
-      }
-    } else {
-      angleDegrees = leftPressed ? 180 : 0;
-      cardinalDirectional = true;
-    }
-
-    if (crossDirectional) lastCrossDirectionalTimestamp = Date.now();
-
-    if (cardinalDirectional) {
-      const currTimestamp = Date.now();
-      if (currTimestamp - lastCrossDirectionalTimestamp < angleDirectionChangeIntervalMs) return;
-    }
-
-    angleInDegrees.value = angleDegrees;
-  }
 }
 
 // swing animation
@@ -454,10 +405,6 @@ let rightPressed = false;
 let downPressed = false;
 let leftPressed = false;
 
-function isAnyDirectionPressed() {
-  return upPressed || rightPressed || downPressed || leftPressed;
-}
-
 document.addEventListener("keydown", keyDownHandler, false);
 document.addEventListener("keyup", keyUpHandler, false);
 
@@ -496,7 +443,7 @@ function keyUpHandler(e) {
 <style scoped>
 p {
   margin: 0;
-}
+ }
 canvas {
   background: lightgray;
   display: block;
@@ -508,5 +455,27 @@ table {
 }
 td {
   padding: 0 20px;
+}
+
+.health-emoji {
+  position: relative;
+  width: 10px;
+  font-size: 30px;
+}
+.controls-button,
+.controls-input {
+  margin: 1px 10px;
+}
+.controls-input {
+  width: 60px;
+}
+
+/* disable text selection, causes trouble with mouse controls */
+table,
+table *,
+table * * {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
 }
 </style>
