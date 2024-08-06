@@ -13,7 +13,6 @@ export { initEnemies, newEnemy, moveEnemies, enemiesMoved, checkCollisions, remo
 // enemies
 
 const initialEnemies = 3;
-const minSpawnDistance = 100;
 let enemyId = 0;
 
 function initEnemies(canvas, enemies, charPoint) {
@@ -32,31 +31,25 @@ function initEnemies(canvas, enemies, charPoint) {
 
 function newEnemy(canvas, enemies, charPoint) {
     let coords = { x: charPoint.x, y: charPoint.y };
-    while (distanceToChar(coords, charPoint) < minSpawnDistance) {
-        const spawnDirection = randomIntBetween(1, 4); // 1 = top, 2 = right, 3 = bottom, 4 = left
+    const spawnDirection = randomIntBetween(1, 4); // 1 = top, 2 = right, 3 = bottom, 4 = left
 
-        if (spawnDirection === 1) {
-            coords.y = 0;
-            coords.x = randomBetween(0, canvas.width);
-        } else if (spawnDirection === 2) {
-            coords.y = randomBetween(0, canvas.height);
-            coords.x = canvas.width;
-        } else if (spawnDirection === 3) {
-            coords.y = canvas.height;
-            coords.x = randomBetween(0, canvas.width);
-        } else if (spawnDirection === 4) {
-            coords.y = randomBetween(0, canvas.height);
-            coords.x = 0;
-        }
+    if (spawnDirection === 1) {
+        coords.y = 0;
+        coords.x = randomBetween(0, canvas.width);
+    } else if (spawnDirection === 2) {
+        coords.y = randomBetween(0, canvas.height);
+        coords.x = canvas.width;
+    } else if (spawnDirection === 3) {
+        coords.y = canvas.height;
+        coords.x = randomBetween(0, canvas.width);
+    } else if (spawnDirection === 4) {
+        coords.y = randomBetween(0, canvas.height);
+        coords.x = 0;
     }
 
     enemies.push({ id: enemyId++, x: coords.x, y: coords.y, color: randomColor() });
 
     return 1;
-}
-
-function distanceToChar(coords, charPoint) {
-    return distanceBetweenPoints(coords.x, coords.y, charPoint.x, charPoint.y);
 }
 
 let lastEnemyMoveTimestamp = Date.now();

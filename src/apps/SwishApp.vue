@@ -13,6 +13,18 @@
                 <br>
                 <p>WASD or Arrow Keys to move character.</p>
                 <p>Mouse click or swipe (while holding button) to swipe with weapon.</p>
+                <br>
+                <p><b>Moves</b></p>
+                <br>
+                <p>
+                  Click / Swipe Up - frontal slash
+                  <br>
+                  Swipe Left - slash and turn to left
+                  <br>
+                  Swipe Right - slash and turn to right
+                  <br>
+                  Swipe Down - slash widely and turn around
+                </p>
                 <br><br>
               </td>
             </tr>
@@ -23,8 +35,9 @@
                 <b>Game</b>
                 <br><br>
                 <p>Points: {{ enemiesKilled }}</p>
-                <p>Enemies: {{ enemiesSpawned - enemiesKilled }}</p>
+                <p>Enemies: {{ enemiesSpawned - enemiesKilled - enemiesLost }}</p>
                 <br><br>
+                <p>Frame: {{ frameCount }}</p>
                 <button class="controls-button" @click="isRunning = !isRunning">START / STOP</button>
                 <br>
                 <button class="controls-button" @click="resetGame">RESET</button>
@@ -54,7 +67,7 @@
           <br>
           <div v-if="gameFinished">
             <h2 style="color: darkred;">Game finished, you killed {{ enemiesKilled }} enemies!</h2>
-            <button class="controls-button" @click="resetGame">Try again!</button>
+            <button class="controls-button" @click="tryAgain">Try again!</button>
           </div>
         </td>
 
@@ -130,8 +143,9 @@ function draw() {
   drawChar();
   drawLine();
   drawEnemies();
+  drawScore();
 
-  if (isRunning.value && isAppActive()) requestAnimationFrame(draw); // redraw as soon as animation frame is available
+  if (isRunning.value && !gameFinished.value && isAppActive()) requestAnimationFrame(draw); // redraw as soon as animation frame is available
 }
 
 function isAppActive() {
@@ -146,6 +160,7 @@ function clear() {
 
 const charColor = 'seagreen';
 const lineColor = 'red';
+const scoreColor = 'red';
 
 let charPoint = { x: 0, y: 0 };
 const defaultAngle = 270;
@@ -157,11 +172,31 @@ watch(angleInDegrees, () => {
 
 const angleInRadians = computed(() => degreesToRadian(angleInDegrees.value))
 
+function drawScore() {
+  let size = Math.floor(charRadius.value * 3);
+  c.font = '' + size + 'px Arial'; // emoji size with font
+  c.fillStyle = scoreColor;
+  c.fillText('💀 ' + enemiesKilled.value, canvas.width - 130, 70);
+
+  if (gameFinished.value) {
+    size = Math.floor(charRadius.value * 5);
+    c.font = '' + size + 'px Arial'; // emoji size with font
+
+    c.fillStyle = scoreColor;
+    c.fillText('Game over! 💀 ' + enemiesKilled.value, canvas.width / 2, canvas.height * 0.8);
+  }
+}
+
 function canvasSecondaryClicked(e) {
   angleInDegrees.value = angleToCoords(e.clientX, e.clientY, charPoint, canvas);
 }
 
 const gameFinished = ref(false);
+
+function tryAgain() {
+  resetGame();
+  draw();
+}
 
 function resetGame() {
   charPoint.x = canvas.width / 2;
@@ -169,19 +204,20 @@ function resetGame() {
   charRadius.value = canvas.height / 30;
   charSpeedPerSec.value = charRadius.value * 15;
   enemySpeedPerSec.value = Math.floor(charSpeedPerSec.value * 0.4);
+  enemySpawnTimerMs.value = enemySpawnMsDefault;
   lineLength.value = charRadius.value * 4;
 
   charHealth.value = initialHealth;
 
   enemiesSpawned.value = initEnemies(canvas, enemies, charPoint);
   enemiesKilled.value = 0;
+  enemiesLost.value = 0;
 
-  isRunning.value = true;
   gameFinished.value = false;
+  isRunning.value = true;
 }
 
 function gameOver() {
-  isRunning.value = false;
   gameFinished.value = true;
 }
 
@@ -246,10 +282,13 @@ function moveChar(moveMs) {
 // enemies
 
 const enemies = [];
-const enemySpawnTimerMs = ref(2000);
+
+const enemySpawnMsDefault = 2000;
+const enemySpawnTimerMs = ref(enemySpawnMsDefault);
 const maxEnemies = ref(10);
 const enemiesSpawned = ref(0);
 const enemiesKilled = ref(0);
+const enemiesLost = ref(0);
 const enemySpeedPerSecDefault = 120;
 const enemySpeedPerSec = ref(enemySpeedPerSecDefault);
 let prevEnemySpawnTimestamp = Date.now();
@@ -268,6 +307,8 @@ function checkDamage() {
     charHealth.value--;
     removeEnemies(enemies, damagingEnemies);
   }
+
+  enemiesLost.value += damagingEnemies.length;
 
   if (charHealth.value <= 0) gameOver();
 }
