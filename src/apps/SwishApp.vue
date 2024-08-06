@@ -20,6 +20,8 @@
         <td>
           <b>Game</b>
           <br><br>
+          <button @click="isRunning = !isRunning">START / STOP</button>
+          <br><br>
           <p>Degrees: {{ Math.floor(angleInDegrees) }}</p>
           <p>Radians: {{ Math.floor(angleInRadians * 100) / 100 }}</p>
           <br>
@@ -33,7 +35,14 @@
 <script setup>
 
 import { computed, onMounted, ref, watch } from "vue";
-import { angleBetweenPointsDegreesPositive, degreesToRadian, projectPoint, radianToDegrees } from "@/util/MathUtil";
+import {
+  angleBetweenPointsDegreesPositive, angleBetweenPointsRadian,
+  degreesToRadian,
+  projectPoint,
+  radianToDegrees, randomBetween,
+  randomIntBetween
+} from "@/util/MathUtil";
+import { randomColor } from "@/util/ColorUtil";
 
 let canvas = null;
 let c = null;
@@ -51,13 +60,20 @@ onMounted(() => {
   charPoint.y = canvas.height / 2;
   charRadius.value = canvas.height / 30;
   charSpeedPerSec.value = charRadius.value * 15;
-  lineLength.value = charRadius.value * 3;
+  lineLength.value = charRadius.value * 4;
+
+  for (let i = 0; i < initialEnemies; i++) {
+    newEnemy();
+  }
 
   draw(); // init
 });
 
 watch(isRunning, () => {
-  if (isRunning.value) draw();
+  if (isRunning.value) {
+    lastEnemyMoveTimestamp = Date.now();
+    draw();
+  }
 })
 
 let prevTimestamp = null;
@@ -74,8 +90,16 @@ function draw() {
   }
   prevTimestamp = currTimestamp;
 
+  if (enemies.length < maxEnemies && currTimestamp - prevEnemySpawnTimestamp > enemySpawnTimerMs) {
+    prevEnemySpawnTimestamp = currTimestamp;
+    newEnemy();
+  }
+
+  moveEnemies();
+
   drawChar();
   drawLine();
+  drawEnemies();
 
   if (isRunning.value && isAppActive()) requestAnimationFrame(draw); // redraw as soon as animation frame is available
 }
@@ -111,6 +135,82 @@ function pointLineToEvent(clientX, clientY) {
   const eventX = clientX - canvas.offsetLeft;
   const eventY = clientY - canvas.offsetTop;
   angleInDegrees.value = angleBetweenPointsDegreesPositive(charPoint.x, charPoint.y, eventX, eventY);
+}
+
+// enemies
+
+const enemies = [];
+const enemySpawnTimerMs = 2000;
+let prevEnemySpawnTimestamp = Date.now();
+let minSpawnDistance = 100;
+let maxEnemies = 10;
+
+function drawEnemies() {
+  enemies.forEach(enemy => {
+    c.fillStyle = enemy.color;
+    c.beginPath();
+    c.arc(enemy.x, enemy.y, charRadius.value / 2, 0, Math.PI * 2);
+    c.fill();
+  })
+}
+
+const initialEnemies = 3;
+let enemyId = 0;
+
+function newEnemy() {
+  let coords = { x: charPoint.x, y: charPoint.y };
+  while (distanceToChar(coords) < minSpawnDistance) {
+    const spawnDirection = randomIntBetween(1, 4); // 1 = top, 2 = right, 3 = bottom, 4 = left
+
+    if (spawnDirection === 1) {
+      coords.y = 0;
+      coords.x = randomBetween(0, canvas.width);
+    } else if (spawnDirection === 2) {
+      coords.y = randomBetween(0, canvas.height);
+      coords.x = canvas.width;
+    } else if (spawnDirection === 3) {
+      coords.y = canvas.height;
+      coords.x = randomBetween(0, canvas.width);
+    } else if (spawnDirection === 4) {
+      coords.y = randomBetween(0, canvas.height);
+      coords.x = 0;
+    }
+  }
+
+  enemies.push({ id: enemyId++, x: coords.x, y: coords.y, color: randomColor() });
+}
+
+function distanceToChar(coords) {
+  return distanceToPoint(coords.x, coords.y, charPoint.x, charPoint.y);
+}
+
+function distanceToPoint(originX, originY, targetX, targetY) {
+  return Math.hypot(originX - targetX, originY - targetY);
+}
+
+const enemySpeedPerSec = ref(50);
+let lastEnemyMoveTimestamp = Date.now();
+
+function moveEnemies() {
+  const currentTime = Date.now();
+  const enemyMoveDelta = enemySpeedPerSec.value / 1000 * (currentTime - lastEnemyMoveTimestamp);
+  enemies.forEach(enemy => {
+    const originX = enemy.x;
+    const originY = enemy.y;
+    const angleBetweenEnemyAndChar = angleBetweenPointsRadian(originX, originY, charPoint.x, charPoint.y);
+    const newPoint = projectPoint(originX, originY, enemyMoveDelta, angleBetweenEnemyAndChar);
+
+
+    if (enemies
+        .filter(otherEnemy => enemy.id !== otherEnemy.id && distanceToPoint(newPoint.x, newPoint.y, otherEnemy.x, otherEnemy.y) < charRadius.value * 0.8)
+        .length > 0) {
+      return; // enemies collide, don't move this enemy
+    }
+
+    enemy.x = newPoint.x;
+    enemy.y = newPoint.y;
+  })
+  lastEnemyMoveTimestamp = Date.now();
 }
 
 // character
@@ -193,7 +293,6 @@ function drawLine() {
   c.lineTo(projectedPoint.x, projectedPoint.y);
   c.stroke();
 }
-
 
 const angleDirectionChangeIntervalMs = 50;
 let lastCrossDirectionalTimestamp = Date.now;
