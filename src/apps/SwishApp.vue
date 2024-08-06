@@ -21,7 +21,11 @@
           <b>Game</b>
           <br><br>
           <button @click="isRunning = !isRunning">START / STOP</button>
+          <br>
+          <button @click="resetGame">RESET</button>
           <br><br>
+          <p>Points: {{ enemiesKilled }}</p>
+          <p>Enemies: {{ enemiesSpawned - enemiesKilled }}</p>
           <p>Degrees: {{ Math.floor(angleInDegrees) }}</p>
           <p>Radians: {{ Math.floor(angleInRadians * 100) / 100 }}</p>
           <br>
@@ -37,7 +41,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import {
   angleBetweenPointsDegreesPositive, angleBetweenPointsRadian,
-  degreesToRadian,
+  degreesToRadian, distanceBetweenPoints, distanceToLine,
   projectPoint,
   radianToDegrees, randomBetween,
   randomIntBetween
@@ -56,15 +60,7 @@ onMounted(() => {
   canvas.height = window.innerHeight * 0.55;
   c = canvas.getContext("2d");
 
-  charPoint.x = canvas.width / 2;
-  charPoint.y = canvas.height / 2;
-  charRadius.value = canvas.height / 30;
-  charSpeedPerSec.value = charRadius.value * 15;
-  lineLength.value = charRadius.value * 4;
-
-  for (let i = 0; i < initialEnemies; i++) {
-    newEnemy();
-  }
+  resetGame();
 
   draw(); // init
 });
@@ -75,6 +71,21 @@ watch(isRunning, () => {
     draw();
   }
 })
+
+function resetGame() {
+  charPoint.x = canvas.width / 2;
+  charPoint.y = canvas.height / 2;
+  charRadius.value = canvas.height / 30;
+  charSpeedPerSec.value = charRadius.value * 15;
+  lineLength.value = charRadius.value * 4;
+
+  while (enemies.length > 0) {
+    enemies.pop();
+  }
+  for (let i = 0; i < initialEnemies; i++) {
+    newEnemy();
+  }
+}
 
 let prevTimestamp = null;
 
@@ -96,6 +107,8 @@ function draw() {
   }
 
   moveEnemies();
+
+  checkCollisions();
 
   drawChar();
   drawLine();
@@ -141,13 +154,15 @@ function pointLineToEvent(clientX, clientY) {
 
 const enemies = [];
 const enemySpawnTimerMs = 2000;
+const enemiesSpawned = ref(0);
+const enemiesKilled = ref(0);
 let prevEnemySpawnTimestamp = Date.now();
 let minSpawnDistance = 100;
 let maxEnemies = 10;
 
 function drawEnemies() {
   enemies.forEach(enemy => {
-    c.fillStyle = enemy.color;
+    c.fillStyle = 'blue';
     c.beginPath();
     c.arc(enemy.x, enemy.y, charRadius.value / 2, 0, Math.PI * 2);
     c.fill();
@@ -178,14 +193,11 @@ function newEnemy() {
   }
 
   enemies.push({ id: enemyId++, x: coords.x, y: coords.y, color: randomColor() });
+  enemiesSpawned.value++;
 }
 
 function distanceToChar(coords) {
-  return distanceToPoint(coords.x, coords.y, charPoint.x, charPoint.y);
-}
-
-function distanceToPoint(originX, originY, targetX, targetY) {
-  return Math.hypot(originX - targetX, originY - targetY);
+  return distanceBetweenPoints(coords.x, coords.y, charPoint.x, charPoint.y);
 }
 
 const enemySpeedPerSec = ref(50);
@@ -202,7 +214,7 @@ function moveEnemies() {
 
 
     if (enemies
-        .filter(otherEnemy => enemy.id !== otherEnemy.id && distanceToPoint(newPoint.x, newPoint.y, otherEnemy.x, otherEnemy.y) < charRadius.value * 0.8)
+        .filter(otherEnemy => enemy.id !== otherEnemy.id && distanceBetweenPoints(newPoint.x, newPoint.y, otherEnemy.x, otherEnemy.y) < charRadius.value * 0.8)
         .length > 0) {
       return; // enemies collide, don't move this enemy
     }
@@ -211,6 +223,15 @@ function moveEnemies() {
     enemy.y = newPoint.y;
   })
   lastEnemyMoveTimestamp = Date.now();
+}
+
+function checkCollisions() {
+  const enemiesHit = enemies.filter(enemy => {
+    const distance = distanceToLine(enemy.x, enemy.y, lineHandlePoint.x, lineHandlePoint.y, lineEndPoint.x, lineHandlePoint.y);
+    return distance < charRadius.value;
+  });
+  enemiesHit.forEach(enemyHit => enemies.splice(enemies.indexOf(enemyHit), 1));
+  enemiesKilled.value += enemiesHit.length;
 }
 
 // character
@@ -261,6 +282,8 @@ function moveChar(moveMs) {
 // line
 
 const lineLength = ref(100);
+let lineHandlePoint = { x: 0, y: 0 };
+let lineEndPoint = { x: 0, y: 0 };
 
 function drawLine() {
 
@@ -268,8 +291,6 @@ function drawLine() {
   c.lineWidth = 3;
   c.beginPath();
 
-  let lineHandlePoint;
-  let projectedPoint;
   const timeDiff = Date.now() - animateTimestamp;
   if (timeDiff < animationSpeedMs.value) {
     // mid-swing animation
@@ -277,7 +298,7 @@ function drawLine() {
     const angleByRatio = angleDiff * timeDiff / animationSpeedMs.value;
     const angleRadians = swingStartAngleInRadians + angleByRatio * swingDirection;
     lineHandlePoint = projectPoint(charPoint.x, charPoint.y, charRadius.value * 1.1, angleRadians);
-    projectedPoint = projectPoint(charPoint.x, charPoint.y, lineLength.value, angleRadians);
+    lineEndPoint = projectPoint(charPoint.x, charPoint.y, lineLength.value, angleRadians);
   } else {
     if (animationOnGoing) {
       // animation end
@@ -286,11 +307,11 @@ function drawLine() {
     }
 
     lineHandlePoint = projectPoint(charPoint.x, charPoint.y, charRadius.value * 1.1, angleInRadians.value + 0.45);
-    projectedPoint = projectPoint(charPoint.x, charPoint.y, lineLength.value, angleInRadians.value + 0.45);
+    lineEndPoint = projectPoint(charPoint.x, charPoint.y, lineLength.value, angleInRadians.value + 0.45);
   }
 
   c.moveTo(lineHandlePoint.x, lineHandlePoint.y);
-  c.lineTo(projectedPoint.x, projectedPoint.y);
+  c.lineTo(lineEndPoint.x, lineEndPoint.y);
   c.stroke();
 }
 

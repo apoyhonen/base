@@ -2,7 +2,8 @@ export {
     randomIntBetween, randomBetween,
     degreesToRadian, radianToDegrees,
     angleBetweenPointsRadian, angleBetweenPointsDegreesPositive,
-    projectPoint
+    projectPoint,
+    distanceBetweenPoints, distanceToLine,
 };
 
 // RANDOM
@@ -44,4 +45,36 @@ function projectPointX(originX, length, radiansTheta) {
 
 function projectPointY(originY, length, radiansTheta) {
     return originY + length * Math.sin(radiansTheta);
+}
+
+function distanceBetweenPoints(originX, originY, targetX, targetY) {
+    return Math.hypot(originX - targetX, originY - targetY);
+}
+
+function distanceToLine(originX, originY, lineFirstPointX, lineFirstPointY, lineSecondPointX, lineSecondPointY) {
+    return Math.sqrt(distanceToLineToPowerOfTwo(originX, originY, lineFirstPointX, lineFirstPointY, lineSecondPointX, lineSecondPointY));
+}
+
+function distanceToLineToPowerOfTwo(originX, originY, lineFirstPointX, lineFirstPointY, lineSecondPointX, lineSecondPointY) {
+    const linePointsDistance = distanceToPowerOfTwo(lineFirstPointX, lineFirstPointY, lineSecondPointX, lineSecondPointY);
+    if (linePointsDistance === 0) return distanceToPowerOfTwo(originX, originY, lineFirstPointX, lineFirstPointY);
+
+    let dot = ((originX - lineFirstPointX) * (lineSecondPointX - lineFirstPointX)
+        + (originY - lineFirstPointY) * (lineSecondPointY
+            - lineFirstPointY)) / linePointsDistance;
+    dot = Math.max(0, Math.min(1, dot));
+
+    return distanceToPowerOfTwo(originX, originY,
+        lineFirstPointX + dot * (lineSecondPointX - lineFirstPointX),
+        lineFirstPointY + dot * (lineSecondPointY - lineFirstPointY));
+}
+
+function distanceToPowerOfTwo(lineFirstPointX, lineFirstPointY, lineSecondPointX, lineSecondPointY) {
+    return squared(lineFirstPointX - lineSecondPointX) + squared(lineFirstPointY - lineSecondPointY);
+}
+
+// pure math
+
+function squared(x) {
+    return x * x;
 }
