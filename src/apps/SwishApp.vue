@@ -40,7 +40,7 @@
 <script setup>
 
 import { computed, onMounted, ref, watch } from "vue";
-import { angleBetweenPointsDegreesPositive, degreesToRadian, projectPoint } from "@/util/MathUtil";
+import { angleBetweenPointsDegreesPositive, degreesToRadian, projectPoint, radianToDegrees } from "@/util/MathUtil";
 
 let canvas = null;
 let c = null;
@@ -75,10 +75,11 @@ function draw() {
   clear();
 
   const currTimestamp = Date.now();
-  if (prevTimestamp) moveChar(currTimestamp - prevTimestamp);
+  if (animationOnGoing) {
+    if (prevTimestamp) moveChar(currTimestamp - prevTimestamp); // move char
+    angleLineByMoveDirections(); // set new angle by move direction
+  }
   prevTimestamp = currTimestamp;
-
-  angleLineByMoveDirections();
 
   drawChar();
   drawLine();
@@ -96,17 +97,18 @@ function clear() {
 
 // game
 
-const charColor = 'red';
-const lineColor = 'green';
+const charColor = 'seagreen';
+const lineColor = 'red';
 
 let charPoint = { x: 0, y: 0 };
 const defaultAngle = 270;
 const angleInDegrees = ref(defaultAngle);
-const angleInRadians = computed(() => degreesToRadian(angleInDegrees.value))
 watch(angleInDegrees, () => {
   if (angleInDegrees.value < 0) angleInDegrees.value = 360 + angleInDegrees.value;
   if (angleInDegrees.value > 359) angleInDegrees.value = 0 + angleInDegrees.value - 360;
 })
+
+const angleInRadians = computed(() => degreesToRadian(angleInDegrees.value))
 
 function canvasClicked(e) {
   pointLineToEvent(e.clientX, e.clientY);
@@ -128,6 +130,15 @@ function drawChar() {
   c.beginPath();
   c.arc(charPoint.x, charPoint.y, charRadius.value, 0, Math.PI * 2);
   c.fill();
+
+  c.lineCap = "round";
+  c.strokeStyle = charColor;
+  c.lineWidth = charRadius.value / 2;
+  c.beginPath();
+  c.moveTo(charPoint.x, charPoint.y);
+  const projectedPoint = projectPoint(charPoint.x, charPoint.y, charRadius.value, angleInRadians.value);
+  c.lineTo(projectedPoint.x, projectedPoint.y);
+  c.stroke();
 }
 
 function moveChar(moveMs) {
@@ -155,15 +166,36 @@ function moveChar(moveMs) {
 const lineLength = ref(100);
 
 function drawLine() {
-  let x = charPoint.x;
-  let y = charPoint.y;
 
   c.strokeStyle = lineColor;
   c.lineWidth = 3;
   c.beginPath();
-  c.moveTo(x, y);
-  const linePoint = projectPoint(x, y, lineLength.value, angleInRadians.value);
-  c.lineTo(linePoint.x, linePoint.y);
+
+  let lineHandlePoint;
+  let projectedPoint;
+  const timeDiff = Date.now() - animateTimestamp;
+  if (timeDiff < animationSpeedMs.value) {
+    // mid-swing animation
+    const angleDiff = Math.abs(swingEndAngleInRadians - swingStartAngleInRadians);
+    const angleByRatio = angleDiff * timeDiff / animationSpeedMs.value;
+    const angleRadians = swingStartAngleInRadians + angleByRatio * swingDirection;
+    lineHandlePoint = projectPoint(charPoint.x, charPoint.y, charRadius.value * 1.1, angleRadians);
+    projectedPoint = projectPoint(charPoint.x, charPoint.y, lineLength.value, angleRadians);
+  } else {
+    // normal state
+
+    if (animationOnGoing) {
+      // animation end
+      animationOnGoing = false;
+      angleInDegrees.value = radianToDegrees(afterSwingAngleInRadians);
+    }
+
+    lineHandlePoint = projectPoint(charPoint.x, charPoint.y, charRadius.value * 1.1, angleInRadians.value + 0.45);
+    projectedPoint = projectPoint(charPoint.x, charPoint.y, lineLength.value, angleInRadians.value + 0.45);
+  }
+
+  c.moveTo(lineHandlePoint.x, lineHandlePoint.y);
+  c.lineTo(projectedPoint.x, projectedPoint.y);
   c.stroke();
 }
 
@@ -209,10 +241,57 @@ function angleLineByMoveDirections() {
   }
 }
 
+// swing animation
+
+let afterSwingAngleInRadians = 0;
+let swingStartAngleInRadians = 0;
+let swingEndAngleInRadians = 0;
+let swingDirection = -1;
+let animationOnGoing = false;
+
+function swingForward() {
+  afterSwingAngleInRadians = angleInRadians.value;
+  swingStartAngleInRadians = angleInRadians.value + 1.5;
+  swingEndAngleInRadians = angleInRadians.value - 1.5;
+  swingDirection = -1;
+  swingAnimate();
+}
+
+function swingLeft() {
+  afterSwingAngleInRadians = angleInRadians.value - Math.PI / 2;
+  swingStartAngleInRadians = angleInRadians.value + 1;
+  swingEndAngleInRadians = angleInRadians.value - 3;
+  swingDirection = -1;
+  swingAnimate();
+}
+
+function swingRight() {
+  afterSwingAngleInRadians = angleInRadians.value + Math.PI / 2;
+  swingStartAngleInRadians = angleInRadians.value - 1;
+  swingEndAngleInRadians = angleInRadians.value + 3;
+  swingDirection = 1;
+  swingAnimate();
+}
+
+function swingBackwards() {
+  afterSwingAngleInRadians = angleInRadians.value - Math.PI;
+  swingStartAngleInRadians = angleInRadians.value + 1;
+  swingEndAngleInRadians = angleInRadians.value - Math.PI - 1;
+  swingDirection = -1;
+  swingAnimate();
+}
+
+const animationSpeedMs = ref(350);
+let animateTimestamp = Date.now();
+
+function swingAnimate() {
+  animateTimestamp = Date.now();
+  animationOnGoing = true;
+}
+
 // mouse handlers
 
-const mouseDown = ref(false);
-const mouseDownPos = ref({ x: 0, y: 0 });
+const mouseDownPos = { x: 0, y: 0 };
 
 document.addEventListener("mousedown", mouseDownHandler, false);
 document.addEventListener("mouseup", mouseUpHandler, false);
@@ -228,39 +307,44 @@ function mouseMoveHandler() {
 function mouseDownHandler(e) {
   if (!isAppActive() || e.which !== 1) return;
 
-  mouseDown.value = true;
-  mouseDownPos.value.x = e.clientX - canvas.offsetLeft;
-  mouseDownPos.value.y = e.clientY - canvas.offsetTop;
+  mouseDownPos.x = e.clientX - canvas.offsetLeft;
+  mouseDownPos.y = e.clientY - canvas.offsetTop;
 }
 
 function mouseUpHandler(e) {
   if (!isAppActive() || e.which !== 1) return;
 
   const relativeX = e.clientX - canvas.offsetLeft;
-  const deltaX = relativeX - mouseDownPos.value.x;
+  const deltaX = relativeX - mouseDownPos.x;
   const relativeY = e.clientY - canvas.offsetTop;
-  const deltaY = relativeY - mouseDownPos.value.y;
+  const deltaY = relativeY - mouseDownPos.y;
 
-  if (Math.abs(deltaX) > Math.abs(deltaY)) {
-    // sideways move
-    if (deltaX > 0) {
-      // right swing
-      angleInDegrees.value += 90;
-    } else {
-      // left swing
-      angleInDegrees.value -= 90;
-    }
+  if (Math.abs(deltaX) < 5 && Math.abs(deltaY) < 5) {
+    swingForward(); // click
   } else {
-    // upwards move
-    if (deltaY < 0) {
-      // forwards pierce
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      // sideways move
+      if (deltaX > 0) {
+        swingRight();
+        // right swing
+        //angleInDegrees.value += 90;
+      } else {
+        swingLeft();
+        // left swing
+        //angleInDegrees.value -= 90;
+      }
     } else {
-      // backwards swing
-      angleInDegrees.value += 180;
+      // upwards move
+      if (deltaY < 0) {
+        swingForward();
+        // forwards pierce
+      } else {
+        swingBackwards();
+        // backwards swing
+        //angleInDegrees.value += 180;
+      }
     }
   }
-
-  mouseDown.value = false;
 }
 
 // key handlers
