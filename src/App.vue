@@ -32,7 +32,7 @@ import { ref } from "vue";
 const shownApp = ref("swish");
 
 const apps = [];
-apps.push({ refName: 'swish', name: 'Swish *' });
+apps.push({ refName: 'swish', name: 'Swish' });
 apps.push({ refName: 'othello', name: 'Othello' });
 apps.push({ refName: 'snake', name: 'Snake' });
 apps.push({ refName: 'pong', name: 'Pong' });
