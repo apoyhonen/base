@@ -19,6 +19,8 @@
         <label for="moveSpeedPercent">Move speed (%):</label>
         <input id="moveSpeedPercent" type="number" class="controls-input" v-model="moveSpeedPercent" />
         <br><br>
+        <button class="controls-button" @click="resetSettings">RESET VALUES</button>
+        <br><br><br>
 
         <b>Animation</b>
         <br><br>
@@ -41,7 +43,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { randomBetween } from "@/util/MathUtil";
 import {
-  initKeyListeners, isLeftPressed, isRightPressed, isUpPressed,
+  initKeyListeners, isLeftPressed, isRightPressed, isSpacePressed, isUpPressed,
 } from "@/util/ControlsUtil";
 
 const canvasName = 'platformCanvas';
@@ -59,8 +61,8 @@ onMounted(() => {
 
   groundLevelPercent.value = groundLevelPercentDefault;
   cloudHigherY.value = canvas.height * 0.1;
-  cloudMidY.value = canvas.height * 0.2;
-  cloudLowerY.value = canvas.height * 0.3;
+  cloudMidY.value = canvas.height * 0.3;
+  cloudLowerY.value = canvas.height * 0.45;
   createClouds();
 
   charWidth.value = canvas.width / 30;
@@ -100,11 +102,17 @@ function draw() {
   moveJump(differenceMs);
   prevDrawTimestamp = currTimestamp;
 
-  drawGround();
   drawClouds();
+  drawGround();
   drawChar();
 
   if (isRunning.value && isAppActive()) requestAnimationFrame(draw); // redraw as soon as animation frame is available
+}
+
+function resetSettings() {
+  moveSpeedPercent.value = 100;
+  cloudSizePercent.value = cloudSizePercentDefault;
+  groundLevelPercent.value = groundLevelPercentDefault;
 }
 
 // game
@@ -112,6 +120,7 @@ function draw() {
 const moveSpeedPercent = ref(100);
 let defaultSpeedPerSec = 400;
 const moveSpeedPerSec = ref(defaultSpeedPerSec);
+watch(moveSpeedPercent, () => moveSpeedPercent.value = Math.max(5, Math.min(1000, moveSpeedPercent.value)));
 
 // char
 
@@ -147,7 +156,6 @@ let falling = false;
 function moveJump(differenceMs) {
   const moveDelta = charJumpSpeedPerSec.value / 1000 * differenceMs;
 
-  const upPressed = isUpPressed();
 
   if (falling) {
     if (charBottomY.value >= groundLevelY.value) {
@@ -156,7 +164,8 @@ function moveJump(differenceMs) {
       charBottomY.value = Math.min(charBottomY.value + moveDelta, groundLevelY.value);
     }
   } else {
-    if (upPressed && charBottomY.value > charJumpTopY.value) {
+    const isJumpPressed = isUpPressed() || isSpacePressed();
+    if (isJumpPressed && charBottomY.value > charJumpTopY.value) {
       if (!jumping) {
         jumping = true;
       }
@@ -176,7 +185,11 @@ const groundColor = 'saddlebrown'
 
 const groundLevelPercentDefault = 10;
 const groundLevelPercent = ref(9);
-watch(groundLevelPercent, () => groundLevelY.value = canvas.height / 100 * (100 - groundLevelPercent.value));
+watch(groundLevelPercent, () => {
+  const groundLevelControlled = Math.max(5, Math.min(50, groundLevelPercent.value));
+  groundLevelY.value = canvas.height / 100 * (100 - groundLevelControlled);
+  groundLevelPercent.value = groundLevelControlled;
+});
 const groundLevelY = ref(100);
 watch(groundLevelY, () => {
   charBottomY.value = groundLevelY.value;
@@ -206,23 +219,24 @@ const cloudMidY = ref(30);
 const cloudLowerY = ref(40);
 
 function createClouds() {
-  clouds.push({ x: randomBetween(0, canvas.width), y: cloudHigherY.value });
-  clouds.push({ x: randomBetween(0, canvas.width), y: cloudMidY.value });
-  clouds.push({ x: randomBetween(0, canvas.width), y: cloudLowerY.value });
+  clouds.push({ x: randomBetween(0, canvas.width), y: cloudHigherY.value, speedFactor: 0.33, sizeFactor: randomBetween(0.3, 1) });
+  clouds.push({ x: randomBetween(0, canvas.width), y: cloudMidY.value, speedFactor: 0.66, sizeFactor: randomBetween(0.3, 1) });
+  clouds.push({ x: randomBetween(0, canvas.width), y: cloudLowerY.value, speedFactor: 1, sizeFactor: randomBetween(0.3, 1) });
 }
 
 function drawClouds() {
   c.strokeStyle = '#797874';
   c.stroke();
   c.fillStyle = 'white';
-
-  const cloudSizeFactor = 1 / 100 * cloudSizePercent.value;
+  c.lineWidth = 3;
 
   let x = 0;
   let y = 0;
   clouds.forEach(cloud => {
     x = cloud.x;
     y = cloud.y;
+
+    const cloudSizeFactor = 1 / 100 * cloudSizePercent.value * cloud.sizeFactor;
 
     c.beginPath();
     c.arc(x, y, 60 * cloudSizeFactor, Math.PI * 0.5, Math.PI * 1.5);
@@ -241,7 +255,7 @@ function moveClouds(differenceMs) {
 
   const moveDelta = moveSpeedPerSec.value / 1000 * differenceMs * (isRightPressed() ? -1 : 1);
   clouds.forEach(cloud => {
-    cloud.x += moveDelta;
+    cloud.x += moveDelta * cloud.speedFactor;
 
     if (cloud.x > canvas.width + 100) cloud.x = 0 - 300 / 100 * cloudSizePercent.value;
     else if (cloud.x < -300 / 100 * cloudSizePercent.value) cloud.x = canvas.width;

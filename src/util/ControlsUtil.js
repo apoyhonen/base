@@ -1,4 +1,4 @@
-export { initKeyListeners, isAnyKeyPressed, isUpPressed, isRightPressed, isDownPressed, isLeftPressed }
+export { initKeyListeners, isDirectionalKeyPressed, isUpPressed, isRightPressed, isDownPressed, isLeftPressed, isSpacePressed }
 
 // key handlers
 
@@ -6,6 +6,7 @@ let upPressed = false;
 let rightPressed = false;
 let downPressed = false;
 let leftPressed = false;
+let spacePressed = false;
 
 let appActiveElementId = '';
 
@@ -15,7 +16,7 @@ function initKeyListeners(document, elementId) {
     document.addEventListener("keyup", keyUpHandler, false);
 }
 
-function isAnyKeyPressed() {
+function isDirectionalKeyPressed() {
     return upPressed || rightPressed || downPressed || leftPressed;
 }
 
@@ -35,6 +36,10 @@ function isLeftPressed() {
     return leftPressed;
 }
 
+function isSpacePressed() {
+    return spacePressed;
+}
+
 function isAppActive() {
     return document.getElementById(appActiveElementId) !== null;
 }
@@ -51,6 +56,8 @@ function keyDownHandler(e) {
         downPressed = true;
     } else if (e.key === "a" || e.key === "ArrowLeft") {
         leftPressed = true;
+    } else if (e.key === " ") {
+        spacePressed = true;
     }
 }
 
@@ -66,5 +73,7 @@ function keyUpHandler(e) {
         downPressed = false;
     } else if (e.key === "a" || e.key === "ArrowLeft") {
         leftPressed = false;
+    } else if (e.key === " ") {
+        spacePressed = false;
     }
 }
