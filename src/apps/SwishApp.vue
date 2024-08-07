@@ -87,6 +87,7 @@ import {
   moveEnemies,
   newEnemy, removeEnemies
 } from "@/engines/SwishEngine";
+import { downPressed, initKeyListeners, leftPressed, rightPressed, upPressed } from "@/util/ControlsUtil";
 
 let canvas = null;
 let c = null;
@@ -440,43 +441,7 @@ function mouseUpHandler(e) {
 
 // key handlers
 
-let upPressed = false;
-let rightPressed = false;
-let downPressed = false;
-let leftPressed = false;
-
-document.addEventListener("keydown", keyDownHandler, false);
-document.addEventListener("keyup", keyUpHandler, false);
-
-function keyDownHandler(e) {
-  if (!isAppActive()) return;
-
-  // left paddle keys
-  if (e.key === 'w' || e.key === "ArrowUp") {
-    upPressed = true;
-  } else if (e.key === "d" || e.key === "ArrowRight") {
-    rightPressed = true;
-  } else if (e.key === "s" || e.key === "ArrowDown") {
-    downPressed = true;
-  } else if (e.key === "a" || e.key === "ArrowLeft") {
-    leftPressed = true;
-  }
-}
-
-function keyUpHandler(e) {
-  if (!isAppActive()) return;
-
-  // left paddle keys
-  if (e.key === 'w' || e.key === "ArrowUp") {
-    upPressed = false;
-  } else if (e.key === "d" || e.key === "ArrowRight") {
-    rightPressed = false;
-  } else if (e.key === "s" || e.key === "ArrowDown") {
-    downPressed = false;
-  } else if (e.key === "a" || e.key === "ArrowLeft") {
-    leftPressed = false;
-  }
-}
+initKeyListeners(document, 'swishCanvas');
 
 </script>
 

@@ -5,7 +5,7 @@
       <td>
         <p><b>Controls</b></p>
         <br>
-        <p>TBA...</p>
+        <p>WASD or Arrow Keys to move character.</p>
         <br><br>
 
         <b>Game</b>
@@ -15,6 +15,9 @@
         <br>
         <label for="cloudSizePercent">Clouds size (%):</label>
         <input id="cloudSizePercent" type="number" class="controls-input" v-model="cloudSizePercent" />
+        <br>
+        <label for="moveSpeedPercent">Move speed (%):</label>
+        <input id="moveSpeedPercent" type="number" class="controls-input" v-model="moveSpeedPercent" />
         <br><br>
 
         <b>Animation</b>
@@ -39,6 +42,7 @@
 
 import { computed, onMounted, ref, watch } from "vue";
 import { randomBetween } from "@/util/MathUtil";
+import { initKeyListeners, leftPressed, rightPressed } from "@/util/ControlsUtil";
 
 const canvasName = 'platformCanvas';
 let canvas = null;
@@ -55,12 +59,16 @@ onMounted(() => {
 
   groundLevelPercent.value = groundLevelPercentDefault;
   cloudHigherY.value = canvas.height * 0.1;
-  cloudLowerY.value = canvas.height * 0.2;
+  cloudMidY.value = canvas.height * 0.2;
+  cloudLowerY.value = canvas.height * 0.3;
   createClouds();
 
   charWidth.value = canvas.width / 30;
   charHeight.value = charWidth.value * 3;
   charBottomY.value = groundLevelY.value;
+
+  defaultSpeedPerSec = canvas.width / 4;
+  watch(moveSpeedPercent, () => moveSpeedPerSec.value = defaultSpeedPerSec / 100 * moveSpeedPercent.value);
 
   draw(); // init
 });
@@ -77,10 +85,17 @@ function clear() {
   c.clearRect(0, 0, canvas.width, canvas.height);
 }
 
+let prevDrawTimestamp = Date.now();
+
 function draw() {
   frameCount.value++;
 
   clear();
+
+  const currTimestamp = Date.now();
+  const timestampDifference = currTimestamp - prevDrawTimestamp;
+  moveClouds(timestampDifference);
+  prevDrawTimestamp = currTimestamp;
 
   drawGround();
   drawClouds();
@@ -91,6 +106,9 @@ function draw() {
 
 // game
 
+const moveSpeedPercent = ref(100);
+let defaultSpeedPerSec = 400;
+const moveSpeedPerSec = ref(defaultSpeedPerSec);
 
 // char
 
@@ -149,10 +167,12 @@ const clouds = [];
 const cloudSizePercentDefault = 60;
 const cloudSizePercent = ref(cloudSizePercentDefault);
 const cloudHigherY = ref(20);
+const cloudMidY = ref(30);
 const cloudLowerY = ref(40);
 
 function createClouds() {
   clouds.push({ x: randomBetween(0, canvas.width), y: cloudHigherY.value });
+  clouds.push({ x: randomBetween(0, canvas.width), y: cloudMidY.value });
   clouds.push({ x: randomBetween(0, canvas.width), y: cloudLowerY.value });
 }
 
@@ -177,8 +197,25 @@ function drawClouds() {
     c.moveTo(x + 200 * cloudSizeFactor, y + 60 * cloudSizeFactor);
     c.lineTo(x, y + 60 * cloudSizeFactor);
     c.fill()
+    c.stroke();
   })
 }
+
+function moveClouds(differenceMs) {
+  if (!rightPressed && !leftPressed) return;
+
+  const moveDelta = moveSpeedPerSec.value / 1000 * differenceMs * (rightPressed ? -1 : 1);
+  clouds.forEach(cloud => {
+    cloud.x += moveDelta;
+
+    if (cloud.x > canvas.width + 100) cloud.x = 0 - 300 / 100 * cloudSizePercent.value;
+    else if (cloud.x < -300 / 100 * cloudSizePercent.value) cloud.x = canvas.width;
+  });
+}
+
+// key handlers
+
+initKeyListeners(document, canvasName);
 
 </script>
 
