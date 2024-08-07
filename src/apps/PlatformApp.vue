@@ -41,7 +41,7 @@
 <script setup>
 
 import { computed, onMounted, ref, watch } from "vue";
-import { easeInCubic, easeOutCubic, randomBetween, randomIntBetween } from "@/util/MathUtil";
+import { easeInCubic, easeOutCubic, isRectCollision, randomBetween, randomIntBetween } from "@/util/MathUtil";
 import {
   initKeyListeners, isLeftPressed, isRightPressed, isSpacePressed, isUpPressed,
 } from "@/util/KeysUtil";
@@ -71,7 +71,7 @@ onMounted(() => {
   charJumpTopY.value = charBottomY.value - charHeight.value * 2;
 
   obstacleMinWidth.value = charWidth.value * 0.25;
-  obstacleMaxWidth.value = charWidth.value;
+  obstacleMaxWidth.value = charWidth.value * 0.8;
 
   defaultSpeedPerSec = canvas.width / 4;
   watch(moveSpeedPercent, () => moveSpeedPerSec.value = defaultSpeedPerSec / 100 * moveSpeedPercent.value);
@@ -115,6 +115,9 @@ function draw() {
   drawGround();
   drawObstacles();
   drawChar();
+  drawScore();
+
+  checkObstacleCollisions();
 
   if (isRunning.value && isAppActive()) requestAnimationFrame(draw); // redraw as soon as animation frame is available
 }
@@ -131,6 +134,27 @@ const moveSpeedPercent = ref(100);
 let defaultSpeedPerSec = 400;
 const moveSpeedPerSec = ref(defaultSpeedPerSec);
 watch(moveSpeedPercent, () => moveSpeedPercent.value = Math.max(5, Math.min(1000, moveSpeedPercent.value)));
+
+const obstaclesHit = ref(0);
+
+function checkObstacleCollisions() {
+  obstacles.forEach(obstacle => {
+    if (isRectCollision(
+        obstacle.x - obstacle.width / 2, groundLevelY.value, obstacle.width, obstacle.height,
+        charStartX.value, charBottomY.value, charWidth.value, charHeight.value)) {
+      removeObstacle(obstacle);
+      obstaclesHit.value++;
+    }
+  })
+}
+
+function drawScore() {
+  const size = Math.floor(charWidth.value);
+  c.font = '' + size + 'px Arial'; // emoji size with font
+
+  c.fillStyle = 'white';
+  c.fillText('💀 ' + obstaclesHit.value, 60, canvas.height * 0.97);
+}
 
 // char
 
@@ -215,7 +239,7 @@ function addObstacle() {
   obstacles.push({
     x: isRightPressed() ? canvas.width * 1.4 : 0 - canvas.width * 0.4 - obstacleMinWidth.value, // create a bit outside the screen
     width: randomBetween(obstacleMinWidth.value, obstacleMaxWidth.value),
-    height: charHeight.value * randomBetween(0.3, 1),
+    height: charHeight.value * randomBetween(0.2, 0.8),
     color: randomObstacleColor(),
   });
 }

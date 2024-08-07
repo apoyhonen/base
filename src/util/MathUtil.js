@@ -4,6 +4,7 @@ export {
     angleBetweenPointsRadian, angleBetweenPointsDegreesPositive,
     projectPoint,
     distanceBetweenPoints, distanceToLine,
+    isRectCollision,
     easeOutCubic, easeInCubic, testEasing,
 };
 
@@ -72,6 +73,15 @@ function distanceToLineToPowerOfTwo(originX, originY, lineFirstPointX, lineFirst
 
 function distanceToPowerOfTwo(lineFirstPointX, lineFirstPointY, lineSecondPointX, lineSecondPointY) {
     return squared(lineFirstPointX - lineSecondPointX) + squared(lineFirstPointY - lineSecondPointY);
+}
+
+// collision
+
+function isRectCollision(rectOneX, rectOneY, rectOneWidth, rectOneHeight, rectTwoX, rectTwoY, rectTwoWidth, rectTwoHeight) {
+    return rectOneX < rectTwoX + rectTwoWidth
+        && rectOneX + rectOneWidth > rectTwoX
+        && rectOneY < rectTwoY + rectTwoHeight
+        && rectOneY + rectOneHeight > rectTwoY;
 }
 
 // easing
