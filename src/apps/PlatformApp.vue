@@ -41,7 +41,7 @@
 <script setup>
 
 import { computed, onMounted, ref, watch } from "vue";
-import { randomBetween } from "@/util/MathUtil";
+import { easeInCubic, easeOutCubic, randomBetween, randomIntBetween } from "@/util/MathUtil";
 import {
   initKeyListeners, isLeftPressed, isRightPressed, isSpacePressed, isUpPressed,
 } from "@/util/KeysUtil";
@@ -68,11 +68,14 @@ onMounted(() => {
   charWidth.value = canvas.width / 30;
   charHeight.value = charWidth.value * 3;
   charBottomY.value = groundLevelY.value;
-  charJumpTopY.value = charBottomY.value - charHeight.value;
+  charJumpTopY.value = charBottomY.value - charHeight.value * 2;
+
+  obstacleMinWidth.value = charWidth.value * 0.25;
+  obstacleMaxWidth.value = charWidth.value;
 
   defaultSpeedPerSec = canvas.width / 4;
   watch(moveSpeedPercent, () => moveSpeedPerSec.value = defaultSpeedPerSec / 100 * moveSpeedPercent.value);
-  charJumpSpeedPerSec.value = defaultSpeedPerSec;
+  charJumpSpeedPerSec.value = defaultSpeedPerSec * 3;
 
   draw(); // init
 });
@@ -99,14 +102,18 @@ function draw() {
 
   clear();
 
+  considerAddingObstacle();
+
   const currTimestamp = Date.now();
   const differenceMs = currTimestamp - prevDrawTimestamp;
   moveClouds(differenceMs);
   moveJump(differenceMs);
+  moveObstacles(differenceMs);
   prevDrawTimestamp = currTimestamp;
 
   drawClouds();
   drawGround();
+  drawObstacles();
   drawChar();
 
   if (isRunning.value && isAppActive()) requestAnimationFrame(draw); // redraw as soon as animation frame is available
@@ -157,14 +164,20 @@ let jumping = false;
 let falling = false;
 
 function moveJump(differenceMs) {
-  const moveDelta = charJumpSpeedPerSec.value / 1000 * differenceMs;
+  let moveDelta = charJumpSpeedPerSec.value / 1000 * differenceMs;
 
+  // jump speed is slower the higher in jump / falling you are
+  const maxJumpHeight = groundLevelY.value - charJumpTopY.value;
+  const charCurrentJumpHeight = groundLevelY.value - charBottomY.value;
+  const jumpRatio = Math.min(charCurrentJumpHeight / maxJumpHeight + 0.2, 1);
 
   if (falling) {
     if (charBottomY.value >= groundLevelY.value) {
       falling = false;
     } else {
-      charBottomY.value = Math.min(charBottomY.value + moveDelta, groundLevelY.value);
+      const fallDelta = (1 - easeInCubic(jumpRatio - 0.3)) * moveDelta;
+      console.log('fall delta ' + fallDelta);
+      charBottomY.value = Math.min(charBottomY.value + fallDelta, groundLevelY.value);
     }
   } else {
     const isJumpPressed = isUpPressed() || isSpacePressed();
@@ -173,12 +186,66 @@ function moveJump(differenceMs) {
         jumping = true;
       }
 
-      charBottomY.value = Math.max(charBottomY.value - moveDelta, charJumpTopY.value);
+      const riseDelta = easeOutCubic(jumpRatio + 0.3) * moveDelta;
+      charBottomY.value = Math.max(charBottomY.value - riseDelta, charJumpTopY.value);
     } else if (jumping) {
       jumping = false;
       falling = true;
     }
   }
+}
+
+// obstacles
+
+const obstacles = [];
+const obstacleColors = [ 'black', 'red', 'yellow', 'blue', 'purple', 'pink', 'orange' ];
+const obstacleMinWidth = ref(50);
+const obstacleMaxWidth = ref(100);
+
+function randomObstacleColor() {
+  return obstacleColors[randomIntBetween(0, obstacleColors.length - 1)];
+}
+
+function considerAddingObstacle() {
+  if (obstacles.length > 0) return;
+  addObstacle();
+}
+
+function addObstacle() {
+  obstacles.push({
+    x: isRightPressed() ? canvas.width * 1.4 : 0 - canvas.width * 0.4 - obstacleMinWidth.value, // create a bit outside the screen
+    width: randomBetween(obstacleMinWidth.value, obstacleMaxWidth.value),
+    height: charHeight.value * randomBetween(0.3, 1),
+    color: randomObstacleColor(),
+  });
+}
+
+function moveObstacles(differenceMs) {
+  if (!isRightPressed() && !isLeftPressed()) return;
+
+  const moveDelta = moveSpeedPerSec.value / 1000 * differenceMs * (isRightPressed() ? -1 : 1);
+  obstacles.forEach(obstacle => {
+    obstacle.x += moveDelta;
+
+    if (obstacle.x > canvas.width * 1.5 || obstacle.x < 0 - canvas.width * 0.5 - obstacleMinWidth.value) removeObstacle(obstacle); // remove
+  });
+}
+
+function removeObstacle(obstacle) {
+  obstacles.splice(obstacles.indexOf(obstacle), 1);
+}
+
+function drawObstacles() {
+  c.lineWidth = 3;
+  c.strokeStyle = 'black';
+  obstacles.forEach(obstacle => {
+    c.fillStyle = obstacle.color;
+
+    c.beginPath();
+    c.rect(obstacle.x - obstacle.width / 2, groundLevelY.value - obstacle.height, obstacle.width, obstacle.height);
+    c.fill();
+    c.stroke();
+  })
 }
 
 // environment
@@ -196,7 +263,7 @@ watch(groundLevelPercent, () => {
 const groundLevelY = ref(100);
 watch(groundLevelY, () => {
   charBottomY.value = groundLevelY.value;
-  charJumpTopY.value = charBottomY.value - charHeight.value;
+  charJumpTopY.value = charBottomY.value - charHeight.value * 2;
 });
 
 function drawGround() {

@@ -4,6 +4,7 @@ export {
     angleBetweenPointsRadian, angleBetweenPointsDegreesPositive,
     projectPoint,
     distanceBetweenPoints, distanceToLine,
+    easeOutCubic, easeInCubic, testEasing,
 };
 
 // RANDOM
@@ -71,6 +72,43 @@ function distanceToLineToPowerOfTwo(originX, originY, lineFirstPointX, lineFirst
 
 function distanceToPowerOfTwo(lineFirstPointX, lineFirstPointY, lineSecondPointX, lineSecondPointY) {
     return squared(lineFirstPointX - lineSecondPointX) + squared(lineFirstPointY - lineSecondPointY);
+}
+
+// easing
+
+function easeOutCubic(ratio) {
+    return 1 - Math.pow(1 - ratio, 3);
+}
+
+function easeInCubic(ratio) {
+    return ratio * ratio * ratio;
+}
+
+function testEasing() {
+    console.log(" ");
+    console.log("test easing out");
+    easeOut(0);
+    easeOut(0.25);
+    easeOut(0.5);
+    easeOut(0.75);
+    easeOut(1);
+    console.log(" ");
+
+    console.log("test easing in");
+    easeIn(0);
+    easeIn(0.25);
+    easeIn(0.5);
+    easeIn(0.75);
+    easeIn(1);
+    console.log(" ");
+}
+
+function easeOut(ratio) {
+    console.log('ease out ratio ' + ratio + ' to ratio ' + easeOutCubic(ratio));
+}
+
+function easeIn(ratio) {
+    console.log('ease in ratio ' + ratio + ' to ratio ' + easeInCubic(ratio));
 }
 
 // pure math
