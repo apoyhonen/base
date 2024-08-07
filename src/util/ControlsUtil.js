@@ -1,4 +1,4 @@
-export { initKeyListeners, isAnyKeyPressed, upPressed, rightPressed, downPressed, leftPressed }
+export { initKeyListeners, isAnyKeyPressed, isUpPressed, isRightPressed, isDownPressed, isLeftPressed }
 
 // key handlers
 
@@ -17,6 +17,22 @@ function initKeyListeners(document, elementId) {
 
 function isAnyKeyPressed() {
     return upPressed || rightPressed || downPressed || leftPressed;
+}
+
+function isUpPressed() {
+    return upPressed;
+}
+
+function isRightPressed() {
+    return rightPressed;
+}
+
+function isDownPressed() {
+    return downPressed;
+}
+
+function isLeftPressed() {
+    return leftPressed;
 }
 
 function isAppActive() {

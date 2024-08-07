@@ -34,15 +34,15 @@
 
     </tr>
   </table>
-  <div>
-  </div>
 </template>
 
 <script setup>
 
 import { computed, onMounted, ref, watch } from "vue";
 import { randomBetween } from "@/util/MathUtil";
-import { initKeyListeners, leftPressed, rightPressed } from "@/util/ControlsUtil";
+import {
+  initKeyListeners, isLeftPressed, isRightPressed, isUpPressed,
+} from "@/util/ControlsUtil";
 
 const canvasName = 'platformCanvas';
 let canvas = null;
@@ -66,9 +66,11 @@ onMounted(() => {
   charWidth.value = canvas.width / 30;
   charHeight.value = charWidth.value * 3;
   charBottomY.value = groundLevelY.value;
+  charJumpTopY.value = charBottomY.value - charHeight.value;
 
   defaultSpeedPerSec = canvas.width / 4;
   watch(moveSpeedPercent, () => moveSpeedPerSec.value = defaultSpeedPerSec / 100 * moveSpeedPercent.value);
+  charJumpSpeedPerSec.value = defaultSpeedPerSec;
 
   draw(); // init
 });
@@ -93,8 +95,9 @@ function draw() {
   clear();
 
   const currTimestamp = Date.now();
-  const timestampDifference = currTimestamp - prevDrawTimestamp;
-  moveClouds(timestampDifference);
+  const differenceMs = currTimestamp - prevDrawTimestamp;
+  moveClouds(differenceMs);
+  moveJump(differenceMs);
   prevDrawTimestamp = currTimestamp;
 
   drawGround();
@@ -118,6 +121,8 @@ const charWidth = ref(100);
 const charHeight = ref(400);
 const charStartX = computed(() => canvas.width / 2 - charWidth.value / 2);
 const charBottomY = ref(100);
+const charJumpSpeedPerSec = ref(100);
+const charJumpTopY = ref(50);
 
 function drawChar() {
   c.fillStyle = charColor;
@@ -125,17 +130,44 @@ function drawChar() {
   c.lineWidth = charWidth.value / 4;
 
   c.beginPath();
-  c.rect(charStartX.value, groundLevelY.value - charHeight.value, charWidth.value, charHeight.value * 0.75);
+  c.rect(charStartX.value, charBottomY.value - charHeight.value, charWidth.value, charHeight.value * 0.75);
   c.fill();
 
   c.beginPath();
-  c.moveTo(charStartX.value + charWidth.value / 8, groundLevelY.value - charHeight.value * 0.25);
-  c.lineTo(charStartX.value + charWidth.value / 8, groundLevelY.value);
-  c.moveTo(charStartX.value + charWidth.value - charWidth.value / 8, groundLevelY.value - charHeight.value * 0.25);
-  c.lineTo(charStartX.value + charWidth.value - charWidth.value / 8, groundLevelY.value);
+  c.moveTo(charStartX.value + charWidth.value / 8, charBottomY.value - charHeight.value * 0.25);
+  c.lineTo(charStartX.value + charWidth.value / 8, charBottomY.value);
+  c.moveTo(charStartX.value + charWidth.value - charWidth.value / 8, charBottomY.value - charHeight.value * 0.25);
+  c.lineTo(charStartX.value + charWidth.value - charWidth.value / 8, charBottomY.value);
   c.stroke();
 }
 
+let jumping = false;
+let falling = false;
+
+function moveJump(differenceMs) {
+  const moveDelta = charJumpSpeedPerSec.value / 1000 * differenceMs;
+
+  const upPressed = isUpPressed();
+
+  if (falling) {
+    if (charBottomY.value >= groundLevelY.value) {
+      falling = false;
+    } else {
+      charBottomY.value = Math.min(charBottomY.value + moveDelta, groundLevelY.value);
+    }
+  } else {
+    if (upPressed && charBottomY.value > charJumpTopY.value) {
+      if (!jumping) {
+        jumping = true;
+      }
+
+      charBottomY.value = Math.max(charBottomY.value - moveDelta, charJumpTopY.value);
+    } else if (jumping) {
+      jumping = false;
+      falling = true;
+    }
+  }
+}
 
 // environment
 
@@ -146,7 +178,10 @@ const groundLevelPercentDefault = 10;
 const groundLevelPercent = ref(9);
 watch(groundLevelPercent, () => groundLevelY.value = canvas.height / 100 * (100 - groundLevelPercent.value));
 const groundLevelY = ref(100);
-watch(groundLevelY, () => charBottomY.value = groundLevelY.value);
+watch(groundLevelY, () => {
+  charBottomY.value = groundLevelY.value;
+  charJumpTopY.value = charBottomY.value - charHeight.value;
+});
 
 function drawGround() {
   c.fillStyle = groundLevelColor;
@@ -202,9 +237,9 @@ function drawClouds() {
 }
 
 function moveClouds(differenceMs) {
-  if (!rightPressed && !leftPressed) return;
+  if (!isRightPressed() && !isLeftPressed()) return;
 
-  const moveDelta = moveSpeedPerSec.value / 1000 * differenceMs * (rightPressed ? -1 : 1);
+  const moveDelta = moveSpeedPerSec.value / 1000 * differenceMs * (isRightPressed() ? -1 : 1);
   clouds.forEach(cloud => {
     cloud.x += moveDelta;
 
