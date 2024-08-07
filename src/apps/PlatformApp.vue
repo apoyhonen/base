@@ -44,7 +44,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import { randomBetween } from "@/util/MathUtil";
 import {
   initKeyListeners, isLeftPressed, isRightPressed, isSpacePressed, isUpPressed,
-} from "@/util/ControlsUtil";
+} from "@/util/KeysUtil";
 
 const canvasName = 'platformCanvas';
 let canvas = null;
@@ -78,7 +78,10 @@ onMounted(() => {
 });
 
 watch(isRunning, () => {
-  if (isRunning.value) draw();
+  if (isRunning.value) {
+    prevDrawTimestamp = Date.now();
+    draw();
+  }
 })
 
 function isAppActive() {

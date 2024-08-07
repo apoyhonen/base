@@ -87,7 +87,7 @@ import {
   moveEnemies,
   newEnemy, removeEnemies
 } from "@/engines/SwishEngine";
-import { downPressed, initKeyListeners, leftPressed, rightPressed, upPressed } from "@/util/ControlsUtil";
+import { downPressed, initKeyListeners, leftPressed, rightPressed, upPressed } from "@/util/KeysUtil";
 
 let canvas = null;
 let c = null;
