@@ -2,11 +2,11 @@ export { initKeyListeners, isDirectionalKeyPressed, isUpPressed, isRightPressed,
 
 // key handlers
 
-let upPressed = false;
-let rightPressed = false;
-let downPressed = false;
-let leftPressed = false;
-let spacePressed = false;
+let upPressedState = false;
+let rightPressedState = false;
+let downPressedState = false;
+let leftPressedState = false;
+let spacePressedState = false;
 
 let appActiveElementId = '';
 
@@ -17,27 +17,27 @@ function initKeyListeners(document, elementId) {
 }
 
 function isDirectionalKeyPressed() {
-    return upPressed || rightPressed || downPressed || leftPressed;
+    return upPressedState || rightPressedState || downPressedState || leftPressedState;
 }
 
 function isUpPressed() {
-    return upPressed;
+    return upPressedState;
 }
 
 function isRightPressed() {
-    return rightPressed;
+    return rightPressedState;
 }
 
 function isDownPressed() {
-    return downPressed;
+    return downPressedState;
 }
 
 function isLeftPressed() {
-    return leftPressed;
+    return leftPressedState;
 }
 
 function isSpacePressed() {
-    return spacePressed;
+    return spacePressedState;
 }
 
 function isAppActive() {
@@ -48,16 +48,16 @@ function keyDownHandler(e) {
     if (!isAppActive()) return;
 
     // left paddle keys
-    if (e.key === 'w' || e.key === "ArrowUp") {
-        upPressed = true;
-    } else if (e.key === "d" || e.key === "ArrowRight") {
-        rightPressed = true;
-    } else if (e.key === "s" || e.key === "ArrowDown") {
-        downPressed = true;
-    } else if (e.key === "a" || e.key === "ArrowLeft") {
-        leftPressed = true;
+    if (e.key === 'w' || e.key === "ArrowUp" || e.key === "Up") {
+        upPressedState = true;
+    } else if (e.key === "d" || e.key === "ArrowRight" || e.key === "Right") {
+        rightPressedState = true;
+    } else if (e.key === "s" || e.key === "ArrowDown" || e.key === "Down") {
+        downPressedState = true;
+    } else if (e.key === "a" || e.key === "ArrowLeft" || e.key === "Left") {
+        leftPressedState = true;
     } else if (e.key === " ") {
-        spacePressed = true;
+        spacePressedState = true;
     }
 }
 
@@ -66,14 +66,14 @@ function keyUpHandler(e) {
 
     // left paddle keys
     if (e.key === 'w' || e.key === "ArrowUp") {
-        upPressed = false;
+        upPressedState = false;
     } else if (e.key === "d" || e.key === "ArrowRight") {
-        rightPressed = false;
+        rightPressedState = false;
     } else if (e.key === "s" || e.key === "ArrowDown") {
-        downPressed = false;
+        downPressedState = false;
     } else if (e.key === "a" || e.key === "ArrowLeft") {
-        leftPressed = false;
+        leftPressedState = false;
     } else if (e.key === " ") {
-        spacePressed = false;
+        spacePressedState = false;
     }
 }

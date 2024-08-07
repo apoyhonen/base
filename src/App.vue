@@ -4,12 +4,14 @@
 
       <td class="button-cell">
         <template v-for="(app, index) in apps" :key="'buttonTemplate-' + index">
-          <button class="app-button" @click="shownApp = app.refName">{{ app.name }}</button>
+          <button class="app-button" @click="shownApp = app.refName" :class="app.status ? 'in-development' : ''">{{ app.name }}</button>
           <br>
         </template>
       </td>
 
       <td class="app-cell">
+        <Billiards v-if="shownApp === 'billiards'"></Billiards>
+        <Digger v-if="shownApp === 'digger'"></Digger>
         <Platforms v-if="shownApp === 'platforms'"></Platforms>
         <Swish v-if="shownApp === 'swish'"></Swish>
         <Othello v-if="shownApp === 'othello'"></Othello>
@@ -28,6 +30,8 @@
 
 <script setup>
 
+import Billiards from "@/apps/BilliardsApp.vue";
+import Digger from "@/apps/DiggerApp.vue";
 import Platforms from "@/apps/PlatformApp.vue";
 import Swish from "@/apps/SwishApp.vue"
 import Snake from "@/apps/SnakeApp.vue";
@@ -44,6 +48,8 @@ import { ref } from "vue";
 const shownApp = ref("platforms");
 
 const apps = [];
+apps.push({ refName: 'billiards', name: 'Billiards (TBA)', status: 1 });
+apps.push({ refName: 'digger', name: 'Digger (TBA)', status: 1 });
 apps.push({ refName: 'platforms', name: 'Platforms' });
 apps.push({ refName: 'swish', name: 'Swish' });
 apps.push({ refName: 'othello', name: 'Othello' });
@@ -56,6 +62,8 @@ apps.push({ refName: 'canvascharts', name: 'Auto-Charts' });
 apps.push({ refName: 'misctesting', name: 'Misc Testing' });
 
 /*
+import Billiards from "@/apps/BilliardsApp.vue";
+import Digger from "@/apps/DiggerApp.vue";
 import Platform from "@/apps/PlatformApp.vue";
 import Swish from "@/apps/SwishApp.vue"
 import Snake from "@/apps/SnakeApp.vue";
@@ -98,6 +106,9 @@ body {
 .app-cell {
   width: 100%;
   text-align: center;
+}
+.in-development {
+  background-color: indianred;
 }
 
 /* generic styles */

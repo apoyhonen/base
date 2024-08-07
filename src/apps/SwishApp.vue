@@ -87,7 +87,7 @@ import {
   moveEnemies,
   newEnemy, removeEnemies
 } from "@/engines/SwishEngine";
-import { downPressed, initKeyListeners, leftPressed, rightPressed, upPressed } from "@/util/KeysUtil";
+import { initKeyListeners, isDownPressed, isLeftPressed, isRightPressed, isUpPressed } from "@/util/KeysUtil";
 
 let canvas = null;
 let c = null;
@@ -124,7 +124,7 @@ function draw() {
   if (currTimestamp - animateTimestamp >= animationSpeedMs.value) {
     if (prevDrawTimestamp) moveChar(currTimestamp - prevDrawTimestamp); // move char
 
-    const angle = angleLineByMoveDirections(upPressed, rightPressed, downPressed, leftPressed);
+    const angle = angleLineByMoveDirections(isUpPressed(), isRightPressed(), isDownPressed(), isLeftPressed());
     if (angle || angle === 0) angleInDegrees.value = angle; // set new angle by move direction
   }
   prevDrawTimestamp = currTimestamp;
@@ -258,19 +258,19 @@ function drawChar() {
 function moveChar(moveMs) {
   const charMoveDelta = charSpeedPerSec.value / 1000 * moveMs;
 
-  if (upPressed) {
+  if (isUpPressed()) {
     charPoint.y -= charMoveDelta;
   }
 
-  if (downPressed) {
+  if (isDownPressed()) {
     charPoint.y += charMoveDelta;
   }
 
-  if (rightPressed) {
+  if (isRightPressed()) {
     charPoint.x += charMoveDelta;
   }
 
-  if (leftPressed) {
+  if (isLeftPressed()) {
     charPoint.x -= charMoveDelta;
   }
 

@@ -61,6 +61,10 @@ onMounted(() => {
   setupCanvasSizes();
   initParticles();
 
+  // initial black overlay
+  c.fillStyle = 'black';
+  c.fillRect(0, 0, canvas.width, canvas.height);
+
   draw(); // init
 });
 
@@ -115,8 +119,8 @@ window.addEventListener('resize', () => {
 function mouseMoveHandler(e) {
   if (!isAppActive()) return;
 
-  mousePoint.value.x = e.clientX - getOffsetLeft(canvas);
-  mousePoint.value.y = e.clientY - getOffsetTop(canvas);
+  mousePoint.value.x = Math.min(canvas.width, Math.max(0, e.clientX - getOffsetLeft(canvas)));
+  mousePoint.value.y = Math.min(canvas.height, Math.max(0, e.clientY - getOffsetTop(canvas)));
 }
 
 function getOffsetLeft(element) {

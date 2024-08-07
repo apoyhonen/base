@@ -66,6 +66,7 @@
 <script setup>
 
 import { onMounted, ref, watch } from "vue";
+import { initKeyListeners, isLeftPressed, isRightPressed } from "@/util/KeysUtil";
 
 // GAME
 
@@ -272,9 +273,9 @@ let paddleWidth = 120;
 let paddleX = 0;
 
 function drawPaddle() {
-  if (rightPressed) {
+  if (isRightPressed()) {
     paddleX = Math.min(paddleX + paddleMoveIncrement, canvas.width - paddleWidth);
-  } else if (leftPressed) {
+  } else if (isLeftPressed()) {
     paddleX = Math.max(paddleX - paddleMoveIncrement, 0);
   }
 
@@ -285,11 +286,11 @@ function drawPaddle() {
   ctx.closePath();
 }
 
-let rightPressed = false;
-let leftPressed = false;
+// key handlers
+
+initKeyListeners(document, 'breakoutCanvas'); // generic key listeners
 
 document.addEventListener("keydown", keyDownHandler, false);
-document.addEventListener("keyup", keyUpHandler, false);
 document.addEventListener("mousemove", mouseMoveHandler, false);
 
 function isAppActive() {
@@ -299,26 +300,12 @@ function isAppActive() {
 function keyDownHandler(e) {
   if (!isAppActive()) return;
 
-  if (e.key === "Right" || e.key === "ArrowRight" || e.key === 'd') {
-    rightPressed = true;
-  } else if (e.key === "Left" || e.key === "ArrowLeft" || e.key === "a") {
-    leftPressed = true;
-  } else if (e.key === 'p') {
+  if (e.key === 'p') {
     isRunning.value = !isRunning.value;
   } else if (e.key === 'r') {
     resetClicked();
   } else if ((e.key === ' ' || e.key === 'Enter')) {
     canvasClicked();
-  }
-}
-
-function keyUpHandler(e) {
-  if (!isAppActive()) return;
-
-  if (e.key === "Right" || e.key === "ArrowRight" || e.key === 'd') {
-    rightPressed = false;
-  } else if (e.key === "Left" || e.key === "ArrowLeft" || e.key === "a") {
-    leftPressed = false;
   }
 }
 
