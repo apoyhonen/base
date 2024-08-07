@@ -55,20 +55,20 @@ watch(isRunning, () => {
   if (isRunning.value) draw();
 })
 
-function draw() {
-  frameCount.value++;
-
-  clear();
-
-  if (isRunning.value && isAppActive()) requestAnimationFrame(draw); // redraw as soon as animation frame is available
-}
-
 function isAppActive() {
   return document.getElementById(canvasName) !== null;
 }
 
 function clear() {
   c.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function draw() {
+  frameCount.value++;
+
+  clear();
+
+  if (isRunning.value && isAppActive()) requestAnimationFrame(draw); // redraw as soon as animation frame is available
 }
 </script>
 
