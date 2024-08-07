@@ -75,6 +75,7 @@ watch(shownCells, () => {
 
 <style scoped>
 td {
+  padding: 0;
   background-size: contain;
   width: 20px;
   height: 20px;

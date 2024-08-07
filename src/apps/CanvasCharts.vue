@@ -1,4 +1,5 @@
 <template>
+  <h1>Automatic Charts & Canvas</h1>
   <SimpleCanvas id="simpleCanvas" @mouse-clicked="canvasClick" class="canvas">
     <CanvasItem
         v-for="(obj, index) of chartValues"
@@ -98,7 +99,6 @@ function canvasClick(x, y) {
 
 <style scoped>
 .canvas {
-  margin: 0 10px;
   height: 80vh;
 }
 </style>

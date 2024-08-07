@@ -1,5 +1,5 @@
 <template>
-  <h2>Snake</h2>
+  <h1>Snake</h1>
   <canvas id="snakeCanvas" :class="isWrapBorders ? 'green-border' : 'red-border'" width="400" height="300"></canvas>
   <br>
   <div>
@@ -468,13 +468,8 @@ function setHorizontalDirection(isRight) {
 </script>
 
 <style scoped>
-p {
-  margin: 0;
-}
 canvas {
   background: moccasin;
-  display: block;
-  margin: 0 auto;
 }
 .green-border {
   border: 3px solid green;
@@ -488,11 +483,5 @@ canvas {
 }
 .controls-input {
   width: 40px;
-}
-table {
-  margin: 0 auto;
-}
-td {
-  padding: 0 20px;
 }
 </style>

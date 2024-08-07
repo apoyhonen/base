@@ -7,49 +7,48 @@
   </div>
   <canvas id="pongCanvas" width="400" height="300" @click="canvasClicked"></canvas>
   <br>
-  <div>
-    <table>
-      <tr>
 
-        <td>
-          <p>
-            <b>Controls</b>
-          </p>
-          <p>
-            Left player: 'W' (up), 'S' (down) OR Mouse movement
-          </p>
-          <p>
-            Right player: 'Up arrow' (up), 'Down arrow' (down)
-          </p>
-          <p>
-            'P' to pause, 'R' to reset, 'Space' / 'Enter' / 'Mouse Click' to launch ball
-          </p>
-          <br>
-          Mouse control:
-          <button @click="mouseControlsBoth = true">Both</button>
-          vs
-          <button @click="mouseControlsBoth = false">Left</button>
-        </td>
+  <table>
+    <tr>
 
-        <td>
-          <b>Game</b><br>
-          <p>{{ leftScore }} : {{ rightScore }}</p>
-          <p>speed: {{ speedPercent }} %</p>
-          <br>
-          <button @click="resetClicked">RESET</button>
-        </td>
+      <td>
+        <p>
+          <b>Controls</b>
+        </p>
+        <p>
+          Left player: 'W' (up), 'S' (down) OR Mouse movement
+        </p>
+        <p>
+          Right player: 'Up arrow' (up), 'Down arrow' (down)
+        </p>
+        <p>
+          'P' to pause, 'R' to reset, 'Space' / 'Enter' / 'Mouse Click' to launch ball
+        </p>
+        <br>
+        Mouse control:
+        <button @click="mouseControlsBoth = true">Both</button>
+        vs
+        <button @click="mouseControlsBoth = false">Left</button>
+      </td>
 
-        <td>
-          <b>Animation</b><br>
-          <p>frame: {{ frameCount }}</p>
-          <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
-          <p>ball x: {{ Math.floor(ballX) }}, ball y: {{ Math.floor(ballY) }}</p>
-          <button @click="isRunning = !isRunning">START / STOP</button>
-        </td>
+      <td>
+        <b>Game</b><br>
+        <p>{{ leftScore }} : {{ rightScore }}</p>
+        <p>speed: {{ speedPercent }} %</p>
+        <br>
+        <button @click="resetClicked">RESET</button>
+      </td>
 
-      </tr>
-    </table>
-  </div>
+      <td>
+        <b>Animation</b><br>
+        <p>frame: {{ frameCount }}</p>
+        <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
+        <p>ball x: {{ Math.floor(ballX) }}, ball y: {{ Math.floor(ballY) }}</p>
+        <button @click="isRunning = !isRunning">START / STOP</button>
+      </td>
+
+    </tr>
+  </table>
 </template>
 
 <script setup>
@@ -331,20 +330,8 @@ function canvasClicked() {
 </script>
 
 <style scoped>
-p {
-  margin: 0;
-}
 canvas {
   background: black;
-  display: block;
-  margin: 0 auto;
-  border: none;
-}
-table {
-  margin: 0 auto;
-}
-td {
-  padding: 0 40px;
 }
 .left-aligned,
 .right-aligned {

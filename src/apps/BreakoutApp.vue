@@ -1,73 +1,66 @@
 <template>
-  <head>
-    <meta charset="utf-8" />
-    <title>Gamedev Canvas Workshop</title>
-  </head>
-  <body>
+  <h1>Breakout</h1>
   <canvas id="breakoutCanvas" width="820" height="500" @click="canvasClicked"></canvas>
   <br>
-  <div>
-    <table>
-      <tr>
+  <table>
+    <tr>
 
-        <td>
-          <p>
-            <b>Controls</b>
-          </p>
-          <br>
-          <p>
-            Mouse: Mouse to move the paddle, Click to release ball
-          </p>
-          <p>
-            Keyboard: 'Left Arrow' & 'Right Arrow' or 'A' & 'D', <br>'Space' / 'Enter' to release ball
-          </p>
-          <p>
-            'P' to pause, 'R' to reset
-          </p>
-        </td>
+      <td>
+        <p>
+          <b>Controls</b>
+        </p>
+        <br>
+        <p>
+          Mouse: Mouse to move the paddle, Click to release ball
+        </p>
+        <p>
+          Keyboard: 'Left Arrow' & 'Right Arrow' or 'A' & 'D', <br>'Space' / 'Enter' to release ball
+        </p>
+        <p>
+          'P' to pause, 'R' to reset
+        </p>
+      </td>
 
-        <td>
-          <b>Game</b><br>
-          <table>
-            <tr>
+      <td>
+        <b>Game</b><br>
+        <table>
+          <tr>
 
-              <td>
-                <p>lives: {{ lives }}</p>
-                <p>score: {{ score }} / {{ brickRowCount * brickColumnCount }}</p>
-                <p>speed: {{ speedPercent }} %</p>
-                <br>
-                <button @click="resetClicked">RESET GAME</button>
-              </td>
+            <td>
+              <p>lives: {{ lives }}</p>
+              <p>score: {{ score }} / {{ brickRowCount * brickColumnCount }}</p>
+              <p>speed: {{ speedPercent }} %</p>
+              <br>
+              <button @click="resetClicked">RESET GAME</button>
+            </td>
 
-              <td>
-                <label for="colsAmount">columns:</label>
-                <input id="colsAmount" type="number" class="controls-input" v-model="brickColumnCount" />
-                <br>
-                <label for="rowsAmount">rows:</label>
-                <input id="rowsAmount" type="number" class="controls-input" v-model="brickRowCount" />
-                <br><br>
-                <button class="controls-button"  @click="resetValues">
-                  RESET SIZE
-                </button>
-              </td>
+            <td>
+              <label for="colsAmount">columns:</label>
+              <input id="colsAmount" type="number" class="controls-input" v-model="brickColumnCount" />
+              <br>
+              <label for="rowsAmount">rows:</label>
+              <input id="rowsAmount" type="number" class="controls-input" v-model="brickRowCount" />
+              <br><br>
+              <button class="controls-button"  @click="resetValues">
+                RESET SIZE
+              </button>
+            </td>
 
-            </tr>
-          </table>
-        </td>
+          </tr>
+        </table>
+      </td>
 
-        <td>
-          <b>Animation</b>
-          <br><br>
-          <p>frame: {{ frameCount }}</p>
-          <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
-          <p>ball x: {{ Math.floor(ballX) }}, ball y: {{ Math.floor(ballY) }}</p>
-          <button @click="isRunning = !isRunning">START / STOP</button>
-        </td>
+      <td>
+        <b>Animation</b>
+        <br><br>
+        <p>frame: {{ frameCount }}</p>
+        <p>width: {{ canvas ? canvas.width : 0 }}, height: {{ canvas ? canvas.height : 0 }}</p>
+        <p>ball x: {{ Math.floor(ballX) }}, ball y: {{ Math.floor(ballY) }}</p>
+        <button @click="isRunning = !isRunning">START / STOP</button>
+      </td>
 
-      </tr>
-    </table>
-  </div>
-  </body>
+    </tr>
+  </table>
 </template>
 
 <script setup>
@@ -440,25 +433,8 @@ function brickCollisionDetection() {
 </script>
 
 <style scoped>
-* {
-  padding: 0;
-  margin: 0;
-  text-align: center;
-}
-div {
-  margin: 10px;
-}
 canvas {
   background: black;
-  display: block;
-  margin: 0 auto;
-  border: 1px solid black;
-}
-table {
-  margin: 0 auto;
-}
-td {
-  padding: 0 20px;
 }
 .controls-button,
 .controls-input {

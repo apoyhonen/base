@@ -51,7 +51,7 @@
       </td>
 
       <td>
-        <h1 style="font-size: 60px;">Othello</h1>
+        <h1>Othello</h1>
 
         <table id="othello-table">
           <tr v-for="rowIndex in 8" :key="'row' + rowIndex">
@@ -271,10 +271,6 @@ function getRemainingMoves() {
 
 <style scoped>
 .info-table, #othello-table {
-  margin: 10px auto;
-}
-.info-table > tr > td {
-  padding: 0 20px;
 }
 .controls-div {
   margin: 10px auto;

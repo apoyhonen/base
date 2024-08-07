@@ -6,7 +6,7 @@
     <tr>
 
       <td>
-        <h2>Circular Motion</h2>
+        <h1>Circular Motion</h1>
         <canvas id="circleMotionCanvas" width="400" height="300" @auxclick.prevent="canvasClicked" oncontextmenu="return false"></canvas>
       </td>
 
@@ -227,19 +227,8 @@ function Particle(x, y) {
 </script>
 
 <style scoped>
-table {
-  margin: 10px auto;
-}
-table > tr > td {
-  padding: 0 20px;
-}
 .controls-input {
   margin: 1px 10px;
   width: 40px;
-}
-canvas {
-  display: block;
-  margin: 0 auto;
-  border: 1px solid black;
 }
 </style>

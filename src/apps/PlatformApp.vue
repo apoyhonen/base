@@ -21,7 +21,7 @@
       </td>
 
       <td>
-        <h1>Template</h1>
+        <h1>Platforms</h1>
         <canvas v-bind:id="canvasName" width="400" height="300"></canvas>
       </td>
 
@@ -35,7 +35,7 @@
 
 import { onMounted, ref, watch } from "vue";
 
-const canvasName = 'templateCanvas';
+const canvasName = 'platformCanvas';
 let canvas = null;
 let c = null;
 
@@ -47,6 +47,8 @@ onMounted(() => {
   canvas.width = window.innerWidth * 0.5;
   canvas.height = window.innerHeight * 0.55;
   c = canvas.getContext("2d");
+
+  groundLevelY.value = canvas.height * 0.9;
 
   draw(); // init
 });
@@ -70,10 +72,15 @@ function isAppActive() {
 function clear() {
   c.clearRect(0, 0, canvas.width, canvas.height);
 }
+
+// game
+
+const groundLevelY = ref(100);
+
 </script>
 
 <style scoped>
 canvas {
-  background: lightgray;
+  background: skyblue;
 }
 </style>

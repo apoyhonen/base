@@ -1,79 +1,78 @@
 <template>
-  <br><br>
-  <div>
-    <table>
-      <tr>
+  <table>
+    <tr>
 
-        <td>
-          <table>
-            <tr>
+      <td>
+        <table>
+          <tr>
 
-              <td>
-                <p><b>Controls</b></p>
+            <td>
+              <p><b>Controls</b></p>
+              <br>
+              <p>WASD or Arrow Keys to move character.</p>
+              <p>Mouse click or swipe (while holding button) to swipe with weapon.</p>
+              <br>
+              <p><b>Moves</b></p>
+              <br>
+              <p>
+                Click / Swipe Up - frontal slash
                 <br>
-                <p>WASD or Arrow Keys to move character.</p>
-                <p>Mouse click or swipe (while holding button) to swipe with weapon.</p>
+                Swipe Left - slash and turn to left
                 <br>
-                <p><b>Moves</b></p>
+                Swipe Right - slash and turn to right
                 <br>
-                <p>
-                  Click / Swipe Up - frontal slash
-                  <br>
-                  Swipe Left - slash and turn to left
-                  <br>
-                  Swipe Right - slash and turn to right
-                  <br>
-                  Swipe Down - slash widely and turn around
-                </p>
-                <br><br>
-              </td>
-            </tr>
+                Swipe Down - slash widely and turn around
+              </p>
+              <br><br>
+            </td>
+          </tr>
 
-            <tr>
+          <tr>
 
-              <td>
-                <b>Game</b>
-                <br><br>
-                <p>Points: {{ enemiesKilled }}</p>
-                <p>Enemies: {{ enemiesSpawned - enemiesKilled - enemiesLost }}</p>
-                <br><br>
-                <p>Frame: {{ frameCount }}</p>
-                <button class="controls-button" @click="isRunning = !isRunning">START / STOP</button>
-                <br>
-                <button class="controls-button" @click="resetGame">RESET</button>
-                <br><br>
-                <label for="enemySpeedMs">Enemy speed / sec (px):</label>
-                <input id="enemySpeedMs" type="number" class="controls-input" v-model="enemySpeedPerSec" />
-                <br>
-                <label for="enemiesMaxAmount">Max enemies:</label>
-                <input id="enemiesMaxAmount" type="number" class="controls-input" v-model="maxEnemies" />
-                <br>
-                <label for="enemySpawnMs">Enemy spawn time (ms):</label>
-                <input id="enemySpawnMs" type="number" class="controls-input" v-model="enemySpawnTimerMs" />
-              </td>
+            <td>
+              <b>Game</b>
+              <br><br>
+              <p>Points: {{ enemiesKilled }}</p>
+              <p>Enemies: {{ enemiesSpawned - enemiesKilled - enemiesLost }}</p>
+              <br><br>
+              <p>Frame: {{ frameCount }}</p>
+              <button class="controls-button" @click="isRunning = !isRunning">START / STOP</button>
+              <br>
+              <button class="controls-button" @click="resetGame">RESET</button>
+              <br><br>
+              <label for="enemySpeedMs">Enemy speed / sec (px):</label>
+              <input id="enemySpeedMs" type="number" class="controls-input" v-model="enemySpeedPerSec" />
+              <br>
+              <label for="enemiesMaxAmount">Max enemies:</label>
+              <input id="enemiesMaxAmount" type="number" class="controls-input" v-model="maxEnemies" />
+              <br>
+              <label for="enemySpawnMs">Enemy spawn time (ms):</label>
+              <input id="enemySpawnMs" type="number" class="controls-input" v-model="enemySpawnTimerMs" />
+            </td>
 
-            </tr>
-          </table>
-        </td>
+          </tr>
+        </table>
+      </td>
 
-        <td>
-          <h2>Swish</h2>
-          <canvas id="swishCanvas" width="400" height="300" @auxclick.prevent="canvasSecondaryClicked" oncontextmenu="return false"></canvas>
-          <br>
-          <table><tr>
-            <td v-for="n in charHealth" :key="'health-' + n" class="health-emoji">&#x1F496;</td>
-            <td v-for="i in (initialHealth - charHealth)" :key="'skull-' + i" class="health-emoji">&#128128;</td>
-          </tr></table>
-          <br>
-          <div v-if="gameFinished">
-            <h2 style="color: darkred;">Game finished, you killed {{ enemiesKilled }} enemies!</h2>
-            <button class="controls-button" @click="tryAgain">Try again!</button>
-          </div>
-        </td>
+      <td>
+        <h1>Swish</h1>
+        <canvas id="swishCanvas" width="400" height="300" @auxclick.prevent="canvasSecondaryClicked" oncontextmenu="return false"></canvas>
+        <br>
 
-      </tr>
-    </table>
-  </div>
+        <table><tr>
+          <td v-for="n in charHealth" :key="'health-' + n" class="health-emoji">&#x1F496;</td>
+          <td v-for="i in (initialHealth - charHealth)" :key="'skull-' + i" class="health-emoji">&#128128;</td>
+        </tr></table>
+
+        <br>
+        <div v-if="gameFinished">
+          <h2 style="color: darkred;">Game finished, you killed {{ enemiesKilled }} enemies!</h2>
+          <button class="controls-button" @click="tryAgain">Try again!</button>
+        </div>
+      </td>
+
+    </tr>
+  </table>
 </template>
 
 <script setup>
@@ -482,20 +481,8 @@ function keyUpHandler(e) {
 </script>
 
 <style scoped>
-p {
-  margin: 0;
- }
 canvas {
   background: lightgray;
-  display: block;
-  margin: 0 auto;
-  border: 1px solid black;
-}
-table {
-  margin: 0 auto;
-}
-td {
-  padding: 0 20px;
 }
 
 .health-emoji {

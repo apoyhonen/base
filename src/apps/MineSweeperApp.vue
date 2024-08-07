@@ -1,6 +1,5 @@
 <template>
-  <br>
-  <p id="mineSweeperHeader" style="font-size: 40px; font-weight: bold; font-style: italic;">&#129529; MineSweeper! &#129529;</p>
+  <h1 id="mineSweeperHeader">&#129529; MineSweeper! &#129529;</h1>
   <br>
 
   <div v-if="isValidField" :class="'mine-controls-button-reset ' + buttonStyle" @click="resetGame">
@@ -40,62 +39,60 @@
   </div>
 
   <br>
-  <div>
-    <table class="info-table">
-      <tr>
+  <table class="info-table">
+    <tr>
 
-        <td>
-          <p>
-            <b>Controls</b>
-          </p>
-          <p>
-            Aim is to clear the minefield, 'sweep' it clean!
-          </p>
-          <p>
-            Click to open up a tile from the minefield. Right click to flag a probable mine.
-          </p>
-          <p>
-            Tiles with a number indicate amount of mines in the nearby tiles.
-          </p>
-          <p>
-            If you open a tile with a mine, you're finished.
-          </p>
-          <p>
-            Once all mines are correctly flagged, you win.
-          </p>
+      <td>
+        <p>
+          <b>Controls</b>
+        </p>
+        <p>
+          Aim is to clear the minefield, 'sweep' it clean!
+        </p>
+        <p>
+          Click to open up a tile from the minefield. Right click to flag a probable mine.
+        </p>
+        <p>
+          Tiles with a number indicate amount of mines in the nearby tiles.
+        </p>
+        <p>
+          If you open a tile with a mine, you're finished.
+        </p>
+        <p>
+          Once all mines are correctly flagged, you win.
+        </p>
+        <br>
+        <p>
+          'R' to reset
+        </p>
+      </td>
+
+      <td>
+        <b>Game</b><br>
+        <br>
+        <p>Flags: {{ flaggedCells.length }}</p>
+        <p>Mines: {{ tableMines }}</p>
+        <br>
+        <button @click="resetGame">RESET GAME</button>
+      </td>
+
+      <td>
+        <div class="mine-controls">
+          <label for="colsAmount">columns:</label>
+          <input id="colsAmount" type="number" class="mine-controls-input" v-model="tableCols" />
           <br>
-          <p>
-            'R' to reset
-          </p>
-        </td>
-
-        <td>
-          <b>Game</b><br>
+          <label for="rowsAmount">rows:</label>
+          <input id="rowsAmount" type="number" class="mine-controls-input" v-model="tableRows" />
           <br>
-          <p>Flags: {{ flaggedCells.length }}</p>
-          <p>Mines: {{ tableMines }}</p>
-          <br>
-          <button @click="resetGame">RESET GAME</button>
-        </td>
+          <label for="minesAmount">mines:</label>
+          <input id="minesAmount" type="number" class="mine-controls-input" v-model="tableMines" />
+          <br><br>
+          <button class="mine-controls-button"  @click="resetValues">RESET VALUES</button>
+        </div>
+      </td>
 
-        <td>
-          <div class="mine-controls">
-            <label for="colsAmount">columns:</label>
-            <input id="colsAmount" type="number" class="mine-controls-input" v-model="tableCols" />
-            <br>
-            <label for="rowsAmount">rows:</label>
-            <input id="rowsAmount" type="number" class="mine-controls-input" v-model="tableRows" />
-            <br>
-            <label for="minesAmount">mines:</label>
-            <input id="minesAmount" type="number" class="mine-controls-input" v-model="tableMines" />
-            <br><br>
-            <button class="mine-controls-button"  @click="resetValues">RESET VALUES</button>
-          </div>
-        </td>
-
-      </tr>
-    </table>
-  </div>
+    </tr>
+  </table>
 </template>
 
 <script setup>
@@ -306,15 +303,6 @@ resetValues();
 </script>
 
 <style scoped>
-body {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  text-align: center;
-  margin-top: 20px;
-}
-p {
-  margin: 0;
-}
-
 .mine-controls {
   margin: 10px auto;
 }
@@ -359,14 +347,8 @@ p {
 }
 
 .mine-table {
-  margin: 10px auto;
+  margin-top: 10px;
   border: 3px solid grey;
-}
-.info-table {
-  margin: 0 auto;
-}
-.info-table td {
-  padding: 0 20px;
 }
 
 </style>
