@@ -5,7 +5,8 @@
       <td>
         <p><b>Controls</b></p>
         <br>
-        <p>TBA...</p>
+        <p>Click, drag and release cue stick to launch ball.</p>
+        <p>Longer drag results in sharper hit.</p>
         <br><br>
 
         <b>Game</b>
