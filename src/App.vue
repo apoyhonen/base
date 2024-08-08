@@ -4,13 +4,18 @@
 
       <td class="button-cell">
         <template v-for="(app, index) in apps" :key="'buttonTemplate-' + index">
-          <button class="app-button" @click="shownApp = app.refName" :class="app.status ? 'in-development' : ''">{{ app.name }}</button>
+          <button class="app-button"
+                  @click="shownApp = app.refName"
+                  :class="app.status === 1 ? 'not-implemented' : app.status === 2 ? 'in-development' : ''">
+            {{ app.name }}
+          </button>
           <br>
         </template>
       </td>
 
       <td class="app-cell">
-        <Billiards v-if="shownApp === 'billiards'"></Billiards>
+        <Rogue v-if="shownApp === 'rogue'"></Rogue>
+        <Pool v-if="shownApp === 'pool'"></Pool>
         <Digger v-if="shownApp === 'digger'"></Digger>
         <Platforms v-if="shownApp === 'platforms'"></Platforms>
         <Swish v-if="shownApp === 'swish'"></Swish>
@@ -30,7 +35,8 @@
 
 <script setup>
 
-import Billiards from "@/apps/BilliardsApp.vue";
+import Rogue from "@/apps/RogueApp.vue";
+import Pool from "@/apps/BilliardsApp.vue";
 import Digger from "@/apps/DiggerApp.vue";
 import Platforms from "@/apps/PlatformApp.vue";
 import Swish from "@/apps/SwishApp.vue"
@@ -45,11 +51,12 @@ import MiscTesting from "@/apps/MiscTesting.vue";
 
 import { ref } from "vue";
 
-const shownApp = ref("platforms");
+const shownApp = ref("pool");
 
 const apps = [];
-apps.push({ refName: 'billiards', name: 'Billiards (TBA)', status: 1 });
+apps.push({ refName: 'rogue', name: 'Roguelike (TBA)', status: 1 });
 apps.push({ refName: 'digger', name: 'Digger (TBA)', status: 1 });
+apps.push({ refName: 'pool', name: 'Pool (in-progress)', status: 2 });
 apps.push({ refName: 'platforms', name: 'Platforms' });
 apps.push({ refName: 'swish', name: 'Swish' });
 apps.push({ refName: 'othello', name: 'Othello' });
@@ -62,6 +69,7 @@ apps.push({ refName: 'canvascharts', name: 'Auto-Charts' });
 apps.push({ refName: 'misctesting', name: 'Misc Testing' });
 
 /*
+import Rogue from "@/apps/RogueApp.vue";
 import Billiards from "@/apps/BilliardsApp.vue";
 import Digger from "@/apps/DiggerApp.vue";
 import Platform from "@/apps/PlatformApp.vue";
@@ -108,6 +116,9 @@ body {
   text-align: center;
 }
 .in-development {
+  background-color: cornflowerblue;
+}
+.not-implemented {
   background-color: indianred;
 }
 
@@ -129,5 +140,14 @@ canvas {
 }
 p {
   margin: 0;
+}
+
+/* disable text selection, causes trouble with mouse controls */
+.app-button,
+.button-cell,
+.app-cell {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
 }
 </style>

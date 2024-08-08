@@ -46,6 +46,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { randomBetween, randomIntBetween } from "@/util/MathUtil";
 import { randomColor } from "@/util/ColorUtil";
+import { getCanvasMouseEventOffsetPos } from "@/util/LayoutUtil";
 
 let canvas = null;
 let c = null;
@@ -119,28 +120,9 @@ window.addEventListener('resize', () => {
 function mouseMoveHandler(e) {
   if (!isAppActive()) return;
 
-  mousePoint.value.x = Math.min(canvas.width, Math.max(0, e.clientX - getOffsetLeft(canvas)));
-  mousePoint.value.y = Math.min(canvas.height, Math.max(0, e.clientY - getOffsetTop(canvas)));
-}
-
-function getOffsetLeft(element) {
-  let offsetLeft = element.offsetLeft;
-  let offsetParent = element.offsetParent;
-  while (offsetParent) {
-    offsetLeft += offsetParent.offsetLeft;
-    offsetParent = offsetParent.offsetParent;
-  }
-  return offsetLeft;
-}
-
-function getOffsetTop(element) {
-  let offsetTop = element.offsetTop;
-  let offsetParent = element.offsetParent;
-  while (offsetParent) {
-    offsetTop += offsetParent.offsetTop;
-    offsetParent = offsetParent.offsetParent;
-  }
-  return offsetTop;
+  const mouseEventOffsets = getCanvasMouseEventOffsetPos(e, canvas, true);
+  mousePoint.value.x = mouseEventOffsets.x;
+  mousePoint.value.y = mouseEventOffsets.y;
 }
 
 // particles

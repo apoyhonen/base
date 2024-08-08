@@ -21,21 +21,26 @@
       </td>
 
       <td>
-        <h1>Billiards</h1>
+        <h1>Pool</h1>
         <canvas v-bind:id="canvasName" width="400" height="300"></canvas>
       </td>
 
     </tr>
   </table>
+  <br>
+  <p>Mouse position: x: {{ mousePosX }}, y: {{ mousePosY }}</p>
+  <p v-if="mousePressed" style="color: red; font-size: 30px;">Mouse pressed!</p>
   <div>
   </div>
 </template>
 
 <script setup>
 
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
+import { angleBetweenPointsRadian, projectPoint } from "@/util/MathUtil";
+import { getCanvasMouseEventOffsetPos } from "@/util/LayoutUtil";
 
-const canvasName = 'billiardsCanvas';
+const canvasName = 'poolCanvas';
 let canvas = null;
 let c = null;
 
@@ -48,7 +53,16 @@ onMounted(() => {
   canvas.height = window.innerHeight * 0.55;
   c = canvas.getContext("2d");
 
-  // TODO add values init here after canvas loading
+  tableWidth.value = canvas.width / 2;
+  tableHeight.value = tableWidth.value / 2;
+  tableBorderWidth.value = tableWidth.value / 30;
+  tablePocketRadius.value = tableBorderWidth.value * 0.75;
+
+  ballCoords.x = canvas.width / 2;
+  ballCoords.y = canvas.height / 2;
+
+  cueStickLength.value = tableWidth.value * 0.8;
+  cueStickWidth.value = cueStickLength.value * 0.02;
 
   draw(); // init
 });
@@ -82,13 +96,161 @@ function draw() {
   prevDrawTimestamp = currTimestamp;
 
   // TODO add drawings
+  drawTable();
+  drawBalls();
+  drawCueStick();
 
   if (isRunning.value && isAppActive()) requestAnimationFrame(draw); // redraw as soon as animation frame is available
 }
+
+// game
+
+const tableColor = 'seagreen';
+const tableBorderColor = 'brown';
+const tablePocketColor = 'black';
+const cueBallColor = 'white';
+const cueStickColor = 'brown';
+
+// table
+
+const tableWidth = ref(100);
+const tableHeight = ref(100);
+const tableBorderWidth = ref(10);
+const tablePocketRadius = ref(5);
+
+function drawTable() {
+
+  const tableStartX = canvas.width / 2 - tableWidth.value / 2;
+  const tableStartY = canvas.height / 2 - tableHeight.value / 2;
+
+  // table
+  c.fillStyle = tableColor;
+  c.fillRect(tableStartX, tableStartY, tableWidth.value, tableHeight.value);
+
+  drawTableBorders(tableStartX, tableStartY);
+  drawTablePockets(tableStartX, tableStartY);
+}
+
+function drawTableBorders(tableStartX, tableStartY) {
+  c.fillStyle = tableBorderColor;
+
+  c.fillRect(tableStartX, tableStartY, tableWidth.value, tableBorderWidth.value);
+  c.fillRect(tableStartX, tableStartY, tableBorderWidth.value, tableHeight.value);
+  c.fillRect(tableStartX, tableStartY + tableHeight.value - tableBorderWidth.value, tableWidth.value, tableBorderWidth.value);
+  c.fillRect(tableStartX + tableWidth.value - tableBorderWidth.value, tableStartY, tableBorderWidth.value, tableHeight.value);
+}
+
+function drawTablePockets(tableStartX, tableStartY) {
+  c.fillStyle = tablePocketColor;
+
+  c.beginPath();
+  c.arc(tableStartX + tableBorderWidth.value, tableStartY + tableBorderWidth.value, tablePocketRadius.value, 0, 2*Math.PI);
+  c.fill();
+
+  c.beginPath();
+  c.arc(tableStartX + tableWidth.value - tableBorderWidth.value, tableStartY + tableBorderWidth.value, tablePocketRadius.value, 0, 2*Math.PI);
+  c.fill();
+
+  c.beginPath();
+  c.arc(tableStartX + tableWidth.value / 2, tableStartY + tableBorderWidth.value, tablePocketRadius.value, 0, 2*Math.PI);
+  c.fill();
+
+  c.beginPath();
+  c.arc(tableStartX + tableWidth.value / 2, tableStartY + tableHeight.value - tableBorderWidth.value, tablePocketRadius.value, 0, 2*Math.PI);
+  c.fill();
+
+  c.beginPath();
+  c.arc(tableStartX + tableBorderWidth.value, tableStartY + tableHeight.value - tableBorderWidth.value, tablePocketRadius.value, 0, 2*Math.PI);
+  c.fill();
+
+  c.beginPath();
+  c.arc(tableStartX + tableWidth.value - tableBorderWidth.value, tableStartY + tableHeight.value - tableBorderWidth.value, tablePocketRadius.value, 0, 2*Math.PI);
+  c.fill();
+}
+
+// balls (cue-ball & numbers)
+
+const ballRadius = computed(() => tablePocketRadius.value * 0.7);
+const ballCoords = { x: 0, y: 0 };
+
+function drawBalls() {
+
+  // cue-ball
+  c.fillStyle = cueBallColor;
+
+  c.beginPath();
+  c.arc(ballCoords.x, ballCoords.y, ballRadius.value, 0, 2*Math.PI);
+  c.fill();
+
+  // numbered balls
+  // TODO implement
+}
+
+// cue-stick
+
+const cueStickLength = ref(70);
+const cueStickWidth = ref(5);
+const cueAngleRadian = ref(0);
+
+function drawCueStick() {
+  c.strokeStyle = cueStickColor;
+  c.lineCap = 'round';
+  c.lineWidth = cueStickWidth.value;
+
+  c.beginPath();
+  const cueStartPoint = projectPoint(ballCoords.x, ballCoords.y, ballRadius.value * 2, cueAngleRadian.value);
+  c.moveTo(cueStartPoint.x, cueStartPoint.y);
+  const cueEndPoint = projectPoint(cueStartPoint.x, cueStartPoint.y, cueStickLength.value, cueAngleRadian.value);
+  c.lineTo(cueEndPoint.x, cueEndPoint.y);
+  c.stroke();
+}
+
+// mouse handlers
+
+const mousePosX = ref(0);
+const mousePosY = ref(0);
+let mousePressed = ref(false);
+
+document.addEventListener("mousemove", mouseMoveHandler, false);
+document.addEventListener("mousedown", mouseDownHandler, false);
+document.addEventListener("mouseup", mouseUpHandler, false);
+
+function mouseMoveHandler(e) {
+  if (!isAppActive()) return;
+
+  const mousePos = getCanvasMouseEventOffsetPos(e, canvas, true);
+  mousePosX.value = mousePos.x;
+  mousePosY.value = mousePos.y;
+
+  cueAngleRadian.value = angleBetweenPointsRadian(ballCoords.x, ballCoords.y, mousePos.x, mousePos.y);
+}
+
+function mouseDownHandler(e) {
+  if (!isAppActive() || e.which !== 1) return;
+
+  mousePressed.value = true;
+}
+
+function mouseUpHandler(e) {
+  if (!isAppActive() || e.which !== 1) return;
+
+  mousePressed.value = false;
+}
+
 </script>
 
 <style scoped>
 canvas {
-  background: seagreen;
+  background: lavender;
+}
+
+/* disable text selection, causes trouble with mouse controls */
+p,
+table,
+table *,
+table * * {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
 }
 </style>
