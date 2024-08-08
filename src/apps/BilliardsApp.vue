@@ -10,7 +10,9 @@
 
         <b>Game</b>
         <br><br>
-        <p>TBA...</p>
+        <p>Balls left: {{ balls.length - 1 }}</p>
+        <br><br>
+        <button class="controls-button" @click="resetGame">RESET</button>
         <br><br>
 
         <b>Animation</b>
@@ -46,6 +48,7 @@ import {
 } from "@/util/MathUtil";
 import { getCanvasMouseEventOffsetPos } from "@/util/LayoutUtil";
 import { randomColor } from "@/util/ColorUtil";
+import { clearArray, removeItem } from "@/util/ArrayUtil";
 
 const canvasName = 'poolCanvas';
 let canvas = null;
@@ -72,6 +75,7 @@ onMounted(() => {
 
   cueBallCoords.x = canvas.width / 2;
   cueBallCoords.y = canvas.height / 2;
+  ballSpeedPerSec.value = tableWidth.value / 3;
 
   createBalls();
 
@@ -107,12 +111,14 @@ function draw() {
   const currTimestamp = Date.now();
   // eslint-disable-next-line no-unused-vars
   const differenceMs = currTimestamp - prevDrawTimestamp;
-  // TODO use time difference for animation
+  moveBalls(differenceMs);
   prevDrawTimestamp = currTimestamp;
 
   drawTable();
   drawBalls();
-  drawCueStick();
+  if (cueBall && !isAnyBallMoving()) drawCueStick();
+
+  checkCollisions(differenceMs);
 
   if (isRunning.value && isAppActive()) requestAnimationFrame(draw); // redraw as soon as animation frame is available
 }
@@ -125,6 +131,47 @@ const tablePocketColor = 'black';
 const cueBallColor = 'white';
 const cueStickHandleColor = 'brown';
 const cueStickMainColor = 'burlywood';
+
+function resetGame() {
+  clearArray(balls.value);
+
+  cueBallCoords.x = canvas.width / 2;
+  cueBallCoords.y = canvas.height / 2;
+  createBalls();
+}
+
+function checkCollisions(differenceMs) {
+  const ballsToRemove = [];
+  balls.value.forEach(ball => {
+    if (isPocketsCollision(ball.x, ball.y, ballRadius.value)) {
+      ballsToRemove.push(ball);
+      ball.isMoving = false;
+
+      if (ball.value === 0) {
+        cueBall = null;
+
+        cueBallCoords.x = canvas.width / 2;
+        cueBallCoords.y = canvas.height / 2;
+      }
+    }
+
+    if (isRailsCollision(ball.x, ball.y, ballRadius.value)) {
+      if (!isRailsCollision(ball.x - 5, ball.y, ballRadius.value) || !isRailsCollision(ball.x + 5, ball.y, ballRadius.value)) {
+        ball.speedPerSecX *= -1;
+        ball.x += ball.speedPerSecX / 1000 * differenceMs * 2;
+      } else if (!isRailsCollision(ball.x, ball.y - 5, ballRadius.value) || !isRailsCollision(ball.x, ball.y + 5, ballRadius.value)) {
+        ball.speedPerSecY *= -1;
+        ball.y += ball.speedPerSecY / 1000 * differenceMs * 2;
+      }
+    }
+
+    // TODO if collides with other balls
+
+    if (ball.x < 0 || ball.x > canvas.width || ball.y < 0 || ball.y > canvas.height) ballsToRemove.push(ball);
+  })
+
+  ballsToRemove.forEach(ball => removeBall(ball));
+}
 
 // table
 
@@ -139,7 +186,6 @@ const tableRails = [];
 const tablePockets = [];
 
 function drawTable() {
-  // table
   c.fillStyle = tableColor;
   c.fillRect(tableStartX, tableStartY, tableWidth.value, tableHeight.value);
 
@@ -202,16 +248,17 @@ function drawTablePockets() {
   })
 }
 
-// balls (cue-ball & numbers)
+// balls (cue-ball & numbers 1-9)
 
 const ballRadius = computed(() => tablePocketRadius.value * 0.7);
+const ballSpeedPerSec = ref(10);
 const cueBallCoords = { x: 0, y: 0 };
+
 let cueBall = null;
-const balls = [];
+const balls = ref([]);
 
 function createBalls() {
-  cueBall = { x: cueBallCoords.x, y: cueBallCoords.y, value: 0, color: cueBallColor }
-  balls.push(cueBall);
+  createCueBall();
 
   const radius = ballRadius.value;
 
@@ -228,13 +275,28 @@ function createBalls() {
       randomX = randomBetween(tableStartX, tableStartX + tableWidth.value);
       randomY = randomBetween(tableStartY, tableStartY + tableHeight.value);
     }
-    balls.push({ x: randomX, y: randomY, value: i, color: randomColor() })
+    balls.value.push({ x: randomX, y: randomY, value: i, color: randomColor(),
+      isMoving: false, speedPerSecX: randomBallSpeed(), speedPerSecY: randomBallSpeed() })
   }
+}
+
+function createCueBall() {
+  cueBall = { x: cueBallCoords.x, y: cueBallCoords.y, value: 0, color: cueBallColor,
+    isMoving: false, speedPerSecX: randomBallSpeed(), speedPerSecY: randomBallSpeed() };
+  balls.value.push(cueBall);
+}
+
+function randomBallSpeed() {
+  return randomBetween(ballSpeedPerSec.value * 0.5, ballSpeedPerSec.value) * randomNegPos();
+}
+
+function randomNegPos() {
+  return (randomBetween(0, 1) - 0.5 <= 0) ? -1 : 1;
 }
 
 function isBallsCollision(x, y, radius) {
   let isCollision = false;
-  balls.forEach(ball => {
+  balls.value.forEach(ball => {
     if (isCircleCollision(x, y, radius, ball.x, ball.y)) isCollision = true;
   })
   return isCollision;
@@ -244,16 +306,47 @@ function isCloseToMid(x, y, radius) {
   return isCircleCollision(x, y, radius, cueBallCoords.x, cueBallCoords.y, radius * 9);
 }
 
+function moveBalls(differenceMs) {
+  balls.value.forEach(ball => {
+    if (ball.isMoving) {
+      const moveDeltaX = ball.speedPerSecX / 1000 * differenceMs;
+      ball.x += moveDeltaX;
+      const moveDeltaY = ball.speedPerSecY / 1000 * differenceMs;
+      ball.y += moveDeltaY;
+    }
+  })
+
+  if (!isAnyBallMoving() && !cueBall) {
+    createCueBall();
+  }
+}
+
+function isAnyBallMoving() {
+  let anyBallMoving = false;
+  balls.value.forEach(ball => {
+    if (ball.isMoving) anyBallMoving = true;
+  })
+  return anyBallMoving;
+}
+
+function removeBall(ball) {
+  removeItem(balls.value, ball);
+}
+
 function drawBalls() {
   c.strokeStyle = 'white';
   c.lineWidth = 1;
-  balls.forEach(ball => {
+  balls.value.forEach(ball => {
     c.fillStyle = ball.color;
 
     c.beginPath();
     c.arc(ball.x, ball.y, ballRadius.value, 0, 2*Math.PI);
     c.fill();
     c.stroke();
+
+    c.fillStyle = 'white';
+    c.font = '' + ballRadius.value * 1.5 + 'px Arial'; // emoji size with font
+    c.fillText(ball.value, ball.x - ballRadius.value / 2 + 1, ball.y + ballRadius.value / 2);
   })
 }
 
@@ -325,6 +418,13 @@ function mouseDownHandler(e) {
 function mouseUpHandler(e) {
   if (!isAppActive() || e.which !== 1) return;
 
+  if (cueBall && !isAnyBallMoving() && mousePressedPos
+      && distanceBetweenPoints(mousePressedPos.x, mousePressedPos.y, mousePos.value.x, mousePos.value.y) > 3) {
+    // launch cue-ball
+    cueBall.isMoving = true;
+    balls.value.forEach(ball => ball.isMoving = true);
+  }
+
   mousePressed.value = false;
   mousePressedPos = null;
 }
@@ -344,5 +444,13 @@ table * * {
   -webkit-user-select: none; /* Safari */
   -ms-user-select: none; /* IE 10 and IE 11 */
   user-select: none; /* Standard syntax */
+}
+
+.controls-button,
+.controls-input {
+  margin: 1px 10px;
+}
+.controls-input {
+  width: 60px;
 }
 </style>
