@@ -37,8 +37,9 @@
 <script setup>
 
 import { computed, onMounted, ref, watch } from "vue";
-import { angleBetweenPointsRadian, distanceBetweenPoints, projectPoint } from "@/util/MathUtil";
+import { angleBetweenPointsRadian, distanceBetweenPoints, projectPoint, randomBetween } from "@/util/MathUtil";
 import { getCanvasMouseEventOffsetPos } from "@/util/LayoutUtil";
+import { randomColor } from "@/util/ColorUtil";
 
 const canvasName = 'poolCanvas';
 let canvas = null;
@@ -57,9 +58,16 @@ onMounted(() => {
   tableHeight.value = tableWidth.value / 2;
   tableBorderWidth.value = tableWidth.value / 30;
   tablePocketRadius.value = tableBorderWidth.value * 0.75;
+  tableStartX = canvas.width / 2 - tableWidth.value / 2;
+  tableStartY = canvas.height / 2 - tableHeight.value / 2;
 
-  ballCoords.x = canvas.width / 2;
-  ballCoords.y = canvas.height / 2;
+  createRails();
+  createPockets();
+
+  cueBallCoords.x = canvas.width / 2;
+  cueBallCoords.y = canvas.height / 2;
+
+  createBalls();
 
   cueStickLength.value = tableWidth.value * 0.8;
   cueStickWidth.value = cueStickLength.value * 0.02;
@@ -96,7 +104,6 @@ function draw() {
   // TODO use time difference for animation
   prevDrawTimestamp = currTimestamp;
 
-  // TODO add drawings
   drawTable();
   drawBalls();
   drawCueStick();
@@ -107,7 +114,7 @@ function draw() {
 // game
 
 const tableColor = 'seagreen';
-const tableBorderColor = 'brown';
+const tableRailColor = 'brown';
 const tablePocketColor = 'black';
 const cueBallColor = 'white';
 const cueStickHandleColor = 'brown';
@@ -119,22 +126,52 @@ const tableWidth = ref(100);
 const tableHeight = ref(100);
 const tableBorderWidth = ref(10);
 const tablePocketRadius = ref(5);
+let tableStartX = 0;
+let tableStartY = 0;
+
+const tableRails = [];
+const tablePockets = [];
 
 function drawTable() {
-
-  const tableStartX = canvas.width / 2 - tableWidth.value / 2;
-  const tableStartY = canvas.height / 2 - tableHeight.value / 2;
-
   // table
   c.fillStyle = tableColor;
   c.fillRect(tableStartX, tableStartY, tableWidth.value, tableHeight.value);
 
-  drawTableBorders(tableStartX, tableStartY);
-  drawTablePockets(tableStartX, tableStartY);
+  drawTableRails();
+  drawTablePockets();
 }
 
-function drawTableBorders(tableStartX, tableStartY) {
-  c.fillStyle = tableBorderColor;
+function createRails() {
+  tableRails.push({ x: tableStartX, y: tableStartY, width: tableWidth.value, height: tableBorderWidth.value })
+  tableRails.push({ x: tableStartX, y: tableStartY, width: tableBorderWidth.value, height: tableHeight.value })
+  tableRails.push({ x: tableStartX, y: tableStartY + tableHeight.value - tableBorderWidth.value, width: tableWidth.value, height: tableBorderWidth.value })
+  tableRails.push({ x: tableStartX + tableWidth.value - tableBorderWidth.value, y: tableStartY, width: tableBorderWidth.value, height: tableHeight.value })
+}
+
+function isRailsCollision(x, y, radius) {
+  let isCollision = false;
+  tableRails.forEach(rail => {
+    if (isRailCollision(rail, x, y, radius)) isCollision = true;
+  })
+  return isCollision;
+}
+
+function isRailCollision(rail, x, y, radius) {
+  const halfWidth = rail.width / 2;
+  const halfHeight = rail.height / 2;
+  const distanceX = Math.abs(rail.x + halfWidth - x);
+  const distanceY = Math.abs(rail.y + halfHeight - y);
+
+  if (distanceX > halfWidth + radius || distanceY > halfHeight + radius) return false; // cannot collide
+  if (distanceX <= halfWidth || distanceY <= halfHeight) return true; // has to collide
+
+  const dx = distanceX - halfWidth;
+  const dy = distanceY - halfHeight;
+  return dx * dx + dy * dy <= radius * radius;
+}
+
+function drawTableRails() {
+  c.fillStyle = tableRailColor;
 
   c.fillRect(tableStartX, tableStartY, tableWidth.value, tableBorderWidth.value);
   c.fillRect(tableStartX, tableStartY, tableBorderWidth.value, tableHeight.value);
@@ -142,50 +179,86 @@ function drawTableBorders(tableStartX, tableStartY) {
   c.fillRect(tableStartX + tableWidth.value - tableBorderWidth.value, tableStartY, tableBorderWidth.value, tableHeight.value);
 }
 
-function drawTablePockets(tableStartX, tableStartY) {
+function createPockets() {
+  tablePockets.push({ x: tableStartX + tableBorderWidth.value, y: tableStartY + tableBorderWidth.value })
+  tablePockets.push({ x: tableStartX + tableBorderWidth.value, y: tableStartY + tableHeight.value - tableBorderWidth.value })
+  tablePockets.push({ x: tableStartX + tableWidth.value / 2, y: tableStartY + tableBorderWidth.value })
+  tablePockets.push({ x: tableStartX + tableWidth.value / 2, y: tableStartY + tableHeight.value - tableBorderWidth.value })
+  tablePockets.push({ x: tableStartX + tableWidth.value - tableBorderWidth.value, y: tableStartY + tableBorderWidth.value })
+  tablePockets.push({ x: tableStartX + tableWidth.value - tableBorderWidth.value, y: tableStartY + tableHeight.value - tableBorderWidth.value })
+}
+
+function isPocketsCollision(x, y, radius) {
+  let isCollision = false;
+  tablePockets.forEach(pocket => {
+    if (distanceBetweenPoints(x, y, pocket.x, pocket.y) <= radius + tablePocketRadius.value) isCollision = true;
+  })
+  return isCollision;
+}
+
+function drawTablePockets() {
   c.fillStyle = tablePocketColor;
 
-  c.beginPath();
-  c.arc(tableStartX + tableBorderWidth.value, tableStartY + tableBorderWidth.value, tablePocketRadius.value, 0, 2*Math.PI);
-  c.fill();
-
-  c.beginPath();
-  c.arc(tableStartX + tableWidth.value - tableBorderWidth.value, tableStartY + tableBorderWidth.value, tablePocketRadius.value, 0, 2*Math.PI);
-  c.fill();
-
-  c.beginPath();
-  c.arc(tableStartX + tableWidth.value / 2, tableStartY + tableBorderWidth.value, tablePocketRadius.value, 0, 2*Math.PI);
-  c.fill();
-
-  c.beginPath();
-  c.arc(tableStartX + tableWidth.value / 2, tableStartY + tableHeight.value - tableBorderWidth.value, tablePocketRadius.value, 0, 2*Math.PI);
-  c.fill();
-
-  c.beginPath();
-  c.arc(tableStartX + tableBorderWidth.value, tableStartY + tableHeight.value - tableBorderWidth.value, tablePocketRadius.value, 0, 2*Math.PI);
-  c.fill();
-
-  c.beginPath();
-  c.arc(tableStartX + tableWidth.value - tableBorderWidth.value, tableStartY + tableHeight.value - tableBorderWidth.value, tablePocketRadius.value, 0, 2*Math.PI);
-  c.fill();
+  tablePockets.forEach(pocket => {
+    c.beginPath();
+    c.arc(pocket.x, pocket.y, tablePocketRadius.value, 0, 2*Math.PI);
+    c.fill();
+  })
 }
 
 // balls (cue-ball & numbers)
 
 const ballRadius = computed(() => tablePocketRadius.value * 0.7);
-const ballCoords = { x: 0, y: 0 };
+const cueBallCoords = { x: 0, y: 0 };
+let cueBall = null;
+const balls = [];
+
+function createBalls() {
+  cueBall = { x: cueBallCoords.x, y: cueBallCoords.y, value: 0, color: cueBallColor }
+  balls.push(cueBall);
+
+  const radius = ballRadius.value;
+
+  for (let i = 1; i < 10; i++) {
+    let randomX = randomBetween(tableStartX, tableStartX + tableWidth.value);
+    let randomY = randomBetween(tableStartY, tableStartY + tableHeight.value);
+    while (
+        isRailsCollision(randomX, randomY, radius)
+        || isBallsCollision(randomX, randomY, radius)
+        || isPocketsCollision(randomX, randomY, radius)
+        || isCloseToMid(randomX, randomY, radius)
+        ) {
+      // randomize new coords
+      randomX = randomBetween(tableStartX, tableStartX + tableWidth.value);
+      randomY = randomBetween(tableStartY, tableStartY + tableHeight.value);
+    }
+    balls.push({ x: randomX, y: randomY, value: i, color: randomColor() })
+  }
+}
+
+function isBallsCollision(x, y, radius) {
+  let isCollision = false;
+  balls.forEach(ball => {
+    if (distanceBetweenPoints(x, y, ball.x, ball.y) <= radius * 2) isCollision = true;
+  })
+  return isCollision;
+}
+
+function isCloseToMid(x, y, radius) {
+  return distanceBetweenPoints(x, y, cueBallCoords.x, cueBallCoords.y) <= radius * 10;
+}
 
 function drawBalls() {
+  c.strokeStyle = 'white';
+  c.lineWidth = 1;
+  balls.forEach(ball => {
+    c.fillStyle = ball.color;
 
-  // cue-ball
-  c.fillStyle = cueBallColor;
-
-  c.beginPath();
-  c.arc(ballCoords.x, ballCoords.y, ballRadius.value, 0, 2*Math.PI);
-  c.fill();
-
-  // numbered balls
-  // TODO implement
+    c.beginPath();
+    c.arc(ball.x, ball.y, ballRadius.value, 0, 2*Math.PI);
+    c.fill();
+    c.stroke();
+  })
 }
 
 // cue-stick
@@ -201,13 +274,13 @@ function drawCueStick() {
 
   let cueCenteringPos;
   if (mousePressedPos) {
-    const mousePressToBallDistance = distanceBetweenPoints(ballCoords.x, ballCoords.y, mousePressedPos.x, mousePressedPos.y);
+    const mousePressToBallDistance = distanceBetweenPoints(cueBallCoords.x, cueBallCoords.y, mousePressedPos.x, mousePressedPos.y);
     const distance = Math.max(0, Math.min(
         cueStickMaxDrawingDistance.value,
-        distanceBetweenPoints(ballCoords.x, ballCoords.y, mousePos.value.x, mousePos.value.y) - mousePressToBallDistance));
-    cueCenteringPos = projectPoint(ballCoords.x, ballCoords.y, distance, cueAngleRadian.value);
+        distanceBetweenPoints(cueBallCoords.x, cueBallCoords.y, mousePos.value.x, mousePos.value.y) - mousePressToBallDistance));
+    cueCenteringPos = projectPoint(cueBallCoords.x, cueBallCoords.y, distance, cueAngleRadian.value);
   } else {
-    cueCenteringPos = ballCoords;
+    cueCenteringPos = cueBallCoords;
   }
 
   c.strokeStyle = cueStickMainColor;
@@ -243,7 +316,7 @@ function mouseMoveHandler(e) {
   if (!isAppActive()) return;
 
   mousePos.value = getCanvasMouseEventOffsetPos(e, canvas, true);
-  cueAngleRadian.value = angleBetweenPointsRadian(ballCoords.x, ballCoords.y, mousePos.value.x, mousePos.value.y);
+  cueAngleRadian.value = angleBetweenPointsRadian(cueBallCoords.x, cueBallCoords.y, mousePos.value.x, mousePos.value.y);
 }
 
 function mouseDownHandler(e) {
