@@ -4,7 +4,7 @@ export {
     angleBetweenPointsRadian, angleBetweenPointsDegreesPositive,
     projectPoint,
     distanceBetweenPoints, distanceToLine,
-    isRectCollision,
+    isRectCollision, isCircleCollision, isRectCircleCollision,
     easeOutCubic, easeInCubic, testEasing,
 };
 
@@ -82,6 +82,24 @@ function isRectCollision(rectOneX, rectOneY, rectOneWidth, rectOneHeight, rectTw
         && rectOneX + rectOneWidth > rectTwoX
         && rectOneY < rectTwoY + rectTwoHeight
         && rectOneY + rectOneHeight > rectTwoY;
+}
+
+function isCircleCollision(circleOneX, circleOneY, circleOneRadius, circleTwoX, circleTwoY, circleTwoRadius = null) {
+    return distanceBetweenPoints(circleOneX, circleOneY, circleTwoX, circleTwoY) <= circleOneRadius + (circleTwoRadius ? circleTwoRadius : circleOneRadius);
+}
+
+function isRectCircleCollision(rectX, rectY, rectWidth, rectHeight, circleX, circleY, circleRadius) {
+    const halfWidth = rectWidth / 2;
+    const halfHeight = rectHeight / 2;
+    const distanceX = Math.abs(rectX + halfWidth - circleX);
+    const distanceY = Math.abs(rectY + halfHeight - circleY);
+
+    if (distanceX > halfWidth + circleRadius || distanceY > halfHeight + circleRadius) return false; // cannot collide
+    if (distanceX <= halfWidth || distanceY <= halfHeight) return true; // has to collide
+
+    const dx = distanceX - halfWidth;
+    const dy = distanceY - halfHeight;
+    return dx * dx + dy * dy <= circleRadius * circleRadius;
 }
 
 // easing

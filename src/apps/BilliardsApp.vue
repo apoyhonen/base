@@ -37,7 +37,13 @@
 <script setup>
 
 import { computed, onMounted, ref, watch } from "vue";
-import { angleBetweenPointsRadian, distanceBetweenPoints, projectPoint, randomBetween } from "@/util/MathUtil";
+import {
+  angleBetweenPointsRadian,
+  distanceBetweenPoints,
+  isCircleCollision, isRectCircleCollision,
+  projectPoint,
+  randomBetween
+} from "@/util/MathUtil";
 import { getCanvasMouseEventOffsetPos } from "@/util/LayoutUtil";
 import { randomColor } from "@/util/ColorUtil";
 
@@ -157,17 +163,7 @@ function isRailsCollision(x, y, radius) {
 }
 
 function isRailCollision(rail, x, y, radius) {
-  const halfWidth = rail.width / 2;
-  const halfHeight = rail.height / 2;
-  const distanceX = Math.abs(rail.x + halfWidth - x);
-  const distanceY = Math.abs(rail.y + halfHeight - y);
-
-  if (distanceX > halfWidth + radius || distanceY > halfHeight + radius) return false; // cannot collide
-  if (distanceX <= halfWidth || distanceY <= halfHeight) return true; // has to collide
-
-  const dx = distanceX - halfWidth;
-  const dy = distanceY - halfHeight;
-  return dx * dx + dy * dy <= radius * radius;
+  return isRectCircleCollision(rail.x, rail.y, rail.width, rail.height, x, y, radius);
 }
 
 function drawTableRails() {
@@ -239,13 +235,13 @@ function createBalls() {
 function isBallsCollision(x, y, radius) {
   let isCollision = false;
   balls.forEach(ball => {
-    if (distanceBetweenPoints(x, y, ball.x, ball.y) <= radius * 2) isCollision = true;
+    if (isCircleCollision(x, y, radius, ball.x, ball.y)) isCollision = true;
   })
   return isCollision;
 }
 
 function isCloseToMid(x, y, radius) {
-  return distanceBetweenPoints(x, y, cueBallCoords.x, cueBallCoords.y) <= radius * 10;
+  return isCircleCollision(x, y, radius, cueBallCoords.x, cueBallCoords.y, radius * 9);
 }
 
 function drawBalls() {
