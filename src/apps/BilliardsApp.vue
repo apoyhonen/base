@@ -28,7 +28,7 @@
     </tr>
   </table>
   <br>
-  <p>Mouse position: x: {{ mousePosX }}, y: {{ mousePosY }}</p>
+  <p>Mouse position: x: {{ mousePos.x }}, y: {{ mousePos.y }}</p>
   <p v-if="mousePressed" style="color: red; font-size: 30px;">Mouse pressed!</p>
   <div>
   </div>
@@ -37,7 +37,7 @@
 <script setup>
 
 import { computed, onMounted, ref, watch } from "vue";
-import { angleBetweenPointsRadian, projectPoint } from "@/util/MathUtil";
+import { angleBetweenPointsRadian, distanceBetweenPoints, projectPoint } from "@/util/MathUtil";
 import { getCanvasMouseEventOffsetPos } from "@/util/LayoutUtil";
 
 const canvasName = 'poolCanvas';
@@ -49,8 +49,8 @@ const isRunning = ref(true);
 
 onMounted(() => {
   canvas = document.getElementById(canvasName);
-  canvas.width = window.innerWidth * 0.5;
-  canvas.height = window.innerHeight * 0.55;
+  canvas.width = (window.innerWidth - 200) * 0.7;
+  canvas.height = window.innerHeight * 0.7;
   c = canvas.getContext("2d");
 
   tableWidth.value = canvas.width / 2;
@@ -63,6 +63,7 @@ onMounted(() => {
 
   cueStickLength.value = tableWidth.value * 0.8;
   cueStickWidth.value = cueStickLength.value * 0.02;
+  cueStickMaxDrawingDistance.value = cueStickLength.value * 0.3;
 
   draw(); // init
 });
@@ -109,7 +110,8 @@ const tableColor = 'seagreen';
 const tableBorderColor = 'brown';
 const tablePocketColor = 'black';
 const cueBallColor = 'white';
-const cueStickColor = 'brown';
+const cueStickHandleColor = 'brown';
+const cueStickMainColor = 'burlywood';
 
 // table
 
@@ -191,25 +193,47 @@ function drawBalls() {
 const cueStickLength = ref(70);
 const cueStickWidth = ref(5);
 const cueAngleRadian = ref(0);
+const cueStickMaxDrawingDistance = ref(20);
 
 function drawCueStick() {
-  c.strokeStyle = cueStickColor;
   c.lineCap = 'round';
   c.lineWidth = cueStickWidth.value;
 
+  let cueCenteringPos;
+  if (mousePressedPos) {
+    const mousePressToBallDistance = distanceBetweenPoints(ballCoords.x, ballCoords.y, mousePressedPos.x, mousePressedPos.y);
+    const distance = Math.max(0, Math.min(
+        cueStickMaxDrawingDistance.value,
+        distanceBetweenPoints(ballCoords.x, ballCoords.y, mousePos.value.x, mousePos.value.y) - mousePressToBallDistance));
+    cueCenteringPos = projectPoint(ballCoords.x, ballCoords.y, distance, cueAngleRadian.value);
+  } else {
+    cueCenteringPos = ballCoords;
+  }
+
+  c.strokeStyle = cueStickMainColor;
+  let lineStartPoint = projectPoint(cueCenteringPos.x, cueCenteringPos.y, ballRadius.value * 2, cueAngleRadian.value);
+  let lineEndPoint = projectPoint(lineStartPoint.x, lineStartPoint.y, cueStickLength.value * 0.7, cueAngleRadian.value);
+
   c.beginPath();
-  const cueStartPoint = projectPoint(ballCoords.x, ballCoords.y, ballRadius.value * 2, cueAngleRadian.value);
-  c.moveTo(cueStartPoint.x, cueStartPoint.y);
-  const cueEndPoint = projectPoint(cueStartPoint.x, cueStartPoint.y, cueStickLength.value, cueAngleRadian.value);
-  c.lineTo(cueEndPoint.x, cueEndPoint.y);
+  c.moveTo(lineStartPoint.x, lineStartPoint.y);
+  c.lineTo(lineEndPoint.x, lineEndPoint.y);
+  c.stroke();
+
+  c.strokeStyle = cueStickHandleColor;
+  lineStartPoint = lineEndPoint;
+  lineEndPoint = projectPoint(lineStartPoint.x, lineStartPoint.y, cueStickLength.value * 0.3, cueAngleRadian.value);
+
+  c.beginPath();
+  c.moveTo(lineStartPoint.x, lineStartPoint.y);
+  c.lineTo(lineEndPoint.x, lineEndPoint.y);
   c.stroke();
 }
 
 // mouse handlers
 
-const mousePosX = ref(0);
-const mousePosY = ref(0);
+const mousePos = ref({ x: 0, y: 0 })
 let mousePressed = ref(false);
+let mousePressedPos = null;
 
 document.addEventListener("mousemove", mouseMoveHandler, false);
 document.addEventListener("mousedown", mouseDownHandler, false);
@@ -218,23 +242,22 @@ document.addEventListener("mouseup", mouseUpHandler, false);
 function mouseMoveHandler(e) {
   if (!isAppActive()) return;
 
-  const mousePos = getCanvasMouseEventOffsetPos(e, canvas, true);
-  mousePosX.value = mousePos.x;
-  mousePosY.value = mousePos.y;
-
-  cueAngleRadian.value = angleBetweenPointsRadian(ballCoords.x, ballCoords.y, mousePos.x, mousePos.y);
+  mousePos.value = getCanvasMouseEventOffsetPos(e, canvas, true);
+  cueAngleRadian.value = angleBetweenPointsRadian(ballCoords.x, ballCoords.y, mousePos.value.x, mousePos.value.y);
 }
 
 function mouseDownHandler(e) {
   if (!isAppActive() || e.which !== 1) return;
 
   mousePressed.value = true;
+  mousePressedPos = mousePos.value;
 }
 
 function mouseUpHandler(e) {
   if (!isAppActive() || e.which !== 1) return;
 
   mousePressed.value = false;
+  mousePressedPos = null;
 }
 
 </script>
