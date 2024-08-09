@@ -361,6 +361,14 @@ function createBalls() {
 }
 
 function createCueBall() {
+  // clear possible old cue-balls
+  const cueBalls = [];
+  balls.forEach(ball => {
+    if (ball.value === 0) cueBalls.push(ball)
+  });
+  cueBalls.forEach(cueBall => removeBall(cueBall));
+
+  // create new cue-ball
   cueBall = { ballId: ballId++, x: cueBallCoords.x, y: cueBallCoords.y, value: 0, color: cueBallColor,
     isMoving: false, speedPerSecX: 0, speedPerSecY: 0 };
   balls.push(cueBall);
@@ -392,7 +400,10 @@ function moveBalls(differenceMs) {
         }
       }
 
-      if (ball.speedPerSecX === 0 && ball.speedPerSecY === 0) ball.isMoving = false;
+      if (ball.speedPerSecX === 0 && ball.speedPerSecY === 0) {
+        ball.isMoving = false;
+        if (ball.value === 0) cueBall = null;
+      }
     }
   }
 
