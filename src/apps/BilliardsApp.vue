@@ -66,8 +66,8 @@ onMounted(() => {
 
   tableWidth = canvas.width / 2;
   tableHeight = tableWidth / 2;
-  tableBorderWidth = tableWidth / 30;
-  tablePocketRadius = tableBorderWidth * 0.75;
+  tableBorderSize = tableWidth / 30;
+  tablePocketRadius = tableBorderSize * 0.75;
   tableStartX = canvas.width / 2 - tableWidth / 2;
   tableStartY = canvas.height / 2 - tableHeight / 2;
 
@@ -217,7 +217,7 @@ function checkCollisions(differenceMs) {
 
 let tableWidth = 100;
 let tableHeight = 100;
-let tableBorderWidth = 10;
+let tableBorderSize = 10;
 let tablePocketRadius = 5;
 let tableStartX = 0;
 let tableStartY = 0;
@@ -234,17 +234,18 @@ function drawTable() {
 }
 
 function createRails() {
-  tableRails.push({ x: tableStartX, y: tableStartY, width: tableWidth, height: tableBorderWidth })
-  tableRails.push({ x: tableStartX, y: tableStartY, width: tableBorderWidth, height: tableHeight })
-  tableRails.push({ x: tableStartX, y: tableStartY + tableHeight - tableBorderWidth, width: tableWidth, height: tableBorderWidth })
-  tableRails.push({ x: tableStartX + tableWidth - tableBorderWidth, y: tableStartY, width: tableBorderWidth, height: tableHeight })
+  tableRails.push({ x: tableStartX, y: tableStartY, width: tableWidth, height: tableBorderSize })
+  tableRails.push({ x: tableStartX, y: tableStartY, width: tableBorderSize, height: tableHeight })
+  tableRails.push({ x: tableStartX, y: tableStartY + tableHeight - tableBorderSize, width: tableWidth, height: tableBorderSize })
+  tableRails.push({ x: tableStartX + tableWidth - tableBorderSize, y: tableStartY, width: tableBorderSize, height: tableHeight })
 }
 
 function isRailsCollision(x, y, radius) {
   let isCollision = false;
-  tableRails.forEach(rail => {
+  for (let i = 0; i < tableRails.length; i++) {
+    const rail = tableRails[i];
     if (isRailCollision(rail, x, y, radius)) isCollision = true;
-  })
+  }
   return isCollision;
 }
 
@@ -255,26 +256,27 @@ function isRailCollision(rail, x, y, radius) {
 function drawTableRails() {
   c.fillStyle = tableRailColor;
 
-  c.fillRect(tableStartX, tableStartY, tableWidth, tableBorderWidth);
-  c.fillRect(tableStartX, tableStartY, tableBorderWidth, tableHeight);
-  c.fillRect(tableStartX, tableStartY + tableHeight - tableBorderWidth, tableWidth, tableBorderWidth);
-  c.fillRect(tableStartX + tableWidth - tableBorderWidth, tableStartY, tableBorderWidth, tableHeight);
+  c.fillRect(tableStartX, tableStartY, tableWidth, tableBorderSize);
+  c.fillRect(tableStartX, tableStartY, tableBorderSize, tableHeight);
+  c.fillRect(tableStartX, tableStartY + tableHeight - tableBorderSize, tableWidth, tableBorderSize);
+  c.fillRect(tableStartX + tableWidth - tableBorderSize, tableStartY, tableBorderSize, tableHeight);
 }
 
 function createPockets() {
-  tablePockets.push({ x: tableStartX + tableBorderWidth, y: tableStartY + tableBorderWidth })
-  tablePockets.push({ x: tableStartX + tableBorderWidth, y: tableStartY + tableHeight - tableBorderWidth })
-  tablePockets.push({ x: tableStartX + tableWidth / 2, y: tableStartY + tableBorderWidth })
-  tablePockets.push({ x: tableStartX + tableWidth / 2, y: tableStartY + tableHeight - tableBorderWidth })
-  tablePockets.push({ x: tableStartX + tableWidth - tableBorderWidth, y: tableStartY + tableBorderWidth })
-  tablePockets.push({ x: tableStartX + tableWidth - tableBorderWidth, y: tableStartY + tableHeight - tableBorderWidth })
+  tablePockets.push({ x: tableStartX + tableBorderSize, y: tableStartY + tableBorderSize })
+  tablePockets.push({ x: tableStartX + tableBorderSize, y: tableStartY + tableHeight - tableBorderSize })
+  tablePockets.push({ x: tableStartX + tableWidth / 2, y: tableStartY + tableBorderSize })
+  tablePockets.push({ x: tableStartX + tableWidth / 2, y: tableStartY + tableHeight - tableBorderSize })
+  tablePockets.push({ x: tableStartX + tableWidth - tableBorderSize, y: tableStartY + tableBorderSize })
+  tablePockets.push({ x: tableStartX + tableWidth - tableBorderSize, y: tableStartY + tableHeight - tableBorderSize })
 }
 
 function isPocketsCollision(x, y, radius) {
   let isCollision = false;
-  tablePockets.forEach(pocket => {
+  for (let i = 0; i < tablePockets.length; i++) {
+    const pocket = tablePockets[i];
     if (distanceBetweenPoints(x, y, pocket.x, pocket.y) <= radius + tablePocketRadius) isCollision = true;
-  })
+  }
   return isCollision;
 }
 
@@ -319,7 +321,7 @@ function createBalls() {
       randomY = randomBetween(tableStartY, tableStartY + tableHeight);
     }
     balls.push({ ballId: ballId++, x: randomX, y: randomY, value: i, color: randomColor(),
-      isMoving: false, isColliding: false, speedPerSecX: randomBallSpeed(), speedPerSecY: randomBallSpeed() })
+      isMoving: false, isColliding: false, speedPerSecX: 0, speedPerSecY: 0 })
   }
 }
 
@@ -327,14 +329,6 @@ function createCueBall() {
   cueBall = { ballId: ballId++, x: cueBallCoords.x, y: cueBallCoords.y, value: 0, color: cueBallColor,
     isMoving: false, speedPerSecX: 0, speedPerSecY: 0 };
   balls.push(cueBall);
-}
-
-function randomBallSpeed() {
-  return randomBetween(ballSpeedPerSec * 0.5, ballSpeedPerSec) * randomNegPos();
-}
-
-function randomNegPos() {
-  return (randomBetween(0, 1) - 0.5 <= 0) ? -1 : 1;
 }
 
 function isCloseToMid(x, y, radius) {
@@ -378,9 +372,10 @@ function getBallSpeedDampening(differenceMs, number) {
 
 function isAnyBallMoving() {
   let anyBallMoving = false;
-  balls.forEach(ball => {
+  for (let i = 0; i < balls.length; i++) {
+    const ball = balls[i];
     if (ball.isMoving) anyBallMoving = true;
-  })
+  }
   return anyBallMoving;
 }
 
