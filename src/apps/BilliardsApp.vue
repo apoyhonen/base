@@ -41,9 +41,12 @@
 
 import { onMounted, ref, watch } from "vue";
 import {
-  angleBetweenPointsRadian, circleCollisionTwoMoving,
+  angleBetweenPointsRadian,
+  circleCollisionMovingAndStationary,
+  circleCollisionTwoMoving,
   distanceBetweenPoints,
-  isCircleCollision, isRectCircleCollision,
+  isCircleCollision,
+  isRectCircleCollision,
   projectPoint,
   randomBetween
 } from "@/util/MathUtil";
@@ -174,31 +177,63 @@ function checkCollisions(differenceMs) {
     const ballCollidedWith = getAnyBallCollidedWith(ball.x, ball.y, ballRadius, ball.ballId);
     if (ballCollidedWith) {
       if (!ball.isColliding) { // if not already colliding
+        ball.isColliding = true;
+        ballCollidedWith.isColliding = true;
+
         if (ballCollidedWith.isMoving && ball.isMoving) {
           const collisionInfo = circleCollisionTwoMoving(ball.speedPerSecX, ball.speedPerSecY, ballCollidedWith.speedPerSecX, ballCollidedWith.speedPerSecY);
 
           ball.speedPerSecX = collisionInfo.firstDx;
-          ball.speedPerSecX = collisionInfo.firstDy;
+          ball.x += ball.speedPerSecX / 1000 * differenceMs * 2;
+          ball.speedPerSecY = collisionInfo.firstDy;
+          ball.y += ball.speedPerSecY / 1000 * differenceMs * 2;
 
           ballCollidedWith.speedPerSecX = collisionInfo.secondDx;
-          ballCollidedWith.speedPerSecX = collisionInfo.secondDy;
+          ballCollidedWith.x += ballCollidedWith.speedPerSecX / 1000 * differenceMs * 2;
+          ballCollidedWith.speedPerSecY = collisionInfo.secondDy;
+          ballCollidedWith.y += ballCollidedWith.speedPerSecY / 1000 * differenceMs * 2;
 
         } else if (ballCollidedWith.isMoving || ball.isMoving) {
           // TODO Two-dimensional collision with one moving and one stationary object
           //const movingBall = ball.isMoving ? ball : ballCollidedWith;
           //const stationaryBall = ball.isMoving ? ballCollidedWith : ball;
 
-          const collisionInfo = circleCollisionTwoMoving(ball.speedPerSecX, ball.speedPerSecY, ballCollidedWith.speedPerSecX, ballCollidedWith.speedPerSecY);
+          //const collisionInfo = circleCollisionTwoMoving(ball.speedPerSecX, ball.speedPerSecY, ballCollidedWith.speedPerSecX, ballCollidedWith.speedPerSecY);
+          const movingBall = ball.isMoving ? ball : ballCollidedWith;
+          const stationaryBall = ball.isMoving ? ballCollidedWith : ball;
+          const collisionInfo = circleCollisionMovingAndStationary(
+              movingBall.x, movingBall.y, movingBall.speedPerSecX, movingBall.speedPerSecY,
+              stationaryBall.x, stationaryBall.y, { staticSecond: false });
 
-          ball.speedPerSecX = collisionInfo.firstDx;
-          ball.speedPerSecX = collisionInfo.firstDy;
+          movingBall.speedPerSecX = collisionInfo.movingDx;
+          movingBall.x += movingBall.speedPerSecX / 1000 * differenceMs * 2;
+          movingBall.speedPerSecY = collisionInfo.movingDy;
+          movingBall.y += movingBall.speedPerSecY / 1000 * differenceMs * 2;
 
-          ballCollidedWith.speedPerSecX = collisionInfo.secondDx;
-          ballCollidedWith.speedPerSecX = collisionInfo.secondDy;
+          stationaryBall.speedPerSecX = collisionInfo.stationaryDx;
+          stationaryBall.x += stationaryBall.speedPerSecX / 1000 * differenceMs * 2;
+          stationaryBall.speedPerSecY = collisionInfo.stationaryDy;
+          stationaryBall.y += stationaryBall.speedPerSecY / 1000 * differenceMs * 2;
+          stationaryBall.isMoving = true;
 
         } else {
           console.log("Something went wrong: non-moving balls collision " + ball + " " + ballCollidedWith);
+          console.log("ballId: " + ball.ballId + ', dx: ' + ball.speedPerSecX + ', dy: ' + ball.speedPerSecY);
+          console.log("otherId: " + ballCollidedWith.ballId + ', dx: ' + ballCollidedWith.speedPerSecX + ', dy: ' + ballCollidedWith.speedPerSecY);
         }
+
+        // nudge both circles away from each other
+
+        const collisionAngle = angleBetweenPointsRadian(ball.x, ball.y, ballCollidedWith.x, ballCollidedWith.y);
+        const magnitude = ballSpeedPerSec / 1000 * differenceMs * 2;
+
+        const ballPoint = projectPoint(ball.x, ball.y, magnitude, collisionAngle - Math.PI);
+        ball.x = ballPoint.x;
+        ball.y = ballPoint.y;
+
+        const ballCollidedWithPoint = projectPoint(ballCollidedWith.x, ballCollidedWith.y, magnitude, collisionAngle);
+        ballCollidedWith.x = ballCollidedWithPoint.x;
+        ballCollidedWith.y = ballCollidedWithPoint.y;
       }
     } else if (ball.isColliding) {
       ball.isColliding = false; // not colliding anymore

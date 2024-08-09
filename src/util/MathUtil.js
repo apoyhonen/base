@@ -5,7 +5,7 @@ export {
     projectPoint,
     distanceBetweenPoints, distanceToLine,
     isRectCollision, isCircleCollision, isRectCircleCollision,
-    twoCircleCollisionPoint, circleCollisionTwoMoving, circleCollisionOneMovingOneStationary,
+    twoCircleCollisionPoint, circleCollisionTwoMoving, circleCollisionMovingAndStationary,
     easeOutCubic, easeInCubic, testEasing,
 };
 
@@ -63,8 +63,7 @@ function distanceToLineToPowerOfTwo(originX, originY, lineFirstPointX, lineFirst
     if (linePointsDistance === 0) return distanceToPowerOfTwo(originX, originY, lineFirstPointX, lineFirstPointY);
 
     let dot = ((originX - lineFirstPointX) * (lineSecondPointX - lineFirstPointX)
-        + (originY - lineFirstPointY) * (lineSecondPointY
-            - lineFirstPointY)) / linePointsDistance;
+        + (originY - lineFirstPointY) * (lineSecondPointY - lineFirstPointY)) / linePointsDistance;
     dot = Math.max(0, Math.min(1, dot));
 
     return distanceToPowerOfTwo(originX, originY,
@@ -109,14 +108,14 @@ function twoCircleCollisionPoint(firstX, firstY, firstRadius, secondX, secondY, 
     return { x: collisionPointX, y: collisionPointY };
 }
 
-function circleCollisionTwoMoving(firstDx, firstDy, secondDx, secondDy, massOptions = null) {
+function circleCollisionTwoMoving(firstDx, firstDy, secondDx, secondDy, collisionOptions = null) {
     // first assume circles are same mass regardless of size
     let firstMass = 1;
     let secondMass = 1;
 
-    if (massOptions) {
-        if (massOptions['firstMass']) firstMass = massOptions['firstMass'];
-        if (massOptions['secondMass']) firstMass = massOptions['secondMass'];
+    if (collisionOptions) {
+        if (collisionOptions['firstMass']) firstMass = collisionOptions['firstMass'];
+        if (collisionOptions['secondMass']) secondMass = collisionOptions['secondMass'];
     }
 
     const newFirstDx = (firstDx * (firstMass - secondMass) + (2 * secondMass * secondDx)) / (firstMass + secondMass);
@@ -127,14 +126,54 @@ function circleCollisionTwoMoving(firstDx, firstDy, secondDx, secondDy, massOpti
     return { firstDx: newFirstDx, firstDy: newFirstDy, secondDx: newSecondDx, secondDy: newSecondDy };
 }
 
-function circleCollisionOneMovingOneStationary(movingX, movingY, movingDx, movingDy, staticX, staticY, remainStatic = false) {
-    // Two-dimensional collision with one moving and one static object
-    if (remainStatic) {
-        // static will remain stationary
-        //return { movingDx: , movingDy: , staticDx: 0, staticDy: 0 };
+function circleCollisionMovingAndStationary(movingX, movingY, movingDx, movingDy, stationaryX, stationaryY, collisionOptions = null) {
+    // first assume circles are same mass regardless of size
+    let firstMass = 1;
+    let secondMass = 1;
+    let staticSecond = false;
+
+    if (collisionOptions) {
+        // eslint-disable-next-line no-unused-vars
+        if (collisionOptions['firstMass']) firstMass = collisionOptions['firstMass'];
+        // eslint-disable-next-line no-unused-vars
+        if (collisionOptions['secondMass']) secondMass = collisionOptions['secondMass'];
+        if (collisionOptions['staticSecond']) staticSecond = collisionOptions['staticSecond'];
+    }
+
+    if (staticSecond) {
+        // static will remain unmoved
+
+        let dx = -movingDx; //Reverse direction
+        let dy = -movingDy;
+        const speed = Math.sqrt(squared(dx) + squared(dy));
+        const currentAngle = Math.atan2(dy, dx);
+
+        //The angle between the ball's center and the orbs center
+        const reflectionAngle = Math.atan2(stationaryY - movingY, stationaryX - movingX);
+        //The outcome of this "static" collision is just a angular reflection with preserved speed
+        const newAngle = 2 *  reflectionAngle - currentAngle;
+
+        dx = speed * Math.cos(newAngle); //Setting new velocity
+        dy = speed * Math.sin(newAngle);
+
+        return { movingDx: dx, movingDy: dy, stationaryDx: 0, stationaryDy: 0 };
     } else {
         // both objects will move
-        //return { movingDx: , movingDy: , staticDx: , staticDy:  };
+
+        const collisionAngle = angleBetweenPointsRadian(movingX, movingY, stationaryX, stationaryY);
+        const origMagnitude = Math.sqrt(squared(movingDx) + squared(movingDy));
+
+        let mAngleRadian = collisionAngle / 2;
+        const mMagnitude = origMagnitude * Math.cos(collisionAngle / 2);
+        let mDx = projectPointX(0, mMagnitude, mAngleRadian);
+        let mDy = projectPointY(0, mMagnitude, mAngleRadian);
+
+        let sAngleRadian = (Math.PI - collisionAngle) / 2;
+        const sMagnitude = origMagnitude * Math.sin(collisionAngle / 2);
+        let sDx = projectPointX(0, sMagnitude, sAngleRadian);
+        let sDy = projectPointY(0, sMagnitude, sAngleRadian);
+
+        return { movingDx: mDx, movingDy: mDy, stationaryDx: sDx, stationaryDy: sDy };
     }
 }
 
