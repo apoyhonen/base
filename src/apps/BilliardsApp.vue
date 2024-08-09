@@ -51,7 +51,6 @@ import {
   randomBetween
 } from "@/util/MathUtil";
 import { getCanvasMouseEventOffsetPos } from "@/util/LayoutUtil";
-import { randomColor } from "@/util/ColorUtil";
 import { clearArray, removeItem } from "@/util/ArrayUtil";
 
 const canvasName = 'poolCanvas';
@@ -135,7 +134,6 @@ function draw() {
 const tableColor = 'seagreen';
 const tableRailColor = 'brown';
 const tablePocketColor = 'black';
-const cueBallColor = 'white';
 const cueStickHandleColor = 'brown';
 const cueStickMainColor = 'burlywood';
 
@@ -328,6 +326,27 @@ function drawTablePockets() {
 
 // balls (cue-ball & numbers 1-9)
 
+const ballColors = [];
+ballColors.push({ color: 'white', oneColored: true }); // white cue-ball
+
+ballColors.push({ color: 'yellow', oneColored: true }); // numbered 1-7 one-color
+ballColors.push({ color: 'blue', oneColored: true });
+ballColors.push({ color: 'red', oneColored: true });
+ballColors.push({ color: 'purple', oneColored: true });
+ballColors.push({ color: 'orange', oneColored: true });
+ballColors.push({ color: 'green', oneColored: true });
+ballColors.push({ color: 'darkred', oneColored: true });
+
+ballColors.push({ color: 'black', oneColored: true }); // black 8-ball
+
+ballColors.push({ color: 'yellow', oneColored: false }); // numbered 9-15 striped
+ballColors.push({ color: 'blue', oneColored: false });
+ballColors.push({ color: 'red', oneColored: false });
+ballColors.push({ color: 'purple', oneColored: false });
+ballColors.push({ color: 'orange', oneColored: false });
+ballColors.push({ color: 'green', oneColored: false });
+ballColors.push({ color: 'darkred', oneColored: false });
+
 let ballRadius = 7;
 let ballSpeedPerSec = 10;
 let ballDampeningPerSec = 1;
@@ -335,29 +354,40 @@ const cueBallCoords = { x: 0, y: 0 };
 
 let ballId = 0;
 let cueBall = null;
+// TODO 8-ball implementation
+// eslint-disable-next-line no-unused-vars
+let eightBall = null;
 const balls = [];
 
 function createBalls() {
   createCueBall();
 
-  const radius = ballRadius;
+  for (let i = 1; i < 15; i++) {
+    const ballColor = ballColors[i];
+    const ball = createBall(i, ballColor.color, ballColor.oneColored);
+    balls.push(ball);
 
-  for (let i = 1; i < 10; i++) {
-    let randomX = randomBetween(tableStartX, tableStartX + tableWidth);
-    let randomY = randomBetween(tableStartY, tableStartY + tableHeight);
-    while (
-        isRailsCollision(randomX, randomY, radius)
-        || getAnyBallCollidedWith(randomX, randomY, radius)
-        || isPocketsCollision(randomX, randomY, radius)
-        || isCloseToMid(randomX, randomY, radius)
-        ) {
-      // randomize new coords
-      randomX = randomBetween(tableStartX, tableStartX + tableWidth);
-      randomY = randomBetween(tableStartY, tableStartY + tableHeight);
-    }
-    balls.push({ ballId: ballId++, x: randomX, y: randomY, value: i, color: randomColor(),
-      isMoving: false, isColliding: false, speedPerSecX: 0, speedPerSecY: 0 })
+    if (i === 8) eightBall = ball;
   }
+}
+
+function createBall(value, ballColor, oneColored) {
+  let randomX = randomBetween(tableStartX, tableStartX + tableWidth);
+  let randomY = randomBetween(tableStartY, tableStartY + tableHeight);
+
+  while (
+      isRailsCollision(randomX, randomY, ballRadius)
+      || getAnyBallCollidedWith(randomX, randomY, ballRadius)
+      || isPocketsCollision(randomX, randomY, ballRadius)
+      || isCloseToMid(randomX, randomY, ballRadius)
+      ) {
+    // randomize new coords
+    randomX = randomBetween(tableStartX, tableStartX + tableWidth);
+    randomY = randomBetween(tableStartY, tableStartY + tableHeight);
+  }
+
+  return { ballId: ballId++, x: randomX, y: randomY, value: value, color: ballColor, oneColored: oneColored,
+    isMoving: false, isColliding: false, speedPerSecX: 0, speedPerSecY: 0 };
 }
 
 function createCueBall() {
@@ -369,7 +399,8 @@ function createCueBall() {
   cueBalls.forEach(cueBall => removeBall(cueBall));
 
   // create new cue-ball
-  cueBall = { ballId: ballId++, x: cueBallCoords.x, y: cueBallCoords.y, value: 0, color: cueBallColor,
+  const cueBallColor = ballColors[0];
+  cueBall = { ballId: ballId++, x: cueBallCoords.x, y: cueBallCoords.y, value: 0, color: cueBallColor.color, oneColored: cueBallColor.oneColored,
     isMoving: false, speedPerSecX: 0, speedPerSecY: 0 };
   balls.push(cueBall);
 }
@@ -440,20 +471,28 @@ function getAnyBallCollidedWith(x, y, radius, ballId = -1) {
 }
 
 function drawBalls() {
-  c.strokeStyle = 'white';
+  c.strokeStyle = 'black';
   c.lineWidth = 1;
   for (let i = 0; i < balls.length; i++) {
     const ball = balls[i];
-    c.fillStyle = ball.color;
 
+    c.fillStyle = ball.color; // actual ball color
     c.beginPath();
     c.arc(ball.x, ball.y, ballRadius, 0, 2*Math.PI);
     c.fill();
     c.stroke();
 
-    c.fillStyle = 'white';
-    c.font = '' + ballRadius * 1.5 + 'px Arial'; // emoji size with font
-    c.fillText(ball.value, ball.x - ballRadius / 2 + 1, ball.y + ballRadius / 2);
+    if (ball.value !== 0) {
+      c.fillStyle = 'white'; // number-surrounding circle
+      c.beginPath();
+      c.arc(ball.x, ball.y, ballRadius * 0.55, 0, 2 * Math.PI);
+      c.fill();
+
+      c.fillStyle = 'black'; // actual number
+      c.font = '' + ballRadius * 0.9 + 'px Arial'; // emoji size with font
+      const xNudge = ball.value < 10 ? 3 : -1;
+      c.fillText(ball.value, ball.x - ballRadius / 2 + xNudge, ball.y + ballRadius / 2 - 2);
+    }
   }
 }
 
