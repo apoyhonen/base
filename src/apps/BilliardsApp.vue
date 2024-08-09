@@ -11,7 +11,7 @@
 
         <b>Game</b>
         <br><br>
-        <p>Balls left: {{ balls.length - 1 }}</p>
+        <p>Balls left: 0</p>
         <br><br>
         <button class="controls-button" @click="resetGame">RESET</button>
         <br><br>
@@ -39,9 +39,9 @@
 
 <script setup>
 
-import { computed, onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
 import {
-  angleBetweenPointsRadian,
+  angleBetweenPointsRadian, circleCollisionTwoMoving,
   distanceBetweenPoints,
   isCircleCollision, isRectCircleCollision,
   projectPoint,
@@ -64,25 +64,27 @@ onMounted(() => {
   canvas.height = window.innerHeight * 0.7;
   c = canvas.getContext("2d");
 
-  tableWidth.value = canvas.width / 2;
-  tableHeight.value = tableWidth.value / 2;
-  tableBorderWidth.value = tableWidth.value / 30;
-  tablePocketRadius.value = tableBorderWidth.value * 0.75;
-  tableStartX = canvas.width / 2 - tableWidth.value / 2;
-  tableStartY = canvas.height / 2 - tableHeight.value / 2;
+  tableWidth = canvas.width / 2;
+  tableHeight = tableWidth / 2;
+  tableBorderWidth = tableWidth / 30;
+  tablePocketRadius = tableBorderWidth * 0.75;
+  tableStartX = canvas.width / 2 - tableWidth / 2;
+  tableStartY = canvas.height / 2 - tableHeight / 2;
 
   createRails();
   createPockets();
 
   cueBallCoords.x = canvas.width / 2;
   cueBallCoords.y = canvas.height / 2;
-  ballSpeedPerSec.value = tableWidth.value / 3;
+  ballRadius = tablePocketRadius * 0.7;
+  ballSpeedPerSec = tableWidth / 2.5;
+  ballDampeningPerSec = tableWidth / 1500;
 
   createBalls();
 
-  cueStickLength.value = tableWidth.value * 0.8;
-  cueStickWidth.value = cueStickLength.value * 0.02;
-  cueStickMaxDrawingDistance.value = cueStickLength.value * 0.3;
+  cueStickLength = tableWidth * 0.8;
+  cueStickWidth = cueStickLength * 0.02;
+  cueStickMaxDrawingDistance = cueStickLength * 0.3;
 
   draw(); // init
 });
@@ -118,6 +120,7 @@ function draw() {
   drawTable();
   drawBalls();
   if (cueBall && !isAnyBallMoving()) drawCueStick();
+  drawHintLine();
 
   checkCollisions(differenceMs);
 
@@ -134,7 +137,7 @@ const cueStickHandleColor = 'brown';
 const cueStickMainColor = 'burlywood';
 
 function resetGame() {
-  clearArray(balls.value);
+  clearArray(balls);
 
   cueBallCoords.x = canvas.width / 2;
   cueBallCoords.y = canvas.height / 2;
@@ -143,8 +146,10 @@ function resetGame() {
 
 function checkCollisions(differenceMs) {
   const ballsToRemove = [];
-  balls.value.forEach(ball => {
-    if (isPocketsCollision(ball.x, ball.y, ballRadius.value)) {
+  for (let i = 0; i < balls.length; i++) {
+    const ball = balls[i];
+
+    if (isPocketsCollision(ball.x, ball.y, ballRadius)) {
       ballsToRemove.push(ball);
       ball.isMoving = false;
 
@@ -156,30 +161,64 @@ function checkCollisions(differenceMs) {
       }
     }
 
-    if (isRailsCollision(ball.x, ball.y, ballRadius.value)) {
-      if (!isRailsCollision(ball.x - 5, ball.y, ballRadius.value) || !isRailsCollision(ball.x + 5, ball.y, ballRadius.value)) {
+    if (isRailsCollision(ball.x, ball.y, ballRadius)) {
+      if (!isRailsCollision(ball.x - 5, ball.y, ballRadius) || !isRailsCollision(ball.x + 5, ball.y, ballRadius)) {
         ball.speedPerSecX *= -1;
         ball.x += ball.speedPerSecX / 1000 * differenceMs * 2;
-      } else if (!isRailsCollision(ball.x, ball.y - 5, ballRadius.value) || !isRailsCollision(ball.x, ball.y + 5, ballRadius.value)) {
+      } else if (!isRailsCollision(ball.x, ball.y - 5, ballRadius) || !isRailsCollision(ball.x, ball.y + 5, ballRadius)) {
         ball.speedPerSecY *= -1;
         ball.y += ball.speedPerSecY / 1000 * differenceMs * 2;
       }
     }
 
-    // TODO if collides with other balls
+    const ballCollidedWith = getAnyBallCollidedWith(ball.x, ball.y, ballRadius, ball.ballId);
+    if (ballCollidedWith) {
+      if (!ball.isColliding) { // if not already colliding
+        if (ballCollidedWith.isMoving && ball.isMoving) {
+          const collisionInfo = circleCollisionTwoMoving(ball.speedPerSecX, ball.speedPerSecY, ballCollidedWith.speedPerSecX, ballCollidedWith.speedPerSecY);
+
+          ball.speedPerSecX = collisionInfo.firstDx;
+          ball.speedPerSecX = collisionInfo.firstDy;
+
+          ballCollidedWith.speedPerSecX = collisionInfo.secondDx;
+          ballCollidedWith.speedPerSecX = collisionInfo.secondDy;
+
+        } else if (ballCollidedWith.isMoving || ball.isMoving) {
+          // TODO Two-dimensional collision with one moving and one stationary object
+          //const movingBall = ball.isMoving ? ball : ballCollidedWith;
+          //const stationaryBall = ball.isMoving ? ballCollidedWith : ball;
+
+          const collisionInfo = circleCollisionTwoMoving(ball.speedPerSecX, ball.speedPerSecY, ballCollidedWith.speedPerSecX, ballCollidedWith.speedPerSecY);
+
+          ball.speedPerSecX = collisionInfo.firstDx;
+          ball.speedPerSecX = collisionInfo.firstDy;
+
+          ballCollidedWith.speedPerSecX = collisionInfo.secondDx;
+          ballCollidedWith.speedPerSecX = collisionInfo.secondDy;
+
+        } else {
+          console.log("Something went wrong: non-moving balls collision " + ball + " " + ballCollidedWith);
+        }
+      }
+    } else if (ball.isColliding) {
+      ball.isColliding = false; // not colliding anymore
+    }
 
     if (ball.x < 0 || ball.x > canvas.width || ball.y < 0 || ball.y > canvas.height) ballsToRemove.push(ball);
-  })
+  }
 
-  ballsToRemove.forEach(ball => removeBall(ball));
+  for (let i = 0; i < ballsToRemove.length; i++) {
+    const ball = ballsToRemove[i];
+    removeBall(ball);
+  }
 }
 
 // table
 
-const tableWidth = ref(100);
-const tableHeight = ref(100);
-const tableBorderWidth = ref(10);
-const tablePocketRadius = ref(5);
+let tableWidth = 100;
+let tableHeight = 100;
+let tableBorderWidth = 10;
+let tablePocketRadius = 5;
 let tableStartX = 0;
 let tableStartY = 0;
 
@@ -188,17 +227,17 @@ const tablePockets = [];
 
 function drawTable() {
   c.fillStyle = tableColor;
-  c.fillRect(tableStartX, tableStartY, tableWidth.value, tableHeight.value);
+  c.fillRect(tableStartX, tableStartY, tableWidth, tableHeight);
 
   drawTableRails();
   drawTablePockets();
 }
 
 function createRails() {
-  tableRails.push({ x: tableStartX, y: tableStartY, width: tableWidth.value, height: tableBorderWidth.value })
-  tableRails.push({ x: tableStartX, y: tableStartY, width: tableBorderWidth.value, height: tableHeight.value })
-  tableRails.push({ x: tableStartX, y: tableStartY + tableHeight.value - tableBorderWidth.value, width: tableWidth.value, height: tableBorderWidth.value })
-  tableRails.push({ x: tableStartX + tableWidth.value - tableBorderWidth.value, y: tableStartY, width: tableBorderWidth.value, height: tableHeight.value })
+  tableRails.push({ x: tableStartX, y: tableStartY, width: tableWidth, height: tableBorderWidth })
+  tableRails.push({ x: tableStartX, y: tableStartY, width: tableBorderWidth, height: tableHeight })
+  tableRails.push({ x: tableStartX, y: tableStartY + tableHeight - tableBorderWidth, width: tableWidth, height: tableBorderWidth })
+  tableRails.push({ x: tableStartX + tableWidth - tableBorderWidth, y: tableStartY, width: tableBorderWidth, height: tableHeight })
 }
 
 function isRailsCollision(x, y, radius) {
@@ -216,25 +255,25 @@ function isRailCollision(rail, x, y, radius) {
 function drawTableRails() {
   c.fillStyle = tableRailColor;
 
-  c.fillRect(tableStartX, tableStartY, tableWidth.value, tableBorderWidth.value);
-  c.fillRect(tableStartX, tableStartY, tableBorderWidth.value, tableHeight.value);
-  c.fillRect(tableStartX, tableStartY + tableHeight.value - tableBorderWidth.value, tableWidth.value, tableBorderWidth.value);
-  c.fillRect(tableStartX + tableWidth.value - tableBorderWidth.value, tableStartY, tableBorderWidth.value, tableHeight.value);
+  c.fillRect(tableStartX, tableStartY, tableWidth, tableBorderWidth);
+  c.fillRect(tableStartX, tableStartY, tableBorderWidth, tableHeight);
+  c.fillRect(tableStartX, tableStartY + tableHeight - tableBorderWidth, tableWidth, tableBorderWidth);
+  c.fillRect(tableStartX + tableWidth - tableBorderWidth, tableStartY, tableBorderWidth, tableHeight);
 }
 
 function createPockets() {
-  tablePockets.push({ x: tableStartX + tableBorderWidth.value, y: tableStartY + tableBorderWidth.value })
-  tablePockets.push({ x: tableStartX + tableBorderWidth.value, y: tableStartY + tableHeight.value - tableBorderWidth.value })
-  tablePockets.push({ x: tableStartX + tableWidth.value / 2, y: tableStartY + tableBorderWidth.value })
-  tablePockets.push({ x: tableStartX + tableWidth.value / 2, y: tableStartY + tableHeight.value - tableBorderWidth.value })
-  tablePockets.push({ x: tableStartX + tableWidth.value - tableBorderWidth.value, y: tableStartY + tableBorderWidth.value })
-  tablePockets.push({ x: tableStartX + tableWidth.value - tableBorderWidth.value, y: tableStartY + tableHeight.value - tableBorderWidth.value })
+  tablePockets.push({ x: tableStartX + tableBorderWidth, y: tableStartY + tableBorderWidth })
+  tablePockets.push({ x: tableStartX + tableBorderWidth, y: tableStartY + tableHeight - tableBorderWidth })
+  tablePockets.push({ x: tableStartX + tableWidth / 2, y: tableStartY + tableBorderWidth })
+  tablePockets.push({ x: tableStartX + tableWidth / 2, y: tableStartY + tableHeight - tableBorderWidth })
+  tablePockets.push({ x: tableStartX + tableWidth - tableBorderWidth, y: tableStartY + tableBorderWidth })
+  tablePockets.push({ x: tableStartX + tableWidth - tableBorderWidth, y: tableStartY + tableHeight - tableBorderWidth })
 }
 
 function isPocketsCollision(x, y, radius) {
   let isCollision = false;
   tablePockets.forEach(pocket => {
-    if (distanceBetweenPoints(x, y, pocket.x, pocket.y) <= radius + tablePocketRadius.value) isCollision = true;
+    if (distanceBetweenPoints(x, y, pocket.x, pocket.y) <= radius + tablePocketRadius) isCollision = true;
   })
   return isCollision;
 }
@@ -242,140 +281,166 @@ function isPocketsCollision(x, y, radius) {
 function drawTablePockets() {
   c.fillStyle = tablePocketColor;
 
-  tablePockets.forEach(pocket => {
+  for (let i = 0; i < tablePockets.length; i++) {
+    const pocket = tablePockets[i];
     c.beginPath();
-    c.arc(pocket.x, pocket.y, tablePocketRadius.value, 0, 2*Math.PI);
+    c.arc(pocket.x, pocket.y, tablePocketRadius, 0, 2*Math.PI);
     c.fill();
-  })
+  }
 }
 
 // balls (cue-ball & numbers 1-9)
 
-const ballRadius = computed(() => tablePocketRadius.value * 0.7);
-const ballSpeedPerSec = ref(10);
+let ballRadius = 7;
+let ballSpeedPerSec = 10;
+let ballDampeningPerSec = 1;
 const cueBallCoords = { x: 0, y: 0 };
 
+let ballId = 0;
 let cueBall = null;
-const balls = ref([]);
+const balls = [];
 
 function createBalls() {
   createCueBall();
 
-  const radius = ballRadius.value;
+  const radius = ballRadius;
 
   for (let i = 1; i < 10; i++) {
-    let randomX = randomBetween(tableStartX, tableStartX + tableWidth.value);
-    let randomY = randomBetween(tableStartY, tableStartY + tableHeight.value);
+    let randomX = randomBetween(tableStartX, tableStartX + tableWidth);
+    let randomY = randomBetween(tableStartY, tableStartY + tableHeight);
     while (
         isRailsCollision(randomX, randomY, radius)
-        || isBallsCollision(randomX, randomY, radius)
+        || getAnyBallCollidedWith(randomX, randomY, radius)
         || isPocketsCollision(randomX, randomY, radius)
         || isCloseToMid(randomX, randomY, radius)
         ) {
       // randomize new coords
-      randomX = randomBetween(tableStartX, tableStartX + tableWidth.value);
-      randomY = randomBetween(tableStartY, tableStartY + tableHeight.value);
+      randomX = randomBetween(tableStartX, tableStartX + tableWidth);
+      randomY = randomBetween(tableStartY, tableStartY + tableHeight);
     }
-    balls.value.push({ x: randomX, y: randomY, value: i, color: randomColor(),
-      isMoving: false, speedPerSecX: randomBallSpeed(), speedPerSecY: randomBallSpeed() })
+    balls.push({ ballId: ballId++, x: randomX, y: randomY, value: i, color: randomColor(),
+      isMoving: false, isColliding: false, speedPerSecX: randomBallSpeed(), speedPerSecY: randomBallSpeed() })
   }
 }
 
 function createCueBall() {
-  cueBall = { x: cueBallCoords.x, y: cueBallCoords.y, value: 0, color: cueBallColor,
-    isMoving: false, speedPerSecX: randomBallSpeed(), speedPerSecY: randomBallSpeed() };
-  balls.value.push(cueBall);
+  cueBall = { ballId: ballId++, x: cueBallCoords.x, y: cueBallCoords.y, value: 0, color: cueBallColor,
+    isMoving: false, speedPerSecX: 0, speedPerSecY: 0 };
+  balls.push(cueBall);
 }
 
 function randomBallSpeed() {
-  return randomBetween(ballSpeedPerSec.value * 0.5, ballSpeedPerSec.value) * randomNegPos();
+  return randomBetween(ballSpeedPerSec * 0.5, ballSpeedPerSec) * randomNegPos();
 }
 
 function randomNegPos() {
   return (randomBetween(0, 1) - 0.5 <= 0) ? -1 : 1;
 }
 
-function isBallsCollision(x, y, radius) {
-  let isCollision = false;
-  balls.value.forEach(ball => {
-    if (isCircleCollision(x, y, radius, ball.x, ball.y)) isCollision = true;
-  })
-  return isCollision;
-}
-
 function isCloseToMid(x, y, radius) {
   return isCircleCollision(x, y, radius, cueBallCoords.x, cueBallCoords.y, radius * 9);
 }
 
+const ballMinMoveSpeedPx = 2;
+
 function moveBalls(differenceMs) {
-  balls.value.forEach(ball => {
-    if (ball.isMoving) {
-      const moveDeltaX = ball.speedPerSecX / 1000 * differenceMs;
-      ball.x += moveDeltaX;
-      const moveDeltaY = ball.speedPerSecY / 1000 * differenceMs;
-      ball.y += moveDeltaY;
+  for (let i = 0; i < balls.length; i++) {
+    const ball = balls[i];
+    if (ball.isMoving || ball.isColliding) {
+      if (ball.speedPerSecX !== 0) {
+        ball.x += ball.speedPerSecX / 1000 * differenceMs;
+        ball.speedPerSecX += getBallSpeedDampening(differenceMs, ball.speedPerSecX);
+        if (Math.abs(ball.speedPerSecX) < ballMinMoveSpeedPx) {
+          ball.speedPerSecX = 0;
+        }
+      }
+
+      if (ball.speedPerSecY !== 0) {
+        ball.y += ball.speedPerSecY / 1000 * differenceMs;
+        ball.speedPerSecY += getBallSpeedDampening(differenceMs, ball.speedPerSecY);
+        if (Math.abs(ball.speedPerSecY) < ballMinMoveSpeedPx) {
+          ball.speedPerSecY = 0;
+        }
+      }
+
+      if (ball.speedPerSecX === 0 && ball.speedPerSecY === 0) ball.isMoving = false;
     }
-  })
+  }
 
   if (!isAnyBallMoving() && !cueBall) {
     createCueBall();
   }
 }
 
+function getBallSpeedDampening(differenceMs, number) {
+  return number * -1 * ballDampeningPerSec / 1000 * differenceMs;
+}
+
 function isAnyBallMoving() {
   let anyBallMoving = false;
-  balls.value.forEach(ball => {
+  balls.forEach(ball => {
     if (ball.isMoving) anyBallMoving = true;
   })
   return anyBallMoving;
 }
 
 function removeBall(ball) {
-  removeItem(balls.value, ball);
+  removeItem(balls, ball);
+}
+
+function getAnyBallCollidedWith(x, y, radius, ballId = -1) {
+  let ballCollidedWith = null;
+  for (let i = 0; i < balls.length; i++) {
+    const ball = balls[i];
+    if (ballId === ball.ballId) continue;
+    if (isCircleCollision(x, y, radius, ball.x, ball.y)) ballCollidedWith = ball;
+  }
+  return ballCollidedWith;
 }
 
 function drawBalls() {
   c.strokeStyle = 'white';
   c.lineWidth = 1;
-  balls.value.forEach(ball => {
+  for (let i = 0; i < balls.length; i++) {
+    const ball = balls[i];
     c.fillStyle = ball.color;
 
     c.beginPath();
-    c.arc(ball.x, ball.y, ballRadius.value, 0, 2*Math.PI);
+    c.arc(ball.x, ball.y, ballRadius, 0, 2*Math.PI);
     c.fill();
     c.stroke();
 
     c.fillStyle = 'white';
-    c.font = '' + ballRadius.value * 1.5 + 'px Arial'; // emoji size with font
-    c.fillText(ball.value, ball.x - ballRadius.value / 2 + 1, ball.y + ballRadius.value / 2);
-  })
+    c.font = '' + ballRadius * 1.5 + 'px Arial'; // emoji size with font
+    c.fillText(ball.value, ball.x - ballRadius / 2 + 1, ball.y + ballRadius / 2);
+  }
 }
 
 // cue-stick
 
-const cueStickLength = ref(70);
-const cueStickWidth = ref(5);
-const cueAngleRadian = ref(0);
-const cueStickMaxDrawingDistance = ref(20);
+let cueStickLength = 70;
+let cueStickWidth = 5;
+let cueAngleRadian = 0;
+let cueStickMaxDrawingDistance = 20;
 
 function drawCueStick() {
   c.lineCap = 'round';
-  c.lineWidth = cueStickWidth.value;
+  c.lineWidth = cueStickWidth;
 
   let cueCenteringPos;
   if (mousePressedPos) {
     const mousePressToBallDistance = distanceBetweenPoints(cueBallCoords.x, cueBallCoords.y, mousePressedPos.x, mousePressedPos.y);
     const distance = Math.max(0, Math.min(
-        cueStickMaxDrawingDistance.value,
+        cueStickMaxDrawingDistance,
         distanceBetweenPoints(cueBallCoords.x, cueBallCoords.y, mousePos.value.x, mousePos.value.y) - mousePressToBallDistance));
-    cueCenteringPos = projectPoint(cueBallCoords.x, cueBallCoords.y, distance, cueAngleRadian.value);
+    cueCenteringPos = projectPoint(cueBallCoords.x, cueBallCoords.y, distance, cueAngleRadian);
   } else {
     cueCenteringPos = cueBallCoords;
   }
 
   c.strokeStyle = cueStickMainColor;
-  let lineStartPoint = projectPoint(cueCenteringPos.x, cueCenteringPos.y, ballRadius.value * 2, cueAngleRadian.value);
-  let lineEndPoint = projectPoint(lineStartPoint.x, lineStartPoint.y, cueStickLength.value * 0.7, cueAngleRadian.value);
+  let lineStartPoint = projectPoint(cueCenteringPos.x, cueCenteringPos.y, ballRadius * 2, cueAngleRadian);
+  let lineEndPoint = projectPoint(lineStartPoint.x, lineStartPoint.y, cueStickLength * 0.7, cueAngleRadian);
 
   c.beginPath();
   c.moveTo(lineStartPoint.x, lineStartPoint.y);
@@ -384,12 +449,32 @@ function drawCueStick() {
 
   c.strokeStyle = cueStickHandleColor;
   lineStartPoint = lineEndPoint;
-  lineEndPoint = projectPoint(lineStartPoint.x, lineStartPoint.y, cueStickLength.value * 0.3, cueAngleRadian.value);
+  lineEndPoint = projectPoint(lineStartPoint.x, lineStartPoint.y, cueStickLength * 0.3, cueAngleRadian);
 
   c.beginPath();
   c.moveTo(lineStartPoint.x, lineStartPoint.y);
   c.lineTo(lineEndPoint.x, lineEndPoint.y);
   c.stroke();
+}
+
+const isDrawHintLine = true;
+
+function drawHintLine() {
+  if (isDrawHintLine && mousePressedPos) {
+    const cueBallAngleRadian = angleBetweenPointsRadian(mousePressedPos.x, mousePressedPos.y, cueBallCoords.x, cueBallCoords.y);
+
+    c.lineCap = 'round';
+    c.lineWidth = 1;
+    c.strokeStyle = 'grey';
+
+    let lineStartPoint = projectPoint(cueBallCoords.x, cueBallCoords.y, ballRadius * 2, cueBallAngleRadian);
+    let lineEndPoint = projectPoint(lineStartPoint.x, lineStartPoint.y, cueStickLength * 2, cueBallAngleRadian);
+
+    c.beginPath();
+    c.moveTo(lineStartPoint.x, lineStartPoint.y);
+    c.lineTo(lineEndPoint.x, lineEndPoint.y);
+    c.stroke();
+  }
 }
 
 // mouse handlers
@@ -406,7 +491,13 @@ function mouseMoveHandler(e) {
   if (!isAppActive()) return;
 
   mousePos.value = getCanvasMouseEventOffsetPos(e, canvas, true);
-  cueAngleRadian.value = angleBetweenPointsRadian(cueBallCoords.x, cueBallCoords.y, mousePos.value.x, mousePos.value.y);
+  cueAngleRadian = angleBetweenPointsRadian(cueBallCoords.x, cueBallCoords.y, mousePos.value.x, mousePos.value.y);
+
+  if (mousePressedPos) {
+    const oldDistance = distanceBetweenPoints(cueBallCoords.x, cueBallCoords.y, mousePressedPos.x, mousePressedPos.y);
+    const newDistance = distanceBetweenPoints(cueBallCoords.x, cueBallCoords.y, mousePos.value.x, mousePos.value.y);
+    if (oldDistance > newDistance) mousePressedPos = mousePos.value; // more natural cue-stick grabbing
+  }
 }
 
 function mouseDownHandler(e) {
@@ -419,11 +510,18 @@ function mouseDownHandler(e) {
 function mouseUpHandler(e) {
   if (!isAppActive() || e.which !== 1) return;
 
-  if (cueBall && !isAnyBallMoving() && mousePressedPos
-      && distanceBetweenPoints(mousePressedPos.x, mousePressedPos.y, mousePos.value.x, mousePos.value.y) > 3) {
-    // launch cue-ball
-    cueBall.isMoving = true;
-    balls.value.forEach(ball => ball.isMoving = true);
+  if (cueBall && !isAnyBallMoving() && mousePressedPos) {
+    const mousePressedDistance = distanceBetweenPoints(cueBallCoords.x, cueBallCoords.y, mousePressedPos.x, mousePressedPos.y);
+    const angledMousePressedPoint = projectPoint(cueBallCoords.x, cueBallCoords.y, mousePressedDistance, cueAngleRadian);
+    const drawDistance = distanceBetweenPoints(angledMousePressedPoint.x, angledMousePressedPoint.y, mousePos.value.x, mousePos.value.y);
+    if (drawDistance > 3) {
+      // launch cue-ball
+      const speedDrawFactor = 0.3 + drawDistance / cueStickMaxDrawingDistance * 0.7;
+      cueBall.speedPerSecX = Math.cos(cueAngleRadian + Math.PI) * ballSpeedPerSec * speedDrawFactor;
+      cueBall.speedPerSecY = Math.sin(cueAngleRadian + Math.PI) * ballSpeedPerSec * speedDrawFactor;
+      cueBall.isMoving = true;
+      //balls.forEach(ball => ball.isMoving = true);
+    }
   }
 
   mousePressed.value = false;

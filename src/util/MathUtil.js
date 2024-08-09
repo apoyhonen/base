@@ -5,6 +5,7 @@ export {
     projectPoint,
     distanceBetweenPoints, distanceToLine,
     isRectCollision, isCircleCollision, isRectCircleCollision,
+    twoCircleCollisionPoint, circleCollisionTwoMoving, circleCollisionOneMovingOneStationary,
     easeOutCubic, easeInCubic, testEasing,
 };
 
@@ -100,6 +101,41 @@ function isRectCircleCollision(rectX, rectY, rectWidth, rectHeight, circleX, cir
     const dx = distanceX - halfWidth;
     const dy = distanceY - halfHeight;
     return dx * dx + dy * dy <= circleRadius * circleRadius;
+}
+
+function twoCircleCollisionPoint(firstX, firstY, firstRadius, secondX, secondY, secondRadius) {
+    const collisionPointX = ((firstX * secondRadius) + (secondX * firstRadius)) / (firstRadius + secondRadius);
+    const collisionPointY = ((firstY * secondRadius) + (secondY * firstRadius)) / (firstRadius + secondRadius);
+    return { x: collisionPointX, y: collisionPointY };
+}
+
+function circleCollisionTwoMoving(firstDx, firstDy, secondDx, secondDy, massOptions = null) {
+    // first assume circles are same mass regardless of size
+    let firstMass = 1;
+    let secondMass = 1;
+
+    if (massOptions) {
+        if (massOptions['firstMass']) firstMass = massOptions['firstMass'];
+        if (massOptions['secondMass']) firstMass = massOptions['secondMass'];
+    }
+
+    const newFirstDx = (firstDx * (firstMass - secondMass) + (2 * secondMass * secondDx)) / (firstMass + secondMass);
+    const newFirstDy = (firstDy * (firstMass - secondMass) + (2 * secondMass * secondDy)) / (firstMass + secondMass);
+    const newSecondDx = (secondDx * (secondMass - firstMass) + (2 * firstMass * firstDx)) / (firstMass + secondMass);
+    const newSecondDy = (secondDy * (secondMass - firstMass) + (2 * firstMass * firstDy)) / (firstMass + secondMass);
+
+    return { firstDx: newFirstDx, firstDy: newFirstDy, secondDx: newSecondDx, secondDy: newSecondDy };
+}
+
+function circleCollisionOneMovingOneStationary(movingX, movingY, movingDx, movingDy, staticX, staticY, remainStatic = false) {
+    // Two-dimensional collision with one moving and one static object
+    if (remainStatic) {
+        // static will remain stationary
+        //return { movingDx: , movingDy: , staticDx: 0, staticDy: 0 };
+    } else {
+        // both objects will move
+        //return { movingDx: , movingDy: , staticDx: , staticDy:  };
+    }
 }
 
 // easing
