@@ -3,13 +3,37 @@
     <tr>
 
       <td class="button-cell">
-        <template v-for="(app, index) in apps" :key="'buttonTemplate-' + index">
+        <h2>Games</h2>
+        <template v-for="(app, index) in games" :key="'game-button-' + index">
           <button class="app-button"
                   @click="shownApp = app.refName"
-                  :class="app.status === 1 ? 'not-implemented' : app.status === 2 ? 'in-development' : ''">
+                  :class="getButtonClass(app.status)">
             {{ app.name }}
           </button>
-          <br>
+        </template>
+        <h2>Arcades</h2>
+        <template v-for="(app, index) in arcadeGames" :key="'arcade-button-' + index">
+          <button class="app-button"
+                  @click="shownApp = app.refName"
+                  :class="getButtonClass(app.status)">
+            {{ app.name }}
+          </button>
+        </template>
+        <h2>Boardgames</h2>
+        <template v-for="(app, index) in boardGames" :key="'board-button-' + index">
+          <button class="app-button"
+                  @click="shownApp = app.refName"
+                  :class="getButtonClass(app.status)">
+            {{ app.name }}
+          </button>
+        </template>
+        <h2>Animations</h2>
+        <template v-for="(app, index) in animations" :key="'animation-button-' + index">
+          <button class="app-button"
+                  @click="shownApp = app.refName"
+                  :class="getButtonClass(app.status)">
+            {{ app.name }}
+          </button>
         </template>
       </td>
 
@@ -26,7 +50,6 @@
         <MineSweeper v-if="shownApp === 'minesweeper'"></MineSweeper>
         <CircleMotion v-if="shownApp === 'circlemotion'"></CircleMotion>
         <CanvasCharts v-if="shownApp === 'canvascharts'"></CanvasCharts>
-        <MiscTesting v-if="shownApp === 'misctesting'"></MiscTesting>
       </td>
 
     </tr>
@@ -47,26 +70,30 @@ import MineSweeper from "@/apps/MineSweeperApp.vue";
 import Othello from "@/apps/OthelloApp.vue";
 import CircleMotion from "@/apps/CircleMotionAnimationApp.vue";
 import CanvasCharts from "@/apps/CanvasCharts.vue";
-import MiscTesting from "@/apps/MiscTesting.vue";
 
 import { ref } from "vue";
 
 const shownApp = ref("pool");
 
-const apps = [];
-apps.push({ refName: 'rogue', name: 'Roguelike (TBA)', status: 1 });
-apps.push({ refName: 'digger', name: 'Digger (TBA)', status: 1 });
-apps.push({ refName: 'pool', name: 'Pool (in-progress)', status: 2 });
-apps.push({ refName: 'platforms', name: 'Platforms' });
-apps.push({ refName: 'swish', name: 'Swish' });
-apps.push({ refName: 'othello', name: 'Othello' });
-apps.push({ refName: 'snake', name: 'Snake' });
-apps.push({ refName: 'pong', name: 'Pong' });
-apps.push({ refName: 'breakout', name: 'Breakout' });
-apps.push({ refName: 'minesweeper', name: 'Minesweeper' });
-apps.push({ refName: 'circlemotion', name: 'CircleMotion' })
-apps.push({ refName: 'canvascharts', name: 'Auto-Charts' });
-apps.push({ refName: 'misctesting', name: 'Misc Testing' });
+const games = [];
+games.push({ refName: 'rogue', name: 'Rogue (TBA)', status: 1 });
+games.push({ refName: 'digger', name: 'Digger (TBA)', status: 1 });
+games.push({ refName: 'platforms', name: 'Platforms' });
+games.push({ refName: 'swish', name: 'Swish' });
+
+const arcadeGames = [];
+arcadeGames.push({ refName: 'pool', name: 'Pool (in-progress)', status: 2 });
+arcadeGames.push({ refName: 'snake', name: 'Snake' });
+arcadeGames.push({ refName: 'pong', name: 'Pong' });
+arcadeGames.push({ refName: 'breakout', name: 'Breakout' });
+arcadeGames.push({ refName: 'minesweeper', name: 'Minesweeper' });
+
+const boardGames = [];
+boardGames.push({ refName: 'othello', name: 'Othello' });
+
+const animations = [];
+animations.push({ refName: 'circlemotion', name: 'CircleMotion' })
+animations.push({ refName: 'canvascharts', name: 'Auto-Charts' });
 
 /*
 import Rogue from "@/apps/RogueApp.vue";
@@ -81,10 +108,14 @@ import MineSweeper from "@/apps/MineSweeperApp.vue";
 import Othello from "@/apps/OthelloApp.vue";
 import CircleMotion from "@/apps/CircleMotionAnimationApp.vue";
 import CanvasCharts from "@/apps/CanvasCharts.vue";
-import MiscTesting from "@/apps/MiscTesting.vue";
 
+import MiscTesting from "@/apps/MiscTesting.vue";
 import CanvasChartsOriginal from "@/apps/CanvasChartsOriginal.vue";
 */
+
+function getButtonClass(status) {
+  return status === 1 ? 'not-implemented' : status === 2 ? 'in-development' : '';
+}
 </script>
 
 <style>
