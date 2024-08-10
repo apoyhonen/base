@@ -52,6 +52,7 @@ import {
 } from "@/util/MathUtil";
 import { getCanvasMouseEventOffsetPos } from "@/util/LayoutUtil";
 import { clearArray, removeItem } from "@/util/ArrayUtil";
+import { getPoolEquipmentSizes, getPoolTableSizes } from "@/engines/pool/PoolSizes";
 
 const canvasName = 'poolCanvas';
 let canvas = null;
@@ -66,27 +67,38 @@ onMounted(() => {
   canvas.height = window.innerHeight * 0.7;
   c = canvas.getContext("2d");
 
-  tableWidth = canvas.width / 2;
-  tableHeight = tableWidth / 2;
-  tableBorderSize = tableWidth / 30;
-  tablePocketRadius = tableBorderSize * 0.75;
+  tableWidth = canvas.width * 0.75;
+
+  const tableSizes = getPoolTableSizes(tableWidth);
+  tableHeight = tableSizes.tableHeight;
+  railSize = tableSizes.railWidth;
+  playAreaWidth = tableSizes.playAreaWidth;
+  playAreaHeight = tableSizes.playAreaHeight;
+  cushionSize = tableSizes.cushionWidth;
+  mouthCushionSize = tableSizes.mouthCushionWidth;
+  pocketRadius = tableSizes.pocketRadius;
+
   tableStartX = canvas.width / 2 - tableWidth / 2;
   tableStartY = canvas.height / 2 - tableHeight / 2;
 
   createRails();
+  createCushions();
   createPockets();
 
   cueBallCoords.x = canvas.width / 2;
   cueBallCoords.y = canvas.height / 2;
-  ballRadius = tablePocketRadius * 0.7;
-  ballSpeedPerSec = tableWidth / 2.5;
+
+  const equipmentSizes = getPoolEquipmentSizes(tableWidth);
+  ballRadius = equipmentSizes.ballRadius;
+  cueStickLength = equipmentSizes.stickLength;
+  cueStickBaseWidthRadius = equipmentSizes.stickBaseRadius;
+  cueStickTipWidthRadius = equipmentSizes.stickTipRadius;
+
+  maxBallSpeedPerSec = tableWidth / 2.5;
   ballDampeningPerSec = tableWidth / 1500;
+  cueStickMaxDrawingDistance = cueStickLength * 0.3;
 
   createBalls();
-
-  cueStickLength = tableWidth * 0.8;
-  cueStickWidth = cueStickLength * 0.02;
-  cueStickMaxDrawingDistance = cueStickLength * 0.3;
 
   draw(); // init
 });
@@ -133,6 +145,7 @@ function draw() {
 
 const tableColor = 'seagreen';
 const tableRailColor = 'brown';
+const tableCushionColor = 'green';
 const tablePocketColor = 'black';
 const cueStickHandleColor = 'brown';
 const cueStickMainColor = 'burlywood';
@@ -162,11 +175,11 @@ function checkCollisions(differenceMs) {
       }
     }
 
-    if (isRailsCollision(ball.x, ball.y, ballRadius)) {
-      if (!isRailsCollision(ball.x - 5, ball.y, ballRadius) || !isRailsCollision(ball.x + 5, ball.y, ballRadius)) {
+    if (isCushionsCollision(ball.x, ball.y, ballRadius)) {
+      if (!isCushionsCollision(ball.x - 5, ball.y, ballRadius) || !isCushionsCollision(ball.x + 5, ball.y, ballRadius)) {
         ball.speedPerSecX *= -1;
         ball.x += ball.speedPerSecX / 1000 * differenceMs * 2;
-      } else if (!isRailsCollision(ball.x, ball.y - 5, ballRadius) || !isRailsCollision(ball.x, ball.y + 5, ballRadius)) {
+      } else if (!isCushionsCollision(ball.x, ball.y - 5, ballRadius) || !isCushionsCollision(ball.x, ball.y + 5, ballRadius)) {
         ball.speedPerSecY *= -1;
         ball.y += ball.speedPerSecY / 1000 * differenceMs * 2;
       }
@@ -192,11 +205,6 @@ function checkCollisions(differenceMs) {
           ballCollidedWith.y += ballCollidedWith.speedPerSecY / 1000 * differenceMs * 2;
 
         } else if (ballCollidedWith.isMoving || ball.isMoving) {
-          // TODO Two-dimensional collision with one moving and one stationary object
-          //const movingBall = ball.isMoving ? ball : ballCollidedWith;
-          //const stationaryBall = ball.isMoving ? ballCollidedWith : ball;
-
-          //const collisionInfo = circleCollisionTwoMoving(ball.speedPerSecX, ball.speedPerSecY, ballCollidedWith.speedPerSecX, ballCollidedWith.speedPerSecY);
           const movingBall = ball.isMoving ? ball : ballCollidedWith;
           const stationaryBall = ball.isMoving ? ballCollidedWith : ball;
           const collisionInfo = circleCollisionMovingAndStationary(
@@ -215,7 +223,7 @@ function checkCollisions(differenceMs) {
           stationaryBall.isMoving = true;
 
         } else {
-          console.log("Something went wrong: non-moving balls collision " + ball + " " + ballCollidedWith);
+          console.log("Something went wrong: non-moving balls collision");
           console.log("ballId: " + ball.ballId + ', dx: ' + ball.speedPerSecX + ', dy: ' + ball.speedPerSecY);
           console.log("otherId: " + ballCollidedWith.ballId + ', dx: ' + ballCollidedWith.speedPerSecX + ', dy: ' + ballCollidedWith.speedPerSecY);
         }
@@ -223,7 +231,7 @@ function checkCollisions(differenceMs) {
         // nudge both circles away from each other
 
         const collisionAngle = angleBetweenPointsRadian(ball.x, ball.y, ballCollidedWith.x, ballCollidedWith.y);
-        const magnitude = ballSpeedPerSec / 1000 * differenceMs * 2;
+        const magnitude = maxBallSpeedPerSec / 1000 * differenceMs * 2;
 
         const ballPoint = projectPoint(ball.x, ball.y, magnitude, collisionAngle - Math.PI);
         ball.x = ballPoint.x;
@@ -250,13 +258,19 @@ function checkCollisions(differenceMs) {
 
 let tableWidth = 100;
 let tableHeight = 100;
-let tableBorderSize = 10;
-let tablePocketRadius = 5;
+let playAreaWidth = 80;
+let playAreaHeight = 80;
+let railSize = 10;
+let cushionSize = 10;
+let mouthCushionSize = 5;
+let pocketRadius = 5;
 let tableStartX = 0;
 let tableStartY = 0;
 
 const tableRails = [];
 const tablePockets = [];
+const tableCushions = [];
+const tableCushionMouthPieces = [];
 
 function drawTable() {
   c.fillStyle = tableColor;
@@ -267,18 +281,115 @@ function drawTable() {
 }
 
 function createRails() {
-  tableRails.push({ x: tableStartX, y: tableStartY, width: tableWidth, height: tableBorderSize })
-  tableRails.push({ x: tableStartX, y: tableStartY, width: tableBorderSize, height: tableHeight })
-  tableRails.push({ x: tableStartX, y: tableStartY + tableHeight - tableBorderSize, width: tableWidth, height: tableBorderSize })
-  tableRails.push({ x: tableStartX + tableWidth - tableBorderSize, y: tableStartY, width: tableBorderSize, height: tableHeight })
+  tableRails.push({ x: tableStartX, y: tableStartY, width: tableWidth, height: railSize })
+  tableRails.push({ x: tableStartX, y: tableStartY, width: railSize, height: tableHeight })
+  tableRails.push({ x: tableStartX, y: tableStartY + tableHeight - railSize, width: tableWidth, height: railSize })
+  tableRails.push({ x: tableStartX + tableWidth - railSize, y: tableStartY, width: railSize, height: tableHeight })
+
 }
 
-function isRailsCollision(x, y, radius) {
+function createCushions() {
+  // TODO implement corners here or drawing
+  const horizontalCushionLength = (playAreaWidth - pocketRadius * 2) / 2 - 2 - mouthCushionSize * 2;
+  const verticalCushionLength = playAreaHeight - pocketRadius * 2 - mouthCushionSize * 2;
+
+  // top horizontal first
+  let cushionX = tableStartX + railSize + pocketRadius + mouthCushionSize;
+  let cushionY = tableStartY + railSize;
+  tableCushionMouthPieces.push({
+    triangleOneX: cushionX, triangleOneY: cushionY,
+    triangleTwoX: cushionX, triangleTwoY: cushionY + cushionSize,
+    triangleThreeX: cushionX - mouthCushionSize, triangleThreeY: cushionY })
+  tableCushions.push({ x: cushionX, y: cushionY, width: horizontalCushionLength, height: cushionSize })
+  tableCushionMouthPieces.push({
+    triangleOneX: cushionX + horizontalCushionLength, triangleOneY: cushionY,
+    triangleTwoX: cushionX + horizontalCushionLength + mouthCushionSize, triangleTwoY: cushionY,
+    triangleThreeX: cushionX + horizontalCushionLength, triangleThreeY: cushionY + cushionSize })
+
+  // top horizontal second
+  cushionX = cushionX + pocketRadius * 2 + horizontalCushionLength + mouthCushionSize * 2;
+  tableCushionMouthPieces.push({
+    triangleOneX: cushionX, triangleOneY: cushionY,
+    triangleTwoX: cushionX, triangleTwoY: cushionY + cushionSize,
+    triangleThreeX: cushionX - mouthCushionSize, triangleThreeY: cushionY })
+  tableCushions.push({ x: cushionX, y: cushionY, width: horizontalCushionLength, height: cushionSize })
+  tableCushionMouthPieces.push({
+    triangleOneX: cushionX + horizontalCushionLength, triangleOneY: cushionY,
+    triangleTwoX: cushionX + horizontalCushionLength + mouthCushionSize, triangleTwoY: cushionY,
+    triangleThreeX: cushionX + horizontalCushionLength, triangleThreeY: cushionY + cushionSize })
+
+  // left vertical
+  cushionX = tableStartX + railSize;
+  cushionY = tableStartY + railSize + pocketRadius + mouthCushionSize;
+  tableCushionMouthPieces.push({
+    triangleOneX: cushionX, triangleOneY: cushionY,
+    triangleTwoX: cushionX, triangleTwoY: cushionY - mouthCushionSize,
+    triangleThreeX: cushionX + cushionSize, triangleThreeY: cushionY })
+  tableCushions.push({ x: cushionX, y: cushionY, width: cushionSize, height: verticalCushionLength })
+  tableCushionMouthPieces.push({
+    triangleOneX: cushionX, triangleOneY: cushionY + verticalCushionLength,
+    triangleTwoX: cushionX + cushionSize, triangleTwoY: cushionY + verticalCushionLength,
+    triangleThreeX: cushionX, triangleThreeY: cushionY + verticalCushionLength + mouthCushionSize })
+
+  // bottom horizontal first
+  cushionX = tableStartX + railSize + pocketRadius + mouthCushionSize;
+  cushionY = tableStartY + tableHeight - railSize - cushionSize;
+  tableCushionMouthPieces.push({
+    triangleOneX: cushionX, triangleOneY: cushionY,
+    triangleTwoX: cushionX, triangleTwoY: cushionY + cushionSize,
+    triangleThreeX: cushionX - mouthCushionSize, triangleThreeY: cushionY + cushionSize })
+  tableCushions.push({ x: cushionX, y: cushionY, width: horizontalCushionLength, height: cushionSize })
+  tableCushionMouthPieces.push({
+    triangleOneX: cushionX + horizontalCushionLength, triangleOneY: cushionY,
+    triangleTwoX: cushionX + horizontalCushionLength + mouthCushionSize, triangleTwoY: cushionY + cushionSize,
+    triangleThreeX: cushionX + horizontalCushionLength, triangleThreeY: cushionY + cushionSize })
+
+  // bottom horizontal second
+  cushionX = cushionX + pocketRadius * 2 + horizontalCushionLength + mouthCushionSize * 2;
+  tableCushionMouthPieces.push({
+    triangleOneX: cushionX, triangleOneY: cushionY,
+    triangleTwoX: cushionX, triangleTwoY: cushionY + cushionSize,
+    triangleThreeX: cushionX - mouthCushionSize, triangleThreeY: cushionY + cushionSize })
+  tableCushions.push({ x: cushionX, y: cushionY, width: horizontalCushionLength, height: cushionSize })
+  tableCushionMouthPieces.push({
+    triangleOneX: cushionX + horizontalCushionLength, triangleOneY: cushionY,
+    triangleTwoX: cushionX + horizontalCushionLength + mouthCushionSize, triangleTwoY: cushionY + cushionSize,
+    triangleThreeX: cushionX + horizontalCushionLength, triangleThreeY: cushionY + cushionSize })
+
+  // right vertical
+  cushionX = tableStartX + tableWidth - railSize - cushionSize;
+  cushionY = tableStartY + railSize + pocketRadius + mouthCushionSize;
+  tableCushionMouthPieces.push({
+    triangleOneX: cushionX, triangleOneY: cushionY,
+    triangleTwoX: cushionX + cushionSize, triangleTwoY: cushionY - mouthCushionSize,
+    triangleThreeX: cushionX + cushionSize, triangleThreeY: cushionY })
+  tableCushions.push({ x: cushionX, y: cushionY, width: cushionSize, height: verticalCushionLength })
+  tableCushionMouthPieces.push({
+    triangleOneX: cushionX, triangleOneY: cushionY + verticalCushionLength,
+    triangleTwoX: cushionX + cushionSize, triangleTwoY: cushionY + verticalCushionLength,
+    triangleThreeX: cushionX + cushionSize, triangleThreeY: cushionY + verticalCushionLength + mouthCushionSize })
+}
+
+function isCushionsCollision(x, y, radius) {
   let isCollision = false;
-  for (let i = 0; i < tableRails.length; i++) {
-    const rail = tableRails[i];
-    if (isRailCollision(rail, x, y, radius)) isCollision = true;
+  for (let i = 0; i < tableCushions.length; i++) {
+    const cushion = tableCushions[i];
+    if (isRailCollision(cushion, x, y, radius)) {
+      isCollision = true;
+      break;
+    }
   }
+
+  if (!isCollision) { // backup rails collision
+    for (let i = 0; i < tableRails.length; i++) {
+      const rail = tableRails[i];
+      if (isRailCollision(rail, x, y, radius)) {
+        isCollision = true;
+        break;
+      }
+    }
+  }
+
   return isCollision;
 }
 
@@ -288,27 +399,33 @@ function isRailCollision(rail, x, y, radius) {
 
 function drawTableRails() {
   c.fillStyle = tableRailColor;
+  tableRails.forEach(rail => c.fillRect(rail.x, rail.y, rail.width, rail.height));
 
-  c.fillRect(tableStartX, tableStartY, tableWidth, tableBorderSize);
-  c.fillRect(tableStartX, tableStartY, tableBorderSize, tableHeight);
-  c.fillRect(tableStartX, tableStartY + tableHeight - tableBorderSize, tableWidth, tableBorderSize);
-  c.fillRect(tableStartX + tableWidth - tableBorderSize, tableStartY, tableBorderSize, tableHeight);
+  c.fillStyle = tableCushionColor;
+  tableCushions.forEach(cushion => c.fillRect(cushion.x, cushion.y, cushion.width, cushion.height));
+  tableCushionMouthPieces.forEach(piece => {
+    c.beginPath();
+    c.moveTo(piece.triangleOneX, piece.triangleOneY);
+    c.lineTo(piece.triangleTwoX, piece.triangleTwoY);
+    c.lineTo(piece.triangleThreeX, piece.triangleThreeY);
+    c.fill();
+  })
 }
 
 function createPockets() {
-  tablePockets.push({ x: tableStartX + tableBorderSize, y: tableStartY + tableBorderSize })
-  tablePockets.push({ x: tableStartX + tableBorderSize, y: tableStartY + tableHeight - tableBorderSize })
-  tablePockets.push({ x: tableStartX + tableWidth / 2, y: tableStartY + tableBorderSize })
-  tablePockets.push({ x: tableStartX + tableWidth / 2, y: tableStartY + tableHeight - tableBorderSize })
-  tablePockets.push({ x: tableStartX + tableWidth - tableBorderSize, y: tableStartY + tableBorderSize })
-  tablePockets.push({ x: tableStartX + tableWidth - tableBorderSize, y: tableStartY + tableHeight - tableBorderSize })
+  tablePockets.push({ x: tableStartX + railSize, y: tableStartY + railSize })
+  tablePockets.push({ x: tableStartX + railSize, y: tableStartY + tableHeight - railSize })
+  tablePockets.push({ x: tableStartX + tableWidth / 2, y: tableStartY + railSize })
+  tablePockets.push({ x: tableStartX + tableWidth / 2, y: tableStartY + tableHeight - railSize })
+  tablePockets.push({ x: tableStartX + tableWidth - railSize, y: tableStartY + railSize })
+  tablePockets.push({ x: tableStartX + tableWidth - railSize, y: tableStartY + tableHeight - railSize })
 }
 
 function isPocketsCollision(x, y, radius) {
   let isCollision = false;
   for (let i = 0; i < tablePockets.length; i++) {
     const pocket = tablePockets[i];
-    if (distanceBetweenPoints(x, y, pocket.x, pocket.y) <= radius + tablePocketRadius) isCollision = true;
+    if (distanceBetweenPoints(x, y, pocket.x, pocket.y) <= radius + pocketRadius) isCollision = true;
   }
   return isCollision;
 }
@@ -319,7 +436,7 @@ function drawTablePockets() {
   for (let i = 0; i < tablePockets.length; i++) {
     const pocket = tablePockets[i];
     c.beginPath();
-    c.arc(pocket.x, pocket.y, tablePocketRadius, 0, 2*Math.PI);
+    c.arc(pocket.x, pocket.y, pocketRadius, 0, 2*Math.PI);
     c.fill();
   }
 }
@@ -335,7 +452,7 @@ ballColors.push({ color: 'red', oneColored: true });
 ballColors.push({ color: 'purple', oneColored: true });
 ballColors.push({ color: 'orange', oneColored: true });
 ballColors.push({ color: 'green', oneColored: true });
-ballColors.push({ color: 'darkred', oneColored: true });
+ballColors.push({ color: 'maroon', oneColored: true });
 
 ballColors.push({ color: 'black', oneColored: true }); // black 8-ball
 
@@ -345,10 +462,10 @@ ballColors.push({ color: 'red', oneColored: false });
 ballColors.push({ color: 'purple', oneColored: false });
 ballColors.push({ color: 'orange', oneColored: false });
 ballColors.push({ color: 'green', oneColored: false });
-ballColors.push({ color: 'darkred', oneColored: false });
+ballColors.push({ color: 'maroon', oneColored: false });
 
 let ballRadius = 7;
-let ballSpeedPerSec = 10;
+let maxBallSpeedPerSec = 10;
 let ballDampeningPerSec = 1;
 const cueBallCoords = { x: 0, y: 0 };
 
@@ -376,7 +493,7 @@ function createBall(value, ballColor, oneColored) {
   let randomY = randomBetween(tableStartY, tableStartY + tableHeight);
 
   while (
-      isRailsCollision(randomX, randomY, ballRadius)
+      isCushionsCollision(randomX, randomY, ballRadius)
       || getAnyBallCollidedWith(randomX, randomY, ballRadius)
       || isPocketsCollision(randomX, randomY, ballRadius)
       || isCloseToMid(randomX, randomY, ballRadius)
@@ -476,11 +593,47 @@ function drawBalls() {
   for (let i = 0; i < balls.length; i++) {
     const ball = balls[i];
 
-    c.fillStyle = ball.color; // actual ball color
-    c.beginPath();
-    c.arc(ball.x, ball.y, ballRadius, 0, 2*Math.PI);
-    c.fill();
-    c.stroke();
+    if (ball.value < 9) {
+      // fill with single color
+      c.fillStyle = ball.color; // actual ball color
+      c.beginPath();
+      c.arc(ball.x, ball.y, ballRadius, 0, 2*Math.PI);
+      c.fill();
+      c.stroke(); // slight border around for distinction
+    } else {
+      // stripes arced path
+
+      // actual ball color
+      c.fillStyle = 'white';
+      c.beginPath();
+      c.arc(ball.x, ball.y, ballRadius, 0, 2*Math.PI);
+      c.fill();
+
+      // colored stripe
+      c.fillStyle = ball.color;
+      c.beginPath();
+
+      const firstAngle = Math.PI / 4;
+      const secondAngle = firstAngle * 3;
+      const thirdAngle = firstAngle * 5;
+      const fourthAngle = firstAngle * 7;
+
+      const startPoint = projectPoint(ball.x, ball.y, ballRadius, firstAngle);
+      c.moveTo(startPoint.x, startPoint.y);
+      const secondPoint = projectPoint(ball.x, ball.y, ballRadius, secondAngle);
+      c.lineTo(secondPoint.x, secondPoint.y);
+      c.arc(ball.x, ball.y, ballRadius, secondAngle, thirdAngle);
+      const fourthPoint = projectPoint(ball.x, ball.y, ballRadius, fourthAngle);
+      c.lineTo(fourthPoint.x, fourthPoint.y);
+      c.arc(ball.x, ball.y, ballRadius, fourthAngle, firstAngle);
+      c.fill();
+      c.stroke();
+
+      // slight border around for distinction
+      c.beginPath();
+      c.arc(ball.x, ball.y, ballRadius, 0, 2*Math.PI);
+      c.stroke();
+    }
 
     if (ball.value !== 0) {
       c.fillStyle = 'white'; // number-surrounding circle
@@ -499,13 +652,15 @@ function drawBalls() {
 // cue-stick
 
 let cueStickLength = 70;
-let cueStickWidth = 5;
+let cueStickBaseWidthRadius = 5;
+// eslint-disable-next-line no-unused-vars
+let cueStickTipWidthRadius = 3;
 let cueAngleRadian = 0;
 let cueStickMaxDrawingDistance = 20;
 
 function drawCueStick() {
   c.lineCap = 'round';
-  c.lineWidth = cueStickWidth;
+  c.lineWidth = cueStickBaseWidthRadius;
 
   let cueCenteringPos;
   if (mousePressedPos) {
@@ -597,8 +752,8 @@ function mouseUpHandler(e) {
     if (drawDistance > 3) {
       // launch cue-ball
       const speedDrawFactor = 0.3 + drawDistance / cueStickMaxDrawingDistance * 0.7;
-      cueBall.speedPerSecX = Math.cos(cueAngleRadian + Math.PI) * ballSpeedPerSec * speedDrawFactor;
-      cueBall.speedPerSecY = Math.sin(cueAngleRadian + Math.PI) * ballSpeedPerSec * speedDrawFactor;
+      cueBall.speedPerSecX = Math.cos(cueAngleRadian + Math.PI) * maxBallSpeedPerSec * speedDrawFactor;
+      cueBall.speedPerSecY = Math.sin(cueAngleRadian + Math.PI) * maxBallSpeedPerSec * speedDrawFactor;
       cueBall.isMoving = true;
       //balls.forEach(ball => ball.isMoving = true);
     }

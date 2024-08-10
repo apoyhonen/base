@@ -4,7 +4,7 @@ export {
     angleBetweenPointsRadian, angleBetweenPointsDegreesPositive,
     projectPoint,
     distanceBetweenPoints, distanceToLine,
-    isRectCollision, isCircleCollision, isRectCircleCollision,
+    isRectCollision, isCircleCollision, isRectCircleCollision, isTriangleCircleCollision,
     twoCircleCollisionPoint, circleCollisionTwoMoving, circleCollisionMovingAndStationary,
     easeOutCubic, easeInCubic, testEasing,
 };
@@ -100,6 +100,20 @@ function isRectCircleCollision(rectX, rectY, rectWidth, rectHeight, circleX, cir
     const dx = distanceX - halfWidth;
     const dy = distanceY - halfHeight;
     return dx * dx + dy * dy <= circleRadius * circleRadius;
+}
+
+function isTriangleCircleCollision(triangleOneX, triangleOneY, triangleTwoX, triangleTwoY, triangleThreeX, triangleThreeY, circleX, circleY, circleRadius) {
+    // circle hits points
+    if (distanceBetweenPoints(triangleOneX, triangleOneY, circleX, circleY) <= circleRadius) return true;
+    if (distanceBetweenPoints(triangleTwoX, triangleTwoY, circleX, circleY) <= circleRadius) return true;
+    if (distanceBetweenPoints(triangleThreeX, triangleThreeY, circleX, circleY) <= circleRadius) return true;
+
+    // circle hits lines
+    if (distanceToLine(circleX, circleY, triangleOneX, triangleOneY, triangleTwoX, triangleTwoY) <= circleRadius) return true;
+    if (distanceToLine(circleX, circleY, triangleTwoX, triangleTwoY, triangleThreeX, triangleThreeY) <= circleRadius) return true;
+    if (distanceToLine(circleX, circleY, triangleThreeX, triangleThreeY, triangleOneX, triangleOneY) <= circleRadius) return true;
+
+    return false;
 }
 
 function twoCircleCollisionPoint(firstX, firstY, firstRadius, secondX, secondY, secondRadius) {
