@@ -4,25 +4,32 @@ export {
 
 // pool game equipment sizes in cm
 
-const tableWidthActual = 286; // 9ft / 274 cm actual, 286 cm for visuals
-const tableHeightFactor = 149 / tableWidthActual; // 1/2 factor, 137 cm actual, 149 for visuals
-const playAreaWidthFactor = 254 / tableWidthActual; // 10 inches / 254 cm
-const playAreaHeightFactor = playAreaWidthFactor / 2; // 1/2 factor, 5 inches / 127 cm
+const playAreaWidthActual = 254;
+const playAreaHeightActual = 127;
+const railWidthActual = 11; // 5 - 11 cm actual
+const cushionWidthActual = 5;
+const tableWidthActual = playAreaWidthActual + railWidthActual * 2 + cushionWidthActual * 2; // 254 (play area) + 10 (cushion * 2) + 22 (rail * 2) = 286 cm
+const tableHeightActual = playAreaHeightActual + railWidthActual * 2 + cushionWidthActual * 2; // 127 + 10 + 22 = 159 cm
 
-const cushionWidthFactor = 5 / tableWidthActual; // 5 cm
-const railWidthFactor = (1 - playAreaWidthFactor - cushionWidthFactor * 2) / 2; // 5 cm actual, 11 cm for visuals
-const pocketRadiusFactor = 5.5 / tableWidthActual; // 5.5 cm
+const tableWidthFactor = 1; // origin of other calculations
+const tableHeightFactor = tableHeightActual / tableWidthActual; // 1/2 factor, 159 cm
+const playAreaWidthFactor = playAreaWidthActual / tableWidthActual; // 9ft / 100 inches / 254 cm actual
+const playAreaHeightFactor = playAreaHeightActual / tableWidthActual; // 1/2 factor, 50 inches / 127 cm actual
+
+const railWidthFactor = railWidthActual / tableWidthActual; // 5 cm actual, 11 cm for visuals
+const cushionWidthFactor = cushionWidthActual / tableWidthActual; // 5 cm
 const mouthCushionAngleRadian = Math.PI * 0.3;
+const pocketRadiusFactor = 5.5 / tableWidthActual; // 5.5 cm
 
 function getPoolTableSizes(tableWidth) {
     return {
-        tableWidth: tableWidth,
+        tableWidth: tableWidth * tableWidthFactor,
         tableHeight: tableWidth * tableHeightFactor,
         playAreaWidth: tableWidth * playAreaWidthFactor,
         playAreaHeight: tableWidth * playAreaHeightFactor,
+        railWidth: tableWidth * railWidthFactor,
         cushionWidth: tableWidth * cushionWidthFactor,
         mouthCushionWidth: tableWidth * (cushionWidthFactor * Math.tan(mouthCushionAngleRadian)),
-        railWidth: tableWidth * railWidthFactor,
         pocketRadius: tableWidth * pocketRadiusFactor,
     }
 }
@@ -47,7 +54,7 @@ function getPoolEquipmentSizes(tableWidth) {
 
 const diamondCenterFromNoseFactor = 9.4 / tableWidthActual; // 9.4 cm from cushion nose
 const diamondLengthFactor = 3 / tableWidthActual; // 3 cm
-const diamondWidthFactor = diamondLengthFactor / 2; // // 1/2 factor, 1.5 cm
+const diamondWidthFactor = 1.5 / tableWidthActual; // // 1/2 factor, 1.5 cm
 
 function getPoolTableDecorationSizes(tableWidth) {
     return {
