@@ -2,11 +2,31 @@ export {
     getPoolTableSizes, getPoolTableDecorationSizes, getPoolEquipmentSizes,
 }
 
+/*
+sizes
+- table 9ft, 2:1 ratio
+- play area 100 x 50 inches / 254 x 127 cm
+- table width = 254 (play area) + 10 (cushion * 2) + 22 (rail * 2) = 286 cm
+- table height = 127 + 10 + 22 = 159 cm
+- rails 5-9,4 cm
+- cushions 5 cm
+- pockets 5,5 cm radius
+- diamonds / sights, center mid-rail (9,4 cm) from cushion nose edge, 3 x 1,5 cm
+- cue-stick 148 cm long, tip 0,7 cm radius, base  1cm radius
+- balls 2,85 cm radius
+
+
+stylings
+- diamonds / sights (1/8 for long, 1/4 for short), silver-grey
+- rounded table corners
+- metallic table corners?
+*/
+
 // pool game equipment sizes in cm
 
 const playAreaWidthActual = 254;
 const playAreaHeightActual = 127;
-const railWidthActual = 11; // 5 - 11 cm actual
+const railWidthActual = 9; // 5 - 9,4 cm actual
 const cushionWidthActual = 5;
 const tableWidthActual = playAreaWidthActual + railWidthActual * 2 + cushionWidthActual * 2; // 254 (play area) + 10 (cushion * 2) + 22 (rail * 2) = 286 cm
 const tableHeightActual = playAreaHeightActual + railWidthActual * 2 + cushionWidthActual * 2; // 127 + 10 + 22 = 159 cm

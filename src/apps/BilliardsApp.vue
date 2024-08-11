@@ -12,6 +12,8 @@
         <b>Game</b>
         <br><br>
         <p>Balls left: 0</p>
+        <br>
+        <button class="controls-button" @click="isOnlyCueBall = !isOnlyCueBall">TOGGLE OTHER BALLS</button>
         <br><br>
         <button class="controls-button" @click="resetGame">RESET</button>
         <br><br>
@@ -46,7 +48,7 @@ import {
   circleCollisionTwoMoving,
   distanceBetweenPoints,
   isCircleCollision,
-  isRectCircleCollision, isTriangleCircleCollision,
+  isTriangleCircleCollision,
   projectPoint,
   randomBetween
 } from "@/util/MathUtil";
@@ -67,10 +69,27 @@ onMounted(() => {
   canvas.height = window.innerHeight * 0.8;
   c = canvas.getContext("2d");
 
-  tableWidth = canvas.width * 0.75;
+  iconAreaWidth = Math.floor(canvas.width * 0.05);
+  ballIconWidth = iconAreaWidth / 2;
+  tableAreaWidth = canvas.width  - iconAreaWidth;
+  tableWidth = tableAreaWidth * 0.75;
 
+  resetTableSizes();
+  createCushions();
+  createPockets();
+
+  resetEquipmentSizes();
+  resetCueBallPos();
+  createBalls();
+
+  resetDecorationSizes();
+  createDecorations();
+
+  draw(); // init
+});
+
+function resetTableSizes() {
   const tableSizes = getPoolTableSizes(tableWidth);
-  const decorationSizes = getPoolTableDecorationSizes(tableWidth);
   tableHeight = tableSizes.tableHeight;
   railSize = tableSizes.railWidth;
   playAreaWidth = tableSizes.playAreaWidth;
@@ -78,23 +97,20 @@ onMounted(() => {
   cushionSize = tableSizes.cushionWidth;
   mouthCushionSize = tableSizes.mouthCushionWidth;
   pocketRadius = tableSizes.pocketRadius;
+  horizontalCushionLength = (playAreaWidth - pocketRadius * 2 - mouthCushionSize * 4) / 2;
 
-  diamondCenterSizeFromNose = decorationSizes.diamondCenterFromNose;
-  diamondLength = decorationSizes.diamondLength;
-  diamondWidth = decorationSizes.diamondWidth;
-
-  tableStartX = canvas.width / 2 - tableWidth / 2;
+  tableStartX = tableAreaWidth / 2 - tableWidth / 2;
   tableStartY = canvas.height / 2 - tableHeight / 2;
-
-  createRails();
-  createCushions();
-  createDecorations();
-  createPockets();
+  playAreaStartX = tableStartX + railSize + cushionSize;
+  playAreaStartY = tableStartY + railSize + cushionSize;
+  playAreaEndX = tableStartX + tableWidth - railSize - cushionSize;
+  playAreaEndY = tableStartY + tableHeight - railSize - cushionSize;
 
   headPos.x = tableStartX + railSize + (cushionSize + playAreaWidth) / 4 * 3;
   headPos.y = tableStartY + tableHeight / 2;
-  resetCueBallPos();
+}
 
+function resetEquipmentSizes() {
   const equipmentSizes = getPoolEquipmentSizes(tableWidth);
   ballRadius = equipmentSizes.ballRadius;
   cueStickLength = equipmentSizes.stickLength;
@@ -104,11 +120,14 @@ onMounted(() => {
   maxBallSpeedPerSec = tableWidth * 0.75;
   ballDampeningPerSec = tableWidth / 3000;
   cueStickMaxDrawingDistance = cueStickLength * 0.3;
+}
 
-  createBalls();
-
-  draw(); // init
-});
+function resetDecorationSizes() {
+  const decorationSizes = getPoolTableDecorationSizes(tableWidth);
+  diamondCenterSizeFromNose = decorationSizes.diamondCenterFromNose;
+  diamondLength = decorationSizes.diamondLength;
+  diamondWidth = decorationSizes.diamondWidth;
+}
 
 watch(isRunning, () => {
   if (isRunning.value) {
@@ -131,6 +150,7 @@ function draw() {
   frameCount.value++;
 
   clear();
+  drawIconArea();
 
   const currTimestamp = Date.now();
   // eslint-disable-next-line no-unused-vars
@@ -150,6 +170,7 @@ function draw() {
 
 // game
 
+const iconAreaColor = 'burlywood';
 const tableColor = 'seagreen';
 const railColor = 'brown';
 const tableCushionColor = 'green';
@@ -158,8 +179,22 @@ const pocketColor = 'black';
 const cueStickHandleColor = 'brown';
 const cueStickMainColor = 'burlywood';
 
+let iconAreaWidth = 10;
+let ballIconWidth = 5;
+let tableAreaWidth = 90;
+
+function drawIconArea() {
+  c.fillStyle = iconAreaColor;
+  c.fillRect(tableAreaWidth, 0, iconAreaWidth, canvas.height);
+}
+
 function resetGame() {
   clearArray(balls);
+
+  // clear ball states
+  for (let i = 0; i < 16; i++) {
+    ballsState[i] = false;
+  }
 
   resetCueBallPos();
   createBalls();
@@ -180,14 +215,25 @@ function checkCollisions(differenceMs) {
       }
     }
 
-    if (isCushionsRailsCollision(ball.x, ball.y, ballRadius)) {
-      if (!isCushionsRailsCollision(ball.x - 5, ball.y, ballRadius) || !isCushionsRailsCollision(ball.x + 5, ball.y, ballRadius)) {
-        ball.speedPerSecX *= -1;
-        ball.x += ball.speedPerSecX / 1000 * differenceMs * 2;
-      } else if (!isCushionsRailsCollision(ball.x, ball.y - 5, ballRadius) || !isCushionsRailsCollision(ball.x, ball.y + 5, ballRadius)) {
+    if (isCushionsCollision(ball.x, ball.y, ballRadius)) {
+      // hit top or bottom cushion
+      if (isHorizontalCushionCollision(ball.x, ball.y, ballRadius)) {
         ball.speedPerSecY *= -1;
-        ball.y += ball.speedPerSecY / 1000 * differenceMs * 2;
+        while (isHorizontalCushionCollision(ball.x, ball.y, ballRadius)) {
+          ball.y += ball.speedPerSecY / 1000 * differenceMs * 2;
+        }
       }
+
+      // hit left or right cushion
+      if (isVerticalCushionCollision(ball.x, ball.y, ballRadius)) {
+        ball.speedPerSecX *= -1;
+        while (isVerticalCushionCollision(ball.x, ball.y, ballRadius)) {
+          ball.x += ball.speedPerSecX / 1000 * differenceMs * 2;
+        }
+      }
+
+      // TODO elastic collision with cushion mouth triangles
+      // hit cushion mouth piece
     }
 
     const ballCollidedWith = getAnyBallCollidedWith(ball.x, ball.y, ballRadius, ball.ballId);
@@ -267,184 +313,38 @@ let playAreaWidth = 80;
 let playAreaHeight = 80;
 let railSize = 10;
 let cushionSize = 10;
+let horizontalCushionLength = 1;
 let mouthCushionSize = 5;
 let pocketRadius = 5;
+
 let tableStartX = 0;
 let tableStartY = 0;
+let playAreaStartX = 0;
+let playAreaStartY = 0;
+let playAreaEndX = 80;
+let playAreaEndY = 80;
+
 let diamondCenterSizeFromNose = 1;
 let diamondLength = 2;
 let diamondWidth = 1;
 
-const rails = [];
 const pockets = [];
 const cushions = [];
 const cushionMouthPieces = [];
 const diamondPositions = [];
 
 function drawTable() {
-  c.fillStyle = tableColor;
+  c.fillStyle = railColor;
   c.beginPath();
-  c.roundRect(tableStartX, tableStartY, tableWidth, tableHeight, pocketRadius);
+  c.roundRect(tableStartX, tableStartY, tableWidth, tableHeight, railSize);
   c.fill();
 
-  drawRails();
+  c.fillStyle = tableColor;
+  c.fillRect(tableStartX + railSize, tableStartY + railSize, tableWidth - railSize * 2, tableHeight - railSize * 2);
+
   drawCushions();
   drawDecorations();
   drawPockets();
-}
-
-function createRails() {
-  rails.push({ x: tableStartX, y: tableStartY, width: tableWidth, height: railSize })
-  rails.push({ x: tableStartX, y: tableStartY, width: railSize, height: tableHeight })
-  rails.push({ x: tableStartX, y: tableStartY + tableHeight - railSize, width: tableWidth, height: railSize })
-  rails.push({ x: tableStartX + tableWidth - railSize, y: tableStartY, width: railSize, height: tableHeight })
-
-}
-
-function createCushions() {
-  const horizontalCushionLength = (playAreaWidth - pocketRadius * 2 - mouthCushionSize * 4) / 2 - 3;
-  const verticalCushionLength = playAreaHeight - mouthCushionSize * 2 - 4;
-
-  // top horizontal first
-  let cushionX = tableStartX + railSize + pocketRadius + mouthCushionSize;
-  let cushionY = tableStartY + railSize;
-  cushionMouthPieces.push({
-    triangleOneX: cushionX, triangleOneY: cushionY,
-    triangleTwoX: cushionX, triangleTwoY: cushionY + cushionSize,
-    triangleThreeX: cushionX - mouthCushionSize, triangleThreeY: cushionY })
-  cushions.push({ x: cushionX, y: cushionY, width: horizontalCushionLength, height: cushionSize })
-  cushionMouthPieces.push({
-    triangleOneX: cushionX + horizontalCushionLength, triangleOneY: cushionY,
-    triangleTwoX: cushionX + horizontalCushionLength + mouthCushionSize, triangleTwoY: cushionY,
-    triangleThreeX: cushionX + horizontalCushionLength, triangleThreeY: cushionY + cushionSize })
-
-  // top horizontal second
-  cushionX = cushionX + pocketRadius * 2 + horizontalCushionLength + mouthCushionSize * 2;
-  cushionMouthPieces.push({
-    triangleOneX: cushionX, triangleOneY: cushionY,
-    triangleTwoX: cushionX, triangleTwoY: cushionY + cushionSize,
-    triangleThreeX: cushionX - mouthCushionSize, triangleThreeY: cushionY })
-  cushions.push({ x: cushionX, y: cushionY, width: horizontalCushionLength, height: cushionSize })
-  cushionMouthPieces.push({
-    triangleOneX: cushionX + horizontalCushionLength, triangleOneY: cushionY,
-    triangleTwoX: cushionX + horizontalCushionLength + mouthCushionSize, triangleTwoY: cushionY,
-    triangleThreeX: cushionX + horizontalCushionLength, triangleThreeY: cushionY + cushionSize })
-
-  // left vertical
-  cushionX = tableStartX + railSize;
-  cushionY = tableStartY + railSize + pocketRadius + mouthCushionSize;
-  cushionMouthPieces.push({
-    triangleOneX: cushionX, triangleOneY: cushionY,
-    triangleTwoX: cushionX, triangleTwoY: cushionY - mouthCushionSize,
-    triangleThreeX: cushionX + cushionSize, triangleThreeY: cushionY })
-  cushions.push({ x: cushionX, y: cushionY, width: cushionSize, height: verticalCushionLength })
-  cushionMouthPieces.push({
-    triangleOneX: cushionX, triangleOneY: cushionY + verticalCushionLength,
-    triangleTwoX: cushionX + cushionSize, triangleTwoY: cushionY + verticalCushionLength,
-    triangleThreeX: cushionX, triangleThreeY: cushionY + verticalCushionLength + mouthCushionSize })
-
-  // bottom horizontal first
-  cushionX = tableStartX + railSize + pocketRadius + mouthCushionSize;
-  cushionY = tableStartY + tableHeight - railSize - cushionSize;
-  cushionMouthPieces.push({
-    triangleOneX: cushionX, triangleOneY: cushionY,
-    triangleTwoX: cushionX, triangleTwoY: cushionY + cushionSize,
-    triangleThreeX: cushionX - mouthCushionSize, triangleThreeY: cushionY + cushionSize })
-  cushions.push({ x: cushionX, y: cushionY, width: horizontalCushionLength, height: cushionSize })
-  cushionMouthPieces.push({
-    triangleOneX: cushionX + horizontalCushionLength, triangleOneY: cushionY,
-    triangleTwoX: cushionX + horizontalCushionLength + mouthCushionSize, triangleTwoY: cushionY + cushionSize,
-    triangleThreeX: cushionX + horizontalCushionLength, triangleThreeY: cushionY + cushionSize })
-
-  // bottom horizontal second
-  cushionX = cushionX + pocketRadius * 2 + horizontalCushionLength + mouthCushionSize * 2;
-  cushionMouthPieces.push({
-    triangleOneX: cushionX, triangleOneY: cushionY,
-    triangleTwoX: cushionX, triangleTwoY: cushionY + cushionSize,
-    triangleThreeX: cushionX - mouthCushionSize, triangleThreeY: cushionY + cushionSize })
-  cushions.push({ x: cushionX, y: cushionY, width: horizontalCushionLength, height: cushionSize })
-  cushionMouthPieces.push({
-    triangleOneX: cushionX + horizontalCushionLength, triangleOneY: cushionY,
-    triangleTwoX: cushionX + horizontalCushionLength + mouthCushionSize, triangleTwoY: cushionY + cushionSize,
-    triangleThreeX: cushionX + horizontalCushionLength, triangleThreeY: cushionY + cushionSize })
-
-  // right vertical
-  cushionX = tableStartX + tableWidth - railSize - cushionSize;
-  cushionY = tableStartY + railSize + pocketRadius + mouthCushionSize;
-  cushionMouthPieces.push({
-    triangleOneX: cushionX, triangleOneY: cushionY,
-    triangleTwoX: cushionX + cushionSize, triangleTwoY: cushionY - mouthCushionSize,
-    triangleThreeX: cushionX + cushionSize, triangleThreeY: cushionY })
-  cushions.push({ x: cushionX, y: cushionY, width: cushionSize, height: verticalCushionLength })
-  cushionMouthPieces.push({
-    triangleOneX: cushionX, triangleOneY: cushionY + verticalCushionLength,
-    triangleTwoX: cushionX + cushionSize, triangleTwoY: cushionY + verticalCushionLength,
-    triangleThreeX: cushionX + cushionSize, triangleThreeY: cushionY + verticalCushionLength + mouthCushionSize })
-}
-
-function createDecorations() {
-  // sights / diamonds
-  const withoutRailsStartX = tableStartX + railSize;
-  const withoutRailsStartY = tableStartY + railSize;
-  for (let i = 1; i < 8; i++) {
-    if (i === 4) continue;
-    diamondPositions.push({ isVertical: true, x: withoutRailsStartX + (cushionSize * 2 + playAreaWidth) / 8 * i, y: withoutRailsStartY + cushionSize - diamondCenterSizeFromNose });
-    diamondPositions.push({ isVertical: true, x: withoutRailsStartX + (cushionSize * 2 + playAreaWidth) / 8 * i, y: withoutRailsStartY + cushionSize + playAreaHeight + diamondCenterSizeFromNose });
-  }
-  for (let i = 1; i < 4; i++) {
-    diamondPositions.push({ isVertical: false, x: withoutRailsStartX + cushionSize - diamondCenterSizeFromNose, y: withoutRailsStartY + (cushionSize * 2 + playAreaHeight) / 4 * i });
-    diamondPositions.push({ isVertical: false, x: withoutRailsStartX + cushionSize + playAreaWidth + diamondCenterSizeFromNose, y: withoutRailsStartY + (cushionSize * 2 + playAreaHeight) / 4 * i });
-  }
-}
-
-function isCushionsRailsCollision(x, y, radius) {
-  let isCollision = false;
-  for (let i = 0; i < cushions.length; i++) {
-    const cushion = cushions[i];
-    if (isRectCollision(cushion, x, y, radius)) {
-      isCollision = true;
-      break;
-    }
-  }
-
-  if (!isCollision) { // cushion mouth collision
-    for (let i = 0; i < cushionMouthPieces.length; i++) {
-      const piece = cushionMouthPieces[i];
-      if (isTriangleCircleCollision(
-          piece.triangleOneX, piece.triangleOneY,
-          piece.triangleTwoX, piece.triangleTwoY,
-          piece.triangleThreeX, piece.triangleThreeY,
-          x, y, radius)) {
-        isCollision = true;
-        break;
-      }
-    }
-  }
-
-  if (!isCollision) { // backup rails collision
-    for (let i = 0; i < rails.length; i++) {
-      const rail = rails[i];
-      if (isRectCollision(rail, x, y, radius)) {
-        isCollision = true;
-        break;
-      }
-    }
-  }
-
-  return isCollision;
-}
-
-function isRectCollision(rail, x, y, radius) {
-  return isRectCircleCollision(rail.x, rail.y, rail.width, rail.height, x, y, radius);
-}
-
-function drawRails() {
-  c.fillStyle = railColor;
-  rails.forEach(rail => {
-    c.beginPath();
-    c.roundRect(rail.x, rail.y, rail.width, rail.height, pocketRadius);
-    c.fill();
-  });
 }
 
 function drawCushions() {
@@ -457,6 +357,17 @@ function drawCushions() {
     c.lineTo(piece.triangleThreeX, piece.triangleThreeY);
     c.fill();
   })
+}
+
+function drawPockets() {
+  c.fillStyle = pocketColor;
+
+  for (let i = 0; i < pockets.length; i++) {
+    const pocket = pockets[i];
+    c.beginPath();
+    c.arc(pocket.x, pocket.y, pocketRadius, 0, 2*Math.PI);
+    c.fill();
+  }
 }
 
 function drawDecorations() {
@@ -480,21 +391,160 @@ function drawDecorations() {
 
   // head & foot
   c.beginPath();
-  c.arc(tableStartX + railSize + (cushionSize + playAreaWidth) / 4, tableStartY + tableHeight / 2, diamondWidth / 2, 0, Math.PI * 2);
+  c.arc(playAreaStartX - cushionSize + (cushionSize + playAreaWidth) / 4, tableStartY + tableHeight / 2, diamondWidth / 2, 0, Math.PI * 2);
   c.fill();
 
   c.beginPath();
-  c.arc(tableStartX + railSize + (cushionSize + playAreaWidth) / 4 * 3, tableStartY + tableHeight / 2, diamondWidth / 2, 0, Math.PI * 2);
+  c.arc(playAreaStartX - cushionSize + (cushionSize + playAreaWidth) / 4 * 3, tableStartY + tableHeight / 2, diamondWidth / 2, 0, Math.PI * 2);
   c.fill();
 }
 
+function createCushions() {
+  const verticalCushionLength = playAreaHeight - mouthCushionSize * 2;
+
+  // top horizontal first
+  let cushionX = playAreaStartX + mouthCushionSize;
+  let cushionY = playAreaStartY - cushionSize;
+  cushionMouthPieces.push({
+    triangleOneX: cushionX, triangleOneY: cushionY,
+    triangleTwoX: cushionX, triangleTwoY: cushionY + cushionSize,
+    triangleThreeX: cushionX - mouthCushionSize, triangleThreeY: cushionY })
+  cushions.push({ x: cushionX, y: cushionY, width: horizontalCushionLength, height: cushionSize })
+  cushionMouthPieces.push({
+    triangleOneX: cushionX + horizontalCushionLength, triangleOneY: cushionY,
+    triangleTwoX: cushionX + horizontalCushionLength + mouthCushionSize, triangleTwoY: cushionY,
+    triangleThreeX: cushionX + horizontalCushionLength, triangleThreeY: cushionY + cushionSize })
+
+  // top horizontal second
+  cushionX = playAreaEndX - horizontalCushionLength - mouthCushionSize;
+  cushionMouthPieces.push({
+    triangleOneX: cushionX, triangleOneY: cushionY,
+    triangleTwoX: cushionX, triangleTwoY: cushionY + cushionSize,
+    triangleThreeX: cushionX - mouthCushionSize, triangleThreeY: cushionY })
+  cushions.push({ x: cushionX, y: cushionY, width: horizontalCushionLength, height: cushionSize })
+  cushionMouthPieces.push({
+    triangleOneX: cushionX + horizontalCushionLength, triangleOneY: cushionY,
+    triangleTwoX: cushionX + horizontalCushionLength + mouthCushionSize, triangleTwoY: cushionY,
+    triangleThreeX: cushionX + horizontalCushionLength, triangleThreeY: cushionY + cushionSize })
+
+  // left vertical
+  cushionX = tableStartX + railSize;
+  cushionY = playAreaStartY + mouthCushionSize;
+  cushionMouthPieces.push({
+    triangleOneX: cushionX, triangleOneY: cushionY,
+    triangleTwoX: cushionX, triangleTwoY: cushionY - mouthCushionSize,
+    triangleThreeX: cushionX + cushionSize, triangleThreeY: cushionY })
+  cushions.push({ x: cushionX, y: cushionY, width: cushionSize, height: verticalCushionLength })
+  cushionMouthPieces.push({
+    triangleOneX: cushionX, triangleOneY: cushionY + verticalCushionLength,
+    triangleTwoX: cushionX + cushionSize, triangleTwoY: cushionY + verticalCushionLength,
+    triangleThreeX: cushionX, triangleThreeY: cushionY + verticalCushionLength + mouthCushionSize })
+
+  // bottom horizontal first
+  cushionX = playAreaStartX + mouthCushionSize;
+  cushionY = playAreaEndY;
+  cushionMouthPieces.push({
+    triangleOneX: cushionX, triangleOneY: cushionY,
+    triangleTwoX: cushionX, triangleTwoY: cushionY + cushionSize,
+    triangleThreeX: cushionX - mouthCushionSize, triangleThreeY: cushionY + cushionSize })
+  cushions.push({ x: cushionX, y: cushionY, width: horizontalCushionLength, height: cushionSize })
+  cushionMouthPieces.push({
+    triangleOneX: cushionX + horizontalCushionLength, triangleOneY: cushionY,
+    triangleTwoX: cushionX + horizontalCushionLength + mouthCushionSize, triangleTwoY: cushionY + cushionSize,
+    triangleThreeX: cushionX + horizontalCushionLength, triangleThreeY: cushionY + cushionSize })
+
+  // bottom horizontal second
+  cushionX = playAreaEndX - horizontalCushionLength - mouthCushionSize;
+  cushionMouthPieces.push({
+    triangleOneX: cushionX, triangleOneY: cushionY,
+    triangleTwoX: cushionX, triangleTwoY: cushionY + cushionSize,
+    triangleThreeX: cushionX - mouthCushionSize, triangleThreeY: cushionY + cushionSize })
+  cushions.push({ x: cushionX, y: cushionY, width: horizontalCushionLength, height: cushionSize })
+  cushionMouthPieces.push({
+    triangleOneX: cushionX + horizontalCushionLength, triangleOneY: cushionY,
+    triangleTwoX: cushionX + horizontalCushionLength + mouthCushionSize, triangleTwoY: cushionY + cushionSize,
+    triangleThreeX: cushionX + horizontalCushionLength, triangleThreeY: cushionY + cushionSize })
+
+  // right vertical
+  cushionX = playAreaEndX;
+  cushionY = playAreaStartY + mouthCushionSize;
+  cushionMouthPieces.push({
+    triangleOneX: cushionX, triangleOneY: cushionY,
+    triangleTwoX: cushionX + cushionSize, triangleTwoY: cushionY - mouthCushionSize,
+    triangleThreeX: cushionX + cushionSize, triangleThreeY: cushionY })
+  cushions.push({ x: cushionX, y: cushionY, width: cushionSize, height: verticalCushionLength })
+  cushionMouthPieces.push({
+    triangleOneX: cushionX, triangleOneY: cushionY + verticalCushionLength,
+    triangleTwoX: cushionX + cushionSize, triangleTwoY: cushionY + verticalCushionLength,
+    triangleThreeX: cushionX + cushionSize, triangleThreeY: cushionY + verticalCushionLength + mouthCushionSize })
+}
+
+function isCushionsCollision(x, y, radius) {
+  let isCollision = false;
+
+  // top/bottom cushions collision
+  if (isHorizontalCushionCollision(x, y, radius)) return true;
+
+  // side cushions collision
+  if (isVerticalCushionCollision(x, y, radius)) return true;
+
+  if (!isCollision) { // cushion mouth collision
+    for (let i = 0; i < cushionMouthPieces.length; i++) {
+      const piece = cushionMouthPieces[i];
+      if (isTriangleCircleCollision(
+          piece.triangleOneX, piece.triangleOneY,
+          piece.triangleTwoX, piece.triangleTwoY,
+          piece.triangleThreeX, piece.triangleThreeY,
+          x, y, radius)) {
+        isCollision = true;
+        break;
+      }
+    }
+  }
+
+  return isCollision;
+}
+
+function isHorizontalCushionCollision(x, y, radius) {
+  return((x >= playAreaStartX + mouthCushionSize && x <= playAreaStartX + mouthCushionSize * 2 + horizontalCushionLength)
+          || (x >= playAreaEndX - mouthCushionSize - horizontalCushionLength && x <= playAreaEndX - mouthCushionSize))
+      && (y <= playAreaStartY + radius || y >= playAreaEndY - radius);
+}
+
+function isVerticalCushionCollision(x, y, radius) {
+  return y >= tableStartY + mouthCushionSize && y <= playAreaEndY - mouthCushionSize
+      && (x <= playAreaStartX + radius || x >= playAreaEndX - radius);
+}
+
+function createDecorations() {
+  // horizontal diamonds
+  const withoutCushionsStartX = playAreaStartX - cushionSize;
+  for (let i = 1; i < 8; i++) {
+    if (i === 4) continue;
+    diamondPositions.push({ isVertical: true, x: withoutCushionsStartX + (cushionSize * 2 + playAreaWidth) / 8 * i, y: playAreaStartY - diamondCenterSizeFromNose });
+    diamondPositions.push({ isVertical: true, x: withoutCushionsStartX + (cushionSize * 2 + playAreaWidth) / 8 * i, y: playAreaEndY + diamondCenterSizeFromNose });
+  }
+
+  // vertical diamonds
+  const withoutCushionsStartY = playAreaStartY - cushionSize;
+  for (let i = 1; i < 4; i++) {
+    diamondPositions.push({ isVertical: false, x: playAreaStartX - diamondCenterSizeFromNose, y: withoutCushionsStartY + (cushionSize * 2 + playAreaHeight) / 4 * i });
+    diamondPositions.push({ isVertical: false, x: playAreaEndX + diamondCenterSizeFromNose, y: withoutCushionsStartY + (cushionSize * 2 + playAreaHeight) / 4 * i });
+  }
+}
+
 function createPockets() {
-  pockets.push({ x: tableStartX + railSize, y: tableStartY + railSize })
-  pockets.push({ x: tableStartX + railSize, y: tableStartY + tableHeight - railSize })
-  pockets.push({ x: tableStartX + tableWidth / 2, y: tableStartY + railSize })
-  pockets.push({ x: tableStartX + tableWidth / 2, y: tableStartY + tableHeight - railSize })
-  pockets.push({ x: tableStartX + tableWidth - railSize, y: tableStartY + railSize })
-  pockets.push({ x: tableStartX + tableWidth - railSize, y: tableStartY + tableHeight - railSize })
+  const withoutCushionsStartX = playAreaStartX - cushionSize;
+  const withoutCushionsStartY = playAreaStartY - cushionSize;
+  const withoutCushionsEndX = playAreaEndX + cushionSize;
+  const withoutCushionsEndY = playAreaEndY + cushionSize;
+
+  pockets.push({ x: withoutCushionsStartX, y: withoutCushionsStartY })
+  pockets.push({ x: withoutCushionsStartX, y: withoutCushionsEndY })
+  pockets.push({ x: tableStartX + tableWidth / 2, y: withoutCushionsStartY })
+  pockets.push({ x: tableStartX + tableWidth / 2, y: withoutCushionsEndY })
+  pockets.push({ x: withoutCushionsEndX, y: withoutCushionsStartY })
+  pockets.push({ x: withoutCushionsEndX, y: withoutCushionsEndY })
 }
 
 function isPocketsCollision(x, y, radius) {
@@ -504,17 +554,6 @@ function isPocketsCollision(x, y, radius) {
     if (distanceBetweenPoints(x, y, pocket.x, pocket.y) <= radius + pocketRadius) isCollision = true;
   }
   return isCollision;
-}
-
-function drawPockets() {
-  c.fillStyle = pocketColor;
-
-  for (let i = 0; i < pockets.length; i++) {
-    const pocket = pockets[i];
-    c.beginPath();
-    c.arc(pocket.x, pocket.y, pocketRadius, 0, 2*Math.PI);
-    c.fill();
-  }
 }
 
 // balls (cue-ball & numbers 1-9)
@@ -543,9 +582,9 @@ ballColors.push({ color: 'maroon', oneColored: false });
 let ballRadius = 7;
 let maxBallSpeedPerSec = 10;
 let ballDampeningPerSec = 1;
+
 const headPos = { x: 0, y: 0 };
 const cueBallPos = { x: 0, y: 0 };
-
 function resetCueBallPos() {
   cueBallPos.x = headPos.x;
   cueBallPos.y = headPos.y;
@@ -556,33 +595,117 @@ let cueBall = null;
 // TODO 8-ball implementation
 // eslint-disable-next-line no-unused-vars
 let eightBall = null;
+
+const isOnlyCueBall = ref(false);
+watch(isOnlyCueBall, () => resetGame());
 const balls = [];
+const ballsState = [];
+for (let i = 0; i < 16; i++) {
+  ballsState[i] = false;
+}
+
+function drawBalls() {
+  for (let i = 0; i < balls.length; i++) {
+    const ball = balls[i];
+    drawBall(ball.x, ball.y, ballRadius, ball.value, ball.color);
+    if (ballsState[ball.value]) drawBallIcon(ball);
+  }
+}
+
+function drawBallIcon(ball) {
+  const iconX = tableAreaWidth + iconAreaWidth / 2;
+  const iconY = canvas.height / 17 * (ball.value + 1) // accommodate cue
+  drawBall(iconX, iconY, ballIconWidth / 2, ball.value, ball.color);
+}
+
+function drawBall(x, y, radius, value, color) {
+  c.strokeStyle = 'black';
+  c.lineWidth = 1;
+
+  if (value < 9) {
+    // fill with single color
+    c.fillStyle = color; // actual ball color
+    c.beginPath();
+    c.arc(x, y, radius, 0, 2*Math.PI);
+    c.fill();
+    c.stroke(); // slight border around for distinction
+  } else {
+    // stripes arced path
+
+    // actual ball color
+    c.fillStyle = 'white';
+    c.beginPath();
+    c.arc(x, y, radius, 0, 2*Math.PI);
+    c.fill();
+
+    // colored stripe
+    c.fillStyle = color;
+    c.beginPath();
+
+    const firstAngle = Math.PI / 4;
+    const secondAngle = firstAngle * 3;
+    const thirdAngle = firstAngle * 5;
+    const fourthAngle = firstAngle * 7;
+
+    const startPoint = projectPoint(x, y, radius, firstAngle);
+    c.moveTo(startPoint.x, startPoint.y);
+    const secondPoint = projectPoint(x, y, radius, secondAngle);
+    c.lineTo(secondPoint.x, secondPoint.y);
+    c.arc(x, y, radius, secondAngle, thirdAngle);
+    const fourthPoint = projectPoint(x, y, radius, fourthAngle);
+    c.lineTo(fourthPoint.x, fourthPoint.y);
+    c.arc(x, y, radius, fourthAngle, firstAngle);
+    c.fill();
+    c.stroke();
+
+    // slight border around for distinction
+    c.beginPath();
+    c.arc(x, y, radius, 0, 2*Math.PI);
+    c.stroke();
+  }
+
+  if (value !== 0) {
+    c.fillStyle = 'white'; // number-surrounding circle
+    c.beginPath();
+    c.arc(x, y, radius * 0.55, 0, 2 * Math.PI);
+    c.fill();
+
+    c.fillStyle = 'black'; // actual number
+    c.font = '' + radius * 0.9 + 'px Arial'; // emoji size with font
+    const nudgeUnit = radius / 12;
+    const xNudge = value < 10 ? 3 : -1;
+    const yNudge = -2;
+    c.fillText(value, x - radius / 2 + xNudge * nudgeUnit, y + radius / 2 + yNudge * nudgeUnit);
+  }
+}
 
 function createBalls() {
   createCueBall();
 
-  for (let i = 1; i < 15; i++) {
+  for (let i = 1; i < 16; i++) {
     const ballColor = ballColors[i];
     const ball = createBall(i, ballColor.color, ballColor.oneColored);
-    balls.push(ball);
+    if (!isOnlyCueBall.value) balls.push(ball);
 
     if (i === 8) eightBall = ball;
   }
+
+  balls.forEach(ball => ballsState[ball.value] = true); // balls created are active
 }
 
 function createBall(value, ballColor, oneColored) {
-  let randomX = randomBetween(tableStartX, tableStartX + tableWidth);
-  let randomY = randomBetween(tableStartY, tableStartY + tableHeight);
+  let randomX = randomBetween(playAreaStartX + ballRadius, playAreaEndX - ballRadius);
+  let randomY = randomBetween(playAreaStartY + ballRadius, playAreaEndY - ballRadius);
 
   while (
-      isCushionsRailsCollision(randomX, randomY, ballRadius)
+      isCushionsCollision(randomX, randomY, ballRadius)
       || getAnyBallCollidedWith(randomX, randomY, ballRadius)
       || isPocketsCollision(randomX, randomY, ballRadius)
       || isCloseToMid(randomX, randomY, ballRadius)
       ) {
     // randomize new coords
-    randomX = randomBetween(tableStartX, tableStartX + tableWidth);
-    randomY = randomBetween(tableStartY, tableStartY + tableHeight);
+    randomX = randomBetween(playAreaStartX + ballRadius, playAreaEndX - ballRadius);
+    randomY = randomBetween(playAreaStartY + ballRadius, playAreaEndY - ballRadius);
   }
 
   return { x: randomX, y: randomY, ballId: ballId++, value: value, color: ballColor, oneColored: oneColored,
@@ -599,8 +722,7 @@ function createCueBall() {
 
   // create new cue-ball
   const cueBallColor = ballColors[0];
-  cueBall = { x: tableStartX + railSize + (cushionSize + playAreaWidth) / 4 * 3, y: tableStartY + tableHeight / 2,
-    ballId: ballId++, value: 0, color: cueBallColor.color, oneColored: cueBallColor.oneColored,
+  cueBall = { x: headPos.x, y: headPos.y, ballId: ballId++, value: 0, color: cueBallColor.color, oneColored: cueBallColor.oneColored,
     isMoving: false, speedPerSecX: 0, speedPerSecY: 0 };
   balls.push(cueBall);
 }
@@ -670,68 +792,6 @@ function getAnyBallCollidedWith(x, y, radius, ballId = -1) {
   return ballCollidedWith;
 }
 
-function drawBalls() {
-  c.strokeStyle = 'black';
-  c.lineWidth = 1;
-  for (let i = 0; i < balls.length; i++) {
-    const ball = balls[i];
-
-    if (ball.value < 9) {
-      // fill with single color
-      c.fillStyle = ball.color; // actual ball color
-      c.beginPath();
-      c.arc(ball.x, ball.y, ballRadius, 0, 2*Math.PI);
-      c.fill();
-      c.stroke(); // slight border around for distinction
-    } else {
-      // stripes arced path
-
-      // actual ball color
-      c.fillStyle = 'white';
-      c.beginPath();
-      c.arc(ball.x, ball.y, ballRadius, 0, 2*Math.PI);
-      c.fill();
-
-      // colored stripe
-      c.fillStyle = ball.color;
-      c.beginPath();
-
-      const firstAngle = Math.PI / 4;
-      const secondAngle = firstAngle * 3;
-      const thirdAngle = firstAngle * 5;
-      const fourthAngle = firstAngle * 7;
-
-      const startPoint = projectPoint(ball.x, ball.y, ballRadius, firstAngle);
-      c.moveTo(startPoint.x, startPoint.y);
-      const secondPoint = projectPoint(ball.x, ball.y, ballRadius, secondAngle);
-      c.lineTo(secondPoint.x, secondPoint.y);
-      c.arc(ball.x, ball.y, ballRadius, secondAngle, thirdAngle);
-      const fourthPoint = projectPoint(ball.x, ball.y, ballRadius, fourthAngle);
-      c.lineTo(fourthPoint.x, fourthPoint.y);
-      c.arc(ball.x, ball.y, ballRadius, fourthAngle, firstAngle);
-      c.fill();
-      c.stroke();
-
-      // slight border around for distinction
-      c.beginPath();
-      c.arc(ball.x, ball.y, ballRadius, 0, 2*Math.PI);
-      c.stroke();
-    }
-
-    if (ball.value !== 0) {
-      c.fillStyle = 'white'; // number-surrounding circle
-      c.beginPath();
-      c.arc(ball.x, ball.y, ballRadius * 0.55, 0, 2 * Math.PI);
-      c.fill();
-
-      c.fillStyle = 'black'; // actual number
-      c.font = '' + ballRadius * 0.9 + 'px Arial'; // emoji size with font
-      const xNudge = ball.value < 10 ? 3 : -1;
-      c.fillText(ball.value, ball.x - ballRadius / 2 + xNudge, ball.y + ballRadius / 2 - 2);
-    }
-  }
-}
-
 // cue-stick
 
 let cueStickLength = 70;
@@ -779,11 +839,11 @@ const isDrawHintLine = true;
 
 function drawHintLine() {
   if (isDrawHintLine && mousePressedPos) {
-    const cueBallAngleRadian = angleBetweenPointsRadian(mousePressedPos.x, mousePressedPos.y, cueBallPos.x, cueBallPos.y);
+    const cueBallAngleRadian = angleBetweenPointsRadian(mousePos.value.x, mousePos.value.y, cueBallPos.x, cueBallPos.y);
 
     c.lineCap = 'round';
     c.lineWidth = 1;
-    c.strokeStyle = 'grey';
+    c.strokeStyle = 'darkgrey';
 
     let lineStartPoint = projectPoint(cueBallPos.x, cueBallPos.y, ballRadius * 2, cueBallAngleRadian);
     let lineEndPoint = projectPoint(lineStartPoint.x, lineStartPoint.y, cueStickLength * 2, cueBallAngleRadian);
