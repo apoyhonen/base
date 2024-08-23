@@ -38,7 +38,7 @@ const playAreaHeightFactor = playAreaHeightActual / tableWidthActual; // 1/2 fac
 
 const railWidthFactor = railWidthActual / tableWidthActual; // 5 cm actual, 11 cm for visuals
 const cushionWidthFactor = cushionWidthActual / tableWidthActual; // 5 cm
-const mouthCushionAngleRadian = Math.PI * 0.3;
+const mouthCushionAngleRadian = Math.PI * 0.35;
 const pocketRadiusFactor = 5.5 / tableWidthActual; // 5.5 cm
 
 function getPoolTableSizes(tableWidth) {

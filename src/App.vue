@@ -38,6 +38,7 @@
       </td>
 
       <td class="app-cell">
+        <Strategy v-if="shownApp === 'strategy'"></Strategy>
         <Rogue v-if="shownApp === 'rogue'"></Rogue>
         <Pool v-if="shownApp === 'pool'"></Pool>
         <Digger v-if="shownApp === 'digger'"></Digger>
@@ -58,6 +59,7 @@
 
 <script setup>
 
+import Strategy from "@/apps/StrategyApp.vue";
 import Rogue from "@/apps/RogueApp.vue";
 import Pool from "@/apps/BilliardsApp.vue";
 import Digger from "@/apps/DiggerApp.vue";
@@ -76,6 +78,7 @@ import { ref } from "vue";
 const shownApp = ref("pool");
 
 const games = [];
+games.push({ refName: 'strategy', name: 'Strategy (TBA)', status: 1 })
 games.push({ refName: 'rogue', name: 'Rogue (TBA)', status: 1 });
 games.push({ refName: 'digger', name: 'Digger (TBA)', status: 1 });
 games.push({ refName: 'platforms', name: 'Platforms' });
@@ -96,6 +99,7 @@ animations.push({ refName: 'circlemotion', name: 'CircleMotion' })
 animations.push({ refName: 'canvascharts', name: 'Auto-Charts' });
 
 /*
+import Strategy from "@/apps/StrategyApp.vue";
 import Rogue from "@/apps/RogueApp.vue";
 import Billiards from "@/apps/BilliardsApp.vue";
 import Digger from "@/apps/DiggerApp.vue";

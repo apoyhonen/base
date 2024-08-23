@@ -46,9 +46,8 @@ import {
   angleBetweenPointsRadian,
   circleCollisionMovingAndStationary,
   circleCollisionTwoMoving,
-  distanceBetweenPoints,
-  isCircleCollision,
-  isTriangleCircleCollision,
+  distanceBetweenPoints, getCircleCollisionPointOnLine, getRightAngleTriangleHypotenuse,
+  isCircleCollision, isLineCircleCollision,
   projectPoint,
   randomBetween
 } from "@/util/MathUtil";
@@ -205,7 +204,12 @@ function checkCollisions(differenceMs) {
   for (let i = 0; i < balls.length; i++) {
     const ball = balls[i];
 
-    if (isPocketsCollision(ball.x, ball.y, ballRadius)) {
+    if (ball.x < 0 || ball.x > canvas.width || ball.y < 0 || ball.y > canvas.height) {
+      ballsToRemove.push(ball);
+      continue;
+    }
+
+    if (isPocketsCollision(ball.x, ball.y)) {
       ballsToRemove.push(ball);
       ball.isMoving = false;
 
@@ -215,25 +219,43 @@ function checkCollisions(differenceMs) {
       }
     }
 
-    if (isCushionsCollision(ball.x, ball.y, ballRadius)) {
-      // hit top or bottom cushion
-      if (isHorizontalCushionCollision(ball.x, ball.y, ballRadius)) {
-        ball.speedPerSecY *= -1;
-        while (isHorizontalCushionCollision(ball.x, ball.y, ballRadius)) {
-          ball.y += ball.speedPerSecY / 1000 * differenceMs * 2;
-        }
+    // hit top or bottom cushion
+    if (isHorizontalCushionCollision(ball.x, ball.y, ballRadius)) {
+      ball.speedPerSecY *= -1;
+      while (isHorizontalCushionCollision(ball.x, ball.y, ballRadius)) {
+        ball.y += ball.speedPerSecY / 1000 * differenceMs * 2;
+      }
+      continue;
+    }
+
+    // hit left or right cushion
+    if (isVerticalCushionCollision(ball.x, ball.y, ballRadius)) {
+      ball.speedPerSecX *= -1;
+      while (isVerticalCushionCollision(ball.x, ball.y, ballRadius)) {
+        ball.x += ball.speedPerSecX / 1000 * differenceMs * 2;
+      }
+      continue;
+    }
+
+    // hit cushion mouth piece
+    const piece = getAnyCollisionCushionMouthpiece(ball.x, ball.y, ballRadius);
+    if (piece) {
+      const hypotenuse = getRightAngleTriangleHypotenuse(piece.oneX, piece.oneY, piece.twoX, piece.twoY, piece.threeX, piece.threeY);
+      let collisionPoint = getCircleCollisionPointOnLine(ball.x, ball.y, ballRadius, hypotenuse.oneX, hypotenuse.oneY, hypotenuse.twoX, hypotenuse.twoY);
+
+      // TODO redirect line-inverted ball speeds
+
+      // move ball away from line to ensure non-collision
+      while (collisionPoint) {
+        const awayAngle = angleBetweenPointsRadian(collisionPoint.x, collisionPoint.y, ball.x, ball.y);
+        const newBallPoint = projectPoint(ball.x, ball.y, 2, awayAngle);
+        ball.x = newBallPoint.x;
+        ball.y = newBallPoint.y;
+
+        collisionPoint = getCircleCollisionPointOnLine(ball.x, ball.y, ballRadius, hypotenuse.oneX, hypotenuse.oneY, hypotenuse.twoX, hypotenuse.twoY);
       }
 
-      // hit left or right cushion
-      if (isVerticalCushionCollision(ball.x, ball.y, ballRadius)) {
-        ball.speedPerSecX *= -1;
-        while (isVerticalCushionCollision(ball.x, ball.y, ballRadius)) {
-          ball.x += ball.speedPerSecX / 1000 * differenceMs * 2;
-        }
-      }
-
-      // TODO elastic collision with cushion mouth triangles
-      // hit cushion mouth piece
+      continue;
     }
 
     const ballCollidedWith = getAnyBallCollidedWith(ball.x, ball.y, ballRadius, ball.ballId);
@@ -295,8 +317,6 @@ function checkCollisions(differenceMs) {
     } else if (ball.isColliding) {
       ball.isColliding = false; // not colliding anymore
     }
-
-    if (ball.x < 0 || ball.x > canvas.width || ball.y < 0 || ball.y > canvas.height) ballsToRemove.push(ball);
   }
 
   for (let i = 0; i < ballsToRemove.length; i++) {
@@ -352,9 +372,9 @@ function drawCushions() {
   cushions.forEach(cushion => c.fillRect(cushion.x, cushion.y, cushion.width, cushion.height));
   cushionMouthPieces.forEach(piece => {
     c.beginPath();
-    c.moveTo(piece.triangleOneX, piece.triangleOneY);
-    c.lineTo(piece.triangleTwoX, piece.triangleTwoY);
-    c.lineTo(piece.triangleThreeX, piece.triangleThreeY);
+    c.moveTo(piece.oneX, piece.oneY);
+    c.lineTo(piece.twoX, piece.twoY);
+    c.lineTo(piece.threeX, piece.threeY);
     c.fill();
   })
 }
@@ -406,103 +426,88 @@ function createCushions() {
   let cushionX = playAreaStartX + mouthCushionSize;
   let cushionY = playAreaStartY - cushionSize;
   cushionMouthPieces.push({
-    triangleOneX: cushionX, triangleOneY: cushionY,
-    triangleTwoX: cushionX, triangleTwoY: cushionY + cushionSize,
-    triangleThreeX: cushionX - mouthCushionSize, triangleThreeY: cushionY })
+    oneX: cushionX, oneY: cushionY,
+    twoX: cushionX, twoY: cushionY + cushionSize,
+    threeX: cushionX - mouthCushionSize, threeY: cushionY })
   cushions.push({ x: cushionX, y: cushionY, width: horizontalCushionLength, height: cushionSize })
   cushionMouthPieces.push({
-    triangleOneX: cushionX + horizontalCushionLength, triangleOneY: cushionY,
-    triangleTwoX: cushionX + horizontalCushionLength + mouthCushionSize, triangleTwoY: cushionY,
-    triangleThreeX: cushionX + horizontalCushionLength, triangleThreeY: cushionY + cushionSize })
+    oneX: cushionX + horizontalCushionLength, oneY: cushionY,
+    twoX: cushionX + horizontalCushionLength + mouthCushionSize, twoY: cushionY,
+    threeX: cushionX + horizontalCushionLength, threeY: cushionY + cushionSize })
 
   // top horizontal second
   cushionX = playAreaEndX - horizontalCushionLength - mouthCushionSize;
   cushionMouthPieces.push({
-    triangleOneX: cushionX, triangleOneY: cushionY,
-    triangleTwoX: cushionX, triangleTwoY: cushionY + cushionSize,
-    triangleThreeX: cushionX - mouthCushionSize, triangleThreeY: cushionY })
+    oneX: cushionX, oneY: cushionY,
+    twoX: cushionX, twoY: cushionY + cushionSize,
+    threeX: cushionX - mouthCushionSize, threeY: cushionY })
   cushions.push({ x: cushionX, y: cushionY, width: horizontalCushionLength, height: cushionSize })
   cushionMouthPieces.push({
-    triangleOneX: cushionX + horizontalCushionLength, triangleOneY: cushionY,
-    triangleTwoX: cushionX + horizontalCushionLength + mouthCushionSize, triangleTwoY: cushionY,
-    triangleThreeX: cushionX + horizontalCushionLength, triangleThreeY: cushionY + cushionSize })
+    oneX: cushionX + horizontalCushionLength, oneY: cushionY,
+    twoX: cushionX + horizontalCushionLength + mouthCushionSize, twoY: cushionY,
+    threeX: cushionX + horizontalCushionLength, threeY: cushionY + cushionSize })
 
   // left vertical
   cushionX = tableStartX + railSize;
   cushionY = playAreaStartY + mouthCushionSize;
   cushionMouthPieces.push({
-    triangleOneX: cushionX, triangleOneY: cushionY,
-    triangleTwoX: cushionX, triangleTwoY: cushionY - mouthCushionSize,
-    triangleThreeX: cushionX + cushionSize, triangleThreeY: cushionY })
+    oneX: cushionX, oneY: cushionY,
+    twoX: cushionX, twoY: cushionY - mouthCushionSize,
+    threeX: cushionX + cushionSize, threeY: cushionY })
   cushions.push({ x: cushionX, y: cushionY, width: cushionSize, height: verticalCushionLength })
   cushionMouthPieces.push({
-    triangleOneX: cushionX, triangleOneY: cushionY + verticalCushionLength,
-    triangleTwoX: cushionX + cushionSize, triangleTwoY: cushionY + verticalCushionLength,
-    triangleThreeX: cushionX, triangleThreeY: cushionY + verticalCushionLength + mouthCushionSize })
+    oneX: cushionX, oneY: cushionY + verticalCushionLength,
+    twoX: cushionX + cushionSize, twoY: cushionY + verticalCushionLength,
+    threeX: cushionX, threeY: cushionY + verticalCushionLength + mouthCushionSize })
 
   // bottom horizontal first
   cushionX = playAreaStartX + mouthCushionSize;
   cushionY = playAreaEndY;
   cushionMouthPieces.push({
-    triangleOneX: cushionX, triangleOneY: cushionY,
-    triangleTwoX: cushionX, triangleTwoY: cushionY + cushionSize,
-    triangleThreeX: cushionX - mouthCushionSize, triangleThreeY: cushionY + cushionSize })
+    oneX: cushionX, oneY: cushionY,
+    twoX: cushionX, twoY: cushionY + cushionSize,
+    threeX: cushionX - mouthCushionSize, threeY: cushionY + cushionSize })
   cushions.push({ x: cushionX, y: cushionY, width: horizontalCushionLength, height: cushionSize })
   cushionMouthPieces.push({
-    triangleOneX: cushionX + horizontalCushionLength, triangleOneY: cushionY,
-    triangleTwoX: cushionX + horizontalCushionLength + mouthCushionSize, triangleTwoY: cushionY + cushionSize,
-    triangleThreeX: cushionX + horizontalCushionLength, triangleThreeY: cushionY + cushionSize })
+    oneX: cushionX + horizontalCushionLength, oneY: cushionY,
+    twoX: cushionX + horizontalCushionLength + mouthCushionSize, twoY: cushionY + cushionSize,
+    threeX: cushionX + horizontalCushionLength, threeY: cushionY + cushionSize })
 
   // bottom horizontal second
   cushionX = playAreaEndX - horizontalCushionLength - mouthCushionSize;
   cushionMouthPieces.push({
-    triangleOneX: cushionX, triangleOneY: cushionY,
-    triangleTwoX: cushionX, triangleTwoY: cushionY + cushionSize,
-    triangleThreeX: cushionX - mouthCushionSize, triangleThreeY: cushionY + cushionSize })
+    oneX: cushionX, oneY: cushionY,
+    twoX: cushionX, twoY: cushionY + cushionSize,
+    threeX: cushionX - mouthCushionSize, threeY: cushionY + cushionSize })
   cushions.push({ x: cushionX, y: cushionY, width: horizontalCushionLength, height: cushionSize })
   cushionMouthPieces.push({
-    triangleOneX: cushionX + horizontalCushionLength, triangleOneY: cushionY,
-    triangleTwoX: cushionX + horizontalCushionLength + mouthCushionSize, triangleTwoY: cushionY + cushionSize,
-    triangleThreeX: cushionX + horizontalCushionLength, triangleThreeY: cushionY + cushionSize })
+    oneX: cushionX + horizontalCushionLength, oneY: cushionY,
+    twoX: cushionX + horizontalCushionLength + mouthCushionSize, twoY: cushionY + cushionSize,
+    threeX: cushionX + horizontalCushionLength, threeY: cushionY + cushionSize })
 
   // right vertical
   cushionX = playAreaEndX;
   cushionY = playAreaStartY + mouthCushionSize;
   cushionMouthPieces.push({
-    triangleOneX: cushionX, triangleOneY: cushionY,
-    triangleTwoX: cushionX + cushionSize, triangleTwoY: cushionY - mouthCushionSize,
-    triangleThreeX: cushionX + cushionSize, triangleThreeY: cushionY })
+    oneX: cushionX, oneY: cushionY,
+    twoX: cushionX + cushionSize, twoY: cushionY - mouthCushionSize,
+    threeX: cushionX + cushionSize, threeY: cushionY })
   cushions.push({ x: cushionX, y: cushionY, width: cushionSize, height: verticalCushionLength })
   cushionMouthPieces.push({
-    triangleOneX: cushionX, triangleOneY: cushionY + verticalCushionLength,
-    triangleTwoX: cushionX + cushionSize, triangleTwoY: cushionY + verticalCushionLength,
-    triangleThreeX: cushionX + cushionSize, triangleThreeY: cushionY + verticalCushionLength + mouthCushionSize })
+    oneX: cushionX, oneY: cushionY + verticalCushionLength,
+    twoX: cushionX + cushionSize, twoY: cushionY + verticalCushionLength,
+    threeX: cushionX + cushionSize, threeY: cushionY + verticalCushionLength + mouthCushionSize })
 }
 
 function isCushionsCollision(x, y, radius) {
-  let isCollision = false;
-
   // top/bottom cushions collision
   if (isHorizontalCushionCollision(x, y, radius)) return true;
 
   // side cushions collision
   if (isVerticalCushionCollision(x, y, radius)) return true;
 
-  if (!isCollision) { // cushion mouth collision
-    for (let i = 0; i < cushionMouthPieces.length; i++) {
-      const piece = cushionMouthPieces[i];
-      if (isTriangleCircleCollision(
-          piece.triangleOneX, piece.triangleOneY,
-          piece.triangleTwoX, piece.triangleTwoY,
-          piece.triangleThreeX, piece.triangleThreeY,
-          x, y, radius)) {
-        isCollision = true;
-        break;
-      }
-    }
-  }
-
-  return isCollision;
+  // cushion mouth collision
+  return isAnyCushionMouthPieceCollision(x, y, radius);
 }
 
 function isHorizontalCushionCollision(x, y, radius) {
@@ -514,6 +519,23 @@ function isHorizontalCushionCollision(x, y, radius) {
 function isVerticalCushionCollision(x, y, radius) {
   return y >= tableStartY + mouthCushionSize && y <= playAreaEndY - mouthCushionSize
       && (x <= playAreaStartX + radius || x >= playAreaEndX - radius);
+}
+
+function isAnyCushionMouthPieceCollision(x, y, radius) {
+  return getAnyCollisionCushionMouthpiece(x, y, radius) !== null;
+}
+
+function getAnyCollisionCushionMouthpiece(x, y, radius) {
+  for (let i = 0; i < cushionMouthPieces.length; i++) {
+    const piece = cushionMouthPieces[i];
+    if (isMouthPieceCollision(piece, x, y, radius)) return piece;
+  }
+  return null;
+}
+
+function isMouthPieceCollision(piece, x, y, radius) {
+  const hypotenuse = getRightAngleTriangleHypotenuse(piece.oneX, piece.oneY, piece.twoX, piece.twoY, piece.threeX, piece.threeY);
+  return isLineCircleCollision(x, y, radius, hypotenuse.oneX, hypotenuse.oneY, hypotenuse.twoX, hypotenuse.twoY);
 }
 
 function createDecorations() {
@@ -547,11 +569,11 @@ function createPockets() {
   pockets.push({ x: withoutCushionsEndX, y: withoutCushionsEndY })
 }
 
-function isPocketsCollision(x, y, radius) {
+function isPocketsCollision(x, y) {
   let isCollision = false;
   for (let i = 0; i < pockets.length; i++) {
     const pocket = pockets[i];
-    if (distanceBetweenPoints(x, y, pocket.x, pocket.y) <= radius + pocketRadius) isCollision = true;
+    if (distanceBetweenPoints(x, y, pocket.x, pocket.y) <= pocketRadius) isCollision = true;
   }
   return isCollision;
 }
@@ -700,7 +722,7 @@ function createBall(value, ballColor, oneColored) {
   while (
       isCushionsCollision(randomX, randomY, ballRadius)
       || getAnyBallCollidedWith(randomX, randomY, ballRadius)
-      || isPocketsCollision(randomX, randomY, ballRadius)
+      || isPocketsCollision(randomX, randomY)
       || isCloseToMid(randomX, randomY, ballRadius)
       ) {
     // randomize new coords

@@ -3,8 +3,9 @@ export {
     degreesToRadian, radianToDegrees,
     angleBetweenPointsRadian, angleBetweenPointsDegreesPositive,
     projectPoint,
-    distanceBetweenPoints, distanceToLine,
-    isRectCollision, isCircleCollision, isRectCircleCollision, isTriangleCircleCollision,
+    distanceBetweenPoints, closestPointToLine, distanceToLine,
+    getRightAngleTriangleHypotenuse, getCircleCollisionPointOnLine,
+    isRectCollision, isCircleCollision, isRectCircleCollision, isTriangleCircleCollision, isLineCircleCollision,
     twoCircleCollisionPoint, circleCollisionTwoMoving, circleCollisionMovingAndStationary,
     easeOutCubic, easeInCubic, testEasing,
 };
@@ -54,25 +55,72 @@ function distanceBetweenPoints(originX, originY, targetX, targetY) {
     return Math.hypot(originX - targetX, originY - targetY);
 }
 
-function distanceToLine(originX, originY, lineFirstPointX, lineFirstPointY, lineSecondPointX, lineSecondPointY) {
-    return Math.sqrt(distanceToLineToPowerOfTwo(originX, originY, lineFirstPointX, lineFirstPointY, lineSecondPointX, lineSecondPointY));
+function closestPointToLine(originX, originY, firstX, firstY, secondX, secondY) {
+    const A1 = secondY - firstY;
+    const B1 = firstX - secondX;
+    const C1 = (secondY - firstY) * firstX + (firstX - secondX) * firstY;
+    const C2 = -B1 * originX + A1 * originY;
+    const det = A1 * A1 - -B1 * B1;
+
+    // closest on pure line
+    let closestX;
+    let closestY;
+    if (det !== 0) {
+        closestX = (A1 * C1 - B1 * C2) / det;
+        closestY = (A1 * C2 - -B1 * C1) / det; // closest on pure line
+    } else{
+        closestX = originX;
+        closestY = originY;
+    }
+
+    // only return point if it exists on the actual segment
+    if (isPointOnLineSegment(closestX, closestY, firstX, firstY, secondX, secondY)) {
+        return  { x: closestX, y: closestY };
+    } else return null; // not on actual segment
 }
 
-function distanceToLineToPowerOfTwo(originX, originY, lineFirstPointX, lineFirstPointY, lineSecondPointX, lineSecondPointY) {
-    const linePointsDistance = distanceToPowerOfTwo(lineFirstPointX, lineFirstPointY, lineSecondPointX, lineSecondPointY);
-    if (linePointsDistance === 0) return distanceToPowerOfTwo(originX, originY, lineFirstPointX, lineFirstPointY);
+function isPointOnLineSegment(pointX, pointY, firstX, firstY, secondX, secondY) {
+    const largerX = Math.max(firstX, secondX);
+    const smallerX = Math.min(firstX, secondX);
+    const largerY = Math.max(firstY, secondY);
+    const smallerY = Math.min(firstY, secondY);
 
-    let dot = ((originX - lineFirstPointX) * (lineSecondPointX - lineFirstPointX)
-        + (originY - lineFirstPointY) * (lineSecondPointY - lineFirstPointY)) / linePointsDistance;
+    return pointX >= smallerX && pointX <= largerX && pointY >= smallerY && pointY <= largerY;
+}
+
+function distanceToLine(originX, originY, firstX, firstY, secondX, secondY) {
+    return Math.sqrt(distanceToLineToPowerOfTwo(originX, originY, firstX, firstY, secondX, secondY));
+}
+
+function distanceToLineToPowerOfTwo(originX, originY, firstX, firstY, secondX, secondY) {
+    const linePointsDistance = distanceToPowerOfTwo(firstX, firstY, secondX, secondY);
+    if (linePointsDistance === 0) return distanceToPowerOfTwo(originX, originY, firstX, firstY);
+
+    let dot = ((originX - firstX) * (secondX - firstX)
+        + (originY - firstY) * (secondY - firstY)) / linePointsDistance;
     dot = Math.max(0, Math.min(1, dot));
 
     return distanceToPowerOfTwo(originX, originY,
-        lineFirstPointX + dot * (lineSecondPointX - lineFirstPointX),
-        lineFirstPointY + dot * (lineSecondPointY - lineFirstPointY));
+        firstX + dot * (secondX - firstX),
+        firstY + dot * (secondY - firstY));
 }
 
-function distanceToPowerOfTwo(lineFirstPointX, lineFirstPointY, lineSecondPointX, lineSecondPointY) {
-    return squared(lineFirstPointX - lineSecondPointX) + squared(lineFirstPointY - lineSecondPointY);
+function distanceToPowerOfTwo(firstX, firstY, secondX, secondY) {
+    return squared(firstX - secondX) + squared(firstY - secondY);
+}
+
+function getRightAngleTriangleHypotenuse(triangleOneX, triangleOneY, triangleTwoX, triangleTwoY, triangleThreeX, triangleThreeY) {
+    const line1 = { oneX: triangleOneX, oneY: triangleOneY, twoX: triangleTwoX, twoY: triangleTwoY };
+    const line2 = { oneX: triangleTwoX, oneY: triangleTwoY, twoX: triangleThreeX, twoY: triangleThreeY };
+    const line3 = { oneX: triangleThreeX, oneY: triangleThreeY, twoX: triangleOneX, twoY: triangleOneY };
+
+    const distanceOne = distanceBetweenPoints(line1.oneX, line1.oneY, line1.twoX, line1.twoY);
+    const distanceTwo = distanceBetweenPoints(line2.oneX, line2.oneY, line2.twoX, line2.twoY);
+    const distanceThree = distanceBetweenPoints(line3.oneX, line3.oneY, line3.twoX, line3.twoY);
+
+    if (distanceOne > distanceTwo && distanceOne > distanceThree) return line1;
+    if (distanceTwo > distanceOne && distanceTwo > distanceThree) return line2;
+    else return line3; // 3 longer than one or two
 }
 
 // collision
@@ -102,18 +150,31 @@ function isRectCircleCollision(rectX, rectY, rectWidth, rectHeight, circleX, cir
     return dx * dx + dy * dy <= circleRadius * circleRadius;
 }
 
-function isTriangleCircleCollision(triangleOneX, triangleOneY, triangleTwoX, triangleTwoY, triangleThreeX, triangleThreeY, circleX, circleY, circleRadius) {
+function isTriangleCircleCollision(firstX, firstY, secondX, secondY, thirdX, thirdY, circleX, circleY, circleRadius) {
     // circle hits points
-    if (distanceBetweenPoints(triangleOneX, triangleOneY, circleX, circleY) <= circleRadius) return true;
-    if (distanceBetweenPoints(triangleTwoX, triangleTwoY, circleX, circleY) <= circleRadius) return true;
-    if (distanceBetweenPoints(triangleThreeX, triangleThreeY, circleX, circleY) <= circleRadius) return true;
+    if (distanceBetweenPoints(firstX, firstY, circleX, circleY) <= circleRadius) return true;
+    if (distanceBetweenPoints(secondX, secondY, circleX, circleY) <= circleRadius) return true;
+    if (distanceBetweenPoints(thirdX, thirdY, circleX, circleY) <= circleRadius) return true;
 
     // circle hits lines
-    if (distanceToLine(circleX, circleY, triangleOneX, triangleOneY, triangleTwoX, triangleTwoY) <= circleRadius) return true;
-    if (distanceToLine(circleX, circleY, triangleTwoX, triangleTwoY, triangleThreeX, triangleThreeY) <= circleRadius) return true;
-    if (distanceToLine(circleX, circleY, triangleThreeX, triangleThreeY, triangleOneX, triangleOneY) <= circleRadius) return true;
+    if (distanceToLine(circleX, circleY, firstX, firstY, secondX, secondY) <= circleRadius) return true;
+    if (distanceToLine(circleX, circleY, secondX, secondY, thirdX, thirdY) <= circleRadius) return true;
+    if (distanceToLine(circleX, circleY, thirdX, thirdY, firstX, firstY) <= circleRadius) return true;
 
     return false;
+}
+
+function isLineCircleCollision(circleX, circleY, circleRadius, firstX, firstY, secondX, secondY) {
+    return getCircleCollisionPointOnLine(circleX, circleY, circleRadius, firstX, firstY, secondX, secondY) !== null;
+}
+
+function getCircleCollisionPointOnLine(circleX, circleY, circleRadius, firstX, firstY, secondX, secondY) {
+    const closestPointOnLine = closestPointToLine(circleX, circleY, firstX, firstY, secondX, secondY);
+    if (closestPointOnLine && Math.abs((closestPointOnLine.x - circleX) * (closestPointOnLine.x - circleX) + (closestPointOnLine.y - circleY) * (closestPointOnLine.y - circleY)) < circleRadius * circleRadius + 1) {
+        return closestPointOnLine;
+    } else {
+        return null;
+    }
 }
 
 function twoCircleCollisionPoint(firstX, firstY, firstRadius, secondX, secondY, secondRadius) {
